@@ -81,12 +81,14 @@ public class PlayerRegistry {
      * @param store The entity store
      * @param world The world (can be extracted from store if null)
      * @param playerRef The player reference for UI/network operations
+     * @param player The Player entity for game mode polling
      */
     public void setEcsReferences(@Nonnull UUID playerId,
                                   @Nullable Ref<EntityStore> entityRef,
                                   @Nullable Store<EntityStore> store,
                                   @Nullable World world,
-                                  @Nullable PlayerRef playerRef) {
+                                  @Nullable PlayerRef playerRef,
+                                  @Nullable com.hypixel.hytale.server.core.entity.entities.Player player) {
         var session = sessions.get(playerId);
         if (session == null) {
             logger.at(Level.WARNING).log(
@@ -107,7 +109,7 @@ public class PlayerRegistry {
             }
         }
 
-        session.setEcsReferences(entityRef, store, world, playerRef);
+        session.setEcsReferences(entityRef, store, world, playerRef, player);
 
         if (session.isEcsReady()) {
             logger.at(Level.INFO).log("ECS ready for player: %s", playerId);
@@ -128,7 +130,7 @@ public class PlayerRegistry {
     public void setEcsReferences(@Nonnull UUID playerId,
                                   @Nullable Ref<EntityStore> entityRef,
                                   @Nullable Store<EntityStore> store) {
-        setEcsReferences(playerId, entityRef, store, null, null);
+        setEcsReferences(playerId, entityRef, store, null, null, null);
     }
 
     /**

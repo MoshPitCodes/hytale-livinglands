@@ -8,7 +8,9 @@ public record ModConfig(
     MetabolismConfig metabolism,
     ConsumablesConfig consumables,
     SleepConfig sleep,
-    DebuffsConfig debuffs
+    DebuffsConfig debuffs,
+    PoisonConfig poison,
+    DebuffConfig nativeDebuffs
 ) {
     /**
      * Creates a default configuration instance.
@@ -18,7 +20,9 @@ public record ModConfig(
             new MetabolismConfig(),
             ConsumablesConfig.defaultConfig(),
             SleepConfig.defaultConfig(),
-            DebuffsConfig.defaultConfig()
+            DebuffsConfig.defaultConfig(),
+            PoisonConfig.defaults(),
+            DebuffConfig.defaults()
         );
     }
 
@@ -26,6 +30,7 @@ public record ModConfig(
      * Default constructor with default values.
      */
     public ModConfig() {
-        this(new MetabolismConfig(), ConsumablesConfig.defaultConfig(), SleepConfig.defaultConfig(), DebuffsConfig.defaultConfig());
+        this(new MetabolismConfig(), ConsumablesConfig.defaultConfig(), SleepConfig.defaultConfig(),
+             DebuffsConfig.defaultConfig(), PoisonConfig.defaults(), DebuffConfig.defaults());
     }
 }

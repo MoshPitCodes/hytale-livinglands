@@ -9,7 +9,6 @@ import com.livinglands.core.config.ModConfig;
 import com.livinglands.listeners.BedInteractionListener;
 import com.livinglands.listeners.CombatDetectionListener;
 import com.livinglands.listeners.DeathHandlerListener;
-import com.livinglands.listeners.ItemConsumptionListener;
 import com.livinglands.listeners.PlayerEventListener;
 
 import java.nio.file.Path;
@@ -18,6 +17,7 @@ import com.livinglands.metabolism.HungerStat;
 import com.livinglands.metabolism.MetabolismSystem;
 import com.livinglands.metabolism.ThirstStat;
 import com.livinglands.metabolism.consumables.ConsumableRegistry;
+import com.livinglands.metabolism.poison.PoisonRegistry;
 import com.livinglands.ui.MetabolismHudManager;
 
 import javax.annotation.Nonnull;
@@ -98,6 +98,11 @@ public class LivingLandsPlugin extends JavaPlugin {
             ConsumableRegistry.initialize(config.consumables(), getLogger());
             getLogger().at(Level.INFO).log("Registered %d consumable items from config", ConsumableRegistry.getRegisteredCount());
 
+            // Initialize poison registry from config
+            getLogger().at(Level.INFO).log("Initializing poison registry...");
+            PoisonRegistry.initialize(config.poison(), getLogger());
+            getLogger().at(Level.INFO).log("Registered %d poisonous items from config", PoisonRegistry.getRegisteredCount());
+
             // Initialize custom stats
             getLogger().at(Level.INFO).log("Initializing custom stats...");
             HungerStat.initialize();
@@ -122,9 +127,9 @@ public class LivingLandsPlugin extends JavaPlugin {
             var playerEventListener = new PlayerEventListener(this);
             playerEventListener.register(getEventRegistry());
 
-            // Register item consumption listener for food/drink
-            var itemConsumptionListener = new ItemConsumptionListener(this);
-            itemConsumptionListener.register(getEventRegistry());
+            // Note: Food consumption is now detected via FoodEffectDetector in MetabolismSystem tick
+            // Consumable poison is handled by PoisonEffectsSystem (timed effects from eating poisonous items)
+            // Native debuffs are handled by DebuffEffectsSystem (Hytale's poison, burn, stun, freeze, root, slow effects)
 
             // Register bed interaction listener for energy restoration
             var bedInteractionListener = new BedInteractionListener(this);

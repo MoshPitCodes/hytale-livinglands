@@ -57,6 +57,9 @@ public class PlayerEventListener {
         // Register player disconnect event handler
         eventRegistry.register(PlayerDisconnectEvent.class, this::onPlayerDisconnect);
 
+        // NOTE: Game mode change detection is done by polling in MetabolismSystem
+        // The ChangeGameModeEvent is an ECS event and requires different registration
+
         plugin.getLogger().at(Level.INFO).log("Registered player event listeners (connect, ready, disconnect)");
     }
 
@@ -111,8 +114,8 @@ public class PlayerEventListener {
             var playerRef = player.getPlayerRef();
             var playerId = playerRef.getUuid();
 
-            // Set ECS references in central PlayerRegistry (including PlayerRef for UI)
-            playerRegistry.setEcsReferences(playerId, entityRef, store, null, playerRef);
+            // Set ECS references in central PlayerRegistry (including Player for game mode polling)
+            playerRegistry.setEcsReferences(playerId, entityRef, store, null, playerRef, player);
 
             // Initialize HUD for this player
             var sessionOpt = playerRegistry.getSession(playerId);

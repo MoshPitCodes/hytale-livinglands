@@ -79,16 +79,16 @@ public record ConsumablesConfig(
                 new ConsumableEntry("Food_Popcorn", 7),
                 new ConsumableEntry("Food_Candy_Cane", 6),
 
-                // Raw Meats
-                new ConsumableEntry("Food_Beef_Raw", 10),
-                new ConsumableEntry("Food_Chicken_Raw", 8),
-                new ConsumableEntry("Food_Pork_Raw", 10),
-                new ConsumableEntry("Food_Fish_Raw", 8),
-                new ConsumableEntry("Food_Fish_Raw_Uncommon", 10),
-                new ConsumableEntry("Food_Fish_Raw_Rare", 13),
-                new ConsumableEntry("Food_Fish_Raw_Epic", 15),
-                new ConsumableEntry("Food_Fish_Raw_Legendary", 20),
-                new ConsumableEntry("Food_Wildmeat_Raw", 10),
+                // Raw Meats (reduced by 70% - risk of food poisoning)
+                new ConsumableEntry("Food_Beef_Raw", 3),
+                new ConsumableEntry("Food_Chicken_Raw", 2),
+                new ConsumableEntry("Food_Pork_Raw", 3),
+                new ConsumableEntry("Food_Fish_Raw", 2),
+                new ConsumableEntry("Food_Fish_Raw_Uncommon", 3),
+                new ConsumableEntry("Food_Fish_Raw_Rare", 4),
+                new ConsumableEntry("Food_Fish_Raw_Epic", 5),
+                new ConsumableEntry("Food_Fish_Raw_Legendary", 6),
+                new ConsumableEntry("Food_Wildmeat_Raw", 3),
 
                 // Cooked Meats
                 new ConsumableEntry("Food_Wildmeat_Cooked", 32),
@@ -168,12 +168,10 @@ public record ConsumablesConfig(
                 new ConsumableEntry("Potion_Regen_Mana_Small", 14),
                 new ConsumableEntry("Potion_Regen_Mana_Large", 28),
 
-                // Other Potions
+                // Other Potions (non-poisonous)
                 new ConsumableEntry("Potion_Antidote", 18),
                 new ConsumableEntry("Potion_Purify", 21),
-                new ConsumableEntry("Potion_Poison", 10),
-                new ConsumableEntry("Potion_Poison_Minor", 7),
-                new ConsumableEntry("Potion_Poison_Large", 14),
+                // NOTE: Poison potions removed - handled by PoisonConfig instead
 
                 // Morph Potions
                 new ConsumableEntry("Potion_Morph_Dog", 14),

@@ -5,6 +5,9 @@ import com.livinglands.core.PlayerRegistry;
 import com.livinglands.core.PlayerSession;
 import com.livinglands.core.config.ModConfig;
 import com.livinglands.core.persistence.PlayerDataPersistence;
+import com.livinglands.listeners.FoodConsumptionProcessor;
+import com.livinglands.metabolism.poison.PoisonEffectsSystem;
+import com.livinglands.metabolism.debuff.DebuffEffectsSystem;
 
 import java.nio.file.Path;
 
@@ -31,8 +34,11 @@ import javax.annotation.Nonnull;
  */
 public class MetabolismSystem {
 
-    // Update frequency (1 second intervals for Phase 1)
+    // Update frequency for metabolism depletion (1 second intervals)
     private static final long TICK_INTERVAL_MS = 1000L;
+
+    // Update frequency for food effect detection (50ms to catch 100ms instant heals)
+    private static final long EFFECT_DETECTION_INTERVAL_MS = 50L;
 
     private final ModConfig config;
     private final HytaleLogger logger;
@@ -43,6 +49,15 @@ public class MetabolismSystem {
     // Debuffs system for applying effects when stats are low
     private final DebuffsSystem debuffsSystem;
 
+    // Poison effects system for timed damage from poisonous items
+    private final PoisonEffectsSystem poisonEffectsSystem;
+
+    // Native debuff effects system for all Hytale debuffs (poison, burn, stun, freeze, root, slow)
+    private final DebuffEffectsSystem debuffEffectsSystem;
+
+    // Food consumption processor for detecting food buff effects
+    private final FoodConsumptionProcessor foodConsumptionProcessor;
+
     // Activity detector for reading player movement state from ECS
     private final ActivityDetector activityDetector;
 
@@ -50,6 +65,7 @@ public class MetabolismSystem {
     private final PlayerDataPersistence persistence;
 
     private ScheduledFuture<?> tickTask;
+    private ScheduledFuture<?> effectDetectionTask;
     private volatile boolean running = false;
 
     /**
@@ -67,6 +83,11 @@ public class MetabolismSystem {
         this.playerRegistry = playerRegistry;
         this.playerData = new ConcurrentHashMap<>();
         this.debuffsSystem = new DebuffsSystem(config.debuffs(), logger, playerRegistry);
+        this.poisonEffectsSystem = new PoisonEffectsSystem(config.poison(), logger);
+        this.poisonEffectsSystem.setMetabolismSystem(this, playerRegistry); // Wire back-reference for stat manipulation
+        this.debuffEffectsSystem = new DebuffEffectsSystem(config.nativeDebuffs(), logger);
+        this.debuffEffectsSystem.setMetabolismSystem(this, playerRegistry); // Wire back-reference for stat manipulation
+        this.foodConsumptionProcessor = new FoodConsumptionProcessor(logger, this, playerRegistry);
         this.activityDetector = new ActivityDetector(logger);
         this.persistence = new PlayerDataPersistence(pluginDirectory, logger);
         this.executor = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -85,10 +106,19 @@ public class MetabolismSystem {
             return;
         }
 
+        // Main metabolism tick (depletion, debuffs, poison) - every 1 second
         tickTask = executor.scheduleAtFixedRate(
             this::tick,
             0,
             TICK_INTERVAL_MS,
+            TimeUnit.MILLISECONDS
+        );
+
+        // High-frequency effect detection tick - every 50ms to catch instant heals (100ms duration)
+        effectDetectionTask = executor.scheduleAtFixedRate(
+            this::effectDetectionTick,
+            0,
+            EFFECT_DETECTION_INTERVAL_MS,
             TimeUnit.MILLISECONDS
         );
 
@@ -108,6 +138,11 @@ public class MetabolismSystem {
             tickTask = null;
         }
 
+        if (effectDetectionTask != null) {
+            effectDetectionTask.cancel(false);
+            effectDetectionTask = null;
+        }
+
         executor.shutdown();
         try {
             if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
@@ -122,15 +157,21 @@ public class MetabolismSystem {
     }
 
     /**
-     * Main tick update - called periodically.
-     * Processes all online players.
+     * Main tick update - called every 1 second.
+     * Processes metabolism depletion, debuffs, and poison for all online players.
      */
     private void tick() {
         try {
             var currentTime = System.currentTimeMillis();
 
-            // Process all tracked players
+            // Process all tracked players (depletion, activity, debuffs)
             playerData.values().forEach(data -> processPlayer(data, currentTime));
+
+            // Process active poison effects (from consumables)
+            poisonEffectsSystem.processPoisonEffects();
+
+            // Process native Hytale debuff effects (poison, burn, stun, freeze, root, slow)
+            debuffEffectsSystem.processDebuffEffects();
 
         } catch (Exception e) {
             // Silently handle tick errors to avoid spam
@@ -138,13 +179,34 @@ public class MetabolismSystem {
     }
 
     /**
+     * High-frequency effect detection tick - called every 50ms.
+     * Detects food consumption by monitoring for new food buff effects.
+     * This runs faster than the main tick to catch instant heals (100ms duration).
+     */
+    private void effectDetectionTick() {
+        try {
+            // Process food consumption detection for all tracked players
+            playerData.keySet().forEach(foodConsumptionProcessor::processPlayer);
+        } catch (Exception e) {
+            // Silently handle tick errors to avoid spam
+        }
+    }
+
+    /**
      * Processes a single player's metabolism.
+     * Skips processing if player is in Creative mode.
      *
      * @param data Player metabolism data
      * @param currentTime Current server time in milliseconds
      */
     private void processPlayer(PlayerMetabolismData data, long currentTime) {
         try {
+            // Skip metabolism processing for Creative mode players
+            var sessionOpt = playerRegistry.getSession(data.getPlayerUuid());
+            if (sessionOpt.isPresent() && sessionOpt.get().isCreativeMode()) {
+                return; // Metabolism paused in Creative mode
+            }
+
             var metabolism = config.metabolism();
 
             // Detect real activity state from ECS
@@ -320,6 +382,9 @@ public class MetabolismSystem {
 
         playerData.remove(playerUuid);
         debuffsSystem.removePlayer(playerUuid);
+        poisonEffectsSystem.removePlayer(playerUuid);
+        debuffEffectsSystem.removePlayer(playerUuid);
+        foodConsumptionProcessor.removePlayer(playerUuid);
     }
 
     /**
@@ -464,5 +529,29 @@ public class MetabolismSystem {
      */
     public int getTrackedPlayerCount() {
         return playerData.size();
+    }
+
+    /**
+     * Gets the UUIDs of all tracked players.
+     * Used by poison effects system to check for native poison debuffs.
+     */
+    public java.util.Set<UUID> getTrackedPlayerIds() {
+        return playerData.keySet();
+    }
+
+    /**
+     * Gets the poison effects system.
+     * Used by ItemConsumptionListener to apply poison effects.
+     */
+    public PoisonEffectsSystem getPoisonEffectsSystem() {
+        return poisonEffectsSystem;
+    }
+
+    /**
+     * Gets the native debuff effects system.
+     * Handles metabolism drain from all Hytale debuffs (poison, burn, stun, freeze, root, slow).
+     */
+    public DebuffEffectsSystem getDebuffEffectsSystem() {
+        return debuffEffectsSystem;
     }
 }

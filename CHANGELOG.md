@@ -2,6 +2,58 @@
 
 All notable changes to Living Lands will be documented in this file.
 
+## [1.1.0-beta] - 2026-01-19
+
+### Added
+
+#### Native Debuff System
+- **Debuff Detection** - Detects all native Hytale debuffs via ECS EffectControllerComponent
+- **Poison Effects** - Poison, Poison_T1, Poison_T2, Poison_T3 drain hunger, thirst, and energy
+- **Burn Effects** - Burn, Lava_Burn, Flame_Staff_Burn cause severe thirst drain (dehydration from heat)
+- **Stun Effects** - Stun, Bomb_Explode_Stun cause high energy drain (panic/struggle)
+- **Freeze Effect** - Freeze causes high energy drain (hypothermia/shivering)
+- **Root Effect** - Root causes moderate energy drain (struggling to break free)
+- **Slow Effects** - Slow, Two_Handed_Bow_Ability2_Slow cause low energy drain (fatigue)
+
+#### Enhanced Potion Detection
+- **Health Potions** - Now restore slight hunger and high thirst
+- **Mana/Signature Potions** - Now restore slight energy and high thirst
+- **Stamina Potions** - Now restore slight energy and high thirst
+- **Potion Deduplication** - Prevents double restoration when potions apply multiple effects
+- **Auto-Generated Effect IDs** - Handles Hytale's dynamic effect ID patterns (e.g., `Potion_Health_Large_InteractionVars_...`)
+- **Effect ID Markers** - Handles leading markers like `***` on effect IDs
+- **Alternative Naming** - Supports `Potion_Regen_Health_*` pattern alongside `Potion_Health_*`
+
+#### Improved Food Detection
+- **High-Frequency Detection** - 50ms tick interval catches instant heal effects (100ms duration)
+- **Thread Safety** - All ECS access runs on WorldThread via `world.execute()`
+
+### Changed
+
+#### Configuration
+- **DebuffConfig** - New configuration section for all debuff drain rates
+- **Per-Debuff Toggles** - Enable/disable individual debuff types
+- **Customizable Drain Rates** - Configure hunger, thirst, and energy drain per debuff type
+- **Tick Intervals** - Configure how often each debuff type applies drain
+
+#### Architecture
+- **DebuffEffectsSystem** - New system managing all native debuff metabolism impacts
+- **NativeDebuffDetector** - Unified detector for all 13 debuff effect types
+- **DebuffType Enum** - Categorizes debuffs: POISON, BURN, STUN, FREEZE, ROOT, SLOW
+- **FoodEffectDetector** - Enhanced with potion detection and deduplication
+
+### Fixed
+- **Thread Safety** - Fixed `IllegalStateException` when accessing ECS from metabolism thread
+- **Instant Heal Detection** - Fixed missing detection of 100ms duration effects
+- **Potion Double-Counting** - Fixed potions applying metabolism restoration twice
+
+### Technical Details
+- New package: `com.livinglands.metabolism.debuff`
+- New config: `DebuffConfig` with sub-configs for each debuff type
+- Effect detection runs at 50ms intervals for consumables, 1s for debuffs
+
+---
+
 ## [1.0.0-beta] - 2026-01-18
 
 ### Initial Beta Release

@@ -22,5 +22,10 @@ public enum ConsumableType {
     /**
      * Combined items restore multiple stats (any combination).
      */
-    COMBINED
+    COMBINED,
+
+    /**
+     * Poisonous items drain metabolism stats when consumed.
+     */
+    POISON
 }
