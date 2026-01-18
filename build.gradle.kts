@@ -12,10 +12,16 @@ repositories {
 
 // Path to Hytale Server installation (Windows path accessed via WSL)
 val hytaleServerPath = "/mnt/c/Users/moshpit/AppData/Roaming/Hytale/install/release/package/game/latest/Server"
+val hytaleServerJar = file("$hytaleServerPath/HytaleServer.jar")
 
 dependencies {
-    // Hytale Server API - compile against installed server, provided at runtime
-    compileOnly(files("$hytaleServerPath/HytaleServer.jar"))
+    // Hytale Server API - use local JAR if available, otherwise Maven repository
+    if (hytaleServerJar.exists()) {
+        compileOnly(files(hytaleServerJar))
+    } else {
+        // Fallback to Hypixel Maven repository for CI builds
+        compileOnly("com.hypixel.hytale:hytale-server:+")
+    }
 
     // Annotations
     compileOnly("com.google.code.findbugs:jsr305:3.0.2")
