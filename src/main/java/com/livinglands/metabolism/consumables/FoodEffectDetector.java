@@ -43,15 +43,16 @@ public class FoodEffectDetector {
     // Key: player UUID, Value: set of effect indexes currently active
     private final Map<UUID, Set<Integer>> previousEffects = new ConcurrentHashMap<>();
 
-    // Track recently processed potion base names to prevent duplicate detections
-    // Key: player UUID, Value: map of (potion base name -> timestamp when last processed)
-    // This prevents detecting both "Potion_Health_Lesser_Regen" and "Potion_Health_Instant_Lesser"
-    // from the same potion consumption
-    private final Map<UUID, Map<String, Long>> recentPotions = new ConcurrentHashMap<>();
+    // Track recently processed consumable effects to prevent duplicate detections
+    // Key: player UUID, Value: timestamp when last consumable was processed
+    // This prevents detecting multiple effects from the same food/potion item
+    // (e.g., one apple applying Food_Instant_Heal_T1 + FruitVeggie_Buff_T1 + HealthRegen_Buff_T1)
+    private final Map<UUID, Long> recentConsumables = new ConcurrentHashMap<>();
 
-    // Time window for deduplication (milliseconds) - effects from the same potion
-    // typically appear within the same tick/moment
-    private static final long DEDUP_WINDOW_MS = 100;
+    // Time window for deduplication (milliseconds) - effects from the same consumable
+    // may appear across multiple ticks, so we use a longer window
+    // Food consumption animation takes ~500ms, so 500ms should cover all effects from one item
+    private static final long DEDUP_WINDOW_MS = 500;
 
     // Food effect ID prefixes to detect
     private static final Set<String> FOOD_EFFECT_PREFIXES = Set.of(
@@ -136,17 +137,17 @@ public class FoodEffectDetector {
 
             // Get previous effect indexes for this player
             Set<Integer> previous = previousEffects.getOrDefault(playerId, Set.of());
-
-            // Get or create the recent potions map for this player
-            var playerPotions = recentPotions.computeIfAbsent(playerId, k -> new ConcurrentHashMap<>());
             long currentTime = System.currentTimeMillis();
 
-            // Clean up old entries from the recent potions map (older than dedup window)
-            playerPotions.entrySet().removeIf(entry ->
-                currentTime - entry.getValue() > DEDUP_WINDOW_MS
-            );
+            // Check if we recently processed a consumable for this player
+            Long lastConsumableTime = recentConsumables.get(playerId);
+            boolean recentlyProcessed = lastConsumableTime != null &&
+                currentTime - lastConsumableTime <= DEDUP_WINDOW_MS;
 
             // Find NEW effects (in current but not in previous)
+            // We only process the FIRST consumable effect we find per dedup window
+            boolean foundConsumable = false;
+
             for (var effect : activeEffects) {
                 if (effect == null) continue;
 
@@ -161,21 +162,14 @@ public class FoodEffectDetector {
                 String effectId = getEffectId(effectIndex);
 
                 if (effectId != null && (isFoodEffect(effectId) || isPotionEffect(effectId))) {
-                    // Check for potion deduplication
-                    if (isPotionEffect(effectId)) {
-                        String potionBaseName = extractPotionBaseName(effectId);
-
-                        // Check if we recently processed this potion
-                        Long lastProcessedTime = playerPotions.get(potionBaseName);
-                        if (lastProcessedTime != null &&
-                            currentTime - lastProcessedTime <= DEDUP_WINDOW_MS) {
-                            // Skip duplicate potion effect from same potion
-                            continue;
-                        }
-
-                        // Mark this potion as processed
-                        playerPotions.put(potionBaseName, currentTime);
+                    // Skip if we recently processed a consumable (deduplication)
+                    if (recentlyProcessed || foundConsumable) {
+                        continue;
                     }
+
+                    // Mark that we found and are processing a consumable
+                    foundConsumable = true;
+                    recentConsumables.put(playerId, currentTime);
 
                     // Found a newly applied food or potion effect
                     detectedConsumptions.add(new DetectedFoodConsumption(
@@ -441,7 +435,7 @@ public class FoodEffectDetector {
      */
     public void removePlayer(@Nonnull UUID playerId) {
         previousEffects.remove(playerId);
-        recentPotions.remove(playerId);
+        recentConsumables.remove(playerId);
     }
 
     /**
