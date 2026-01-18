@@ -300,7 +300,7 @@ This ensures only actual food/drink consumption triggers stat restoration, not i
 # 👥 Credits
 
 - **Author**: [MoshPitCodes](https://github.com/MoshPitCodes)
-- **Version**: 1.0.0-SNAPSHOT
+- **Version**: 1.0.0-beta
 - **License**: Apache-2.0
 
 ### Resources

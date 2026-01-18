@@ -1,7 +1,7 @@
 {
   "Group": "com.livinglands",
   "Name": "LivingLands",
-  "Version": "1.0.0-SNAPSHOT",
+  "Version": "1.0.0-beta",
   "Main": "com.livinglands.LivingLandsPlugin",
   "Description": "RPG mod with metabolism, traders, economy, and claims",
   "Authors": [{"Name": "MoshPitCodes"}],
