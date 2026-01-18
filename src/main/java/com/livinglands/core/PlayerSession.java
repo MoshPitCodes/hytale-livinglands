@@ -2,6 +2,8 @@ package com.livinglands.core;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.protocol.GameMode;
+import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
@@ -29,6 +31,7 @@ public class PlayerSession {
     private volatile Store<EntityStore> store;
     private volatile World world;
     private volatile PlayerRef playerRef;
+    private volatile Player player; // Player entity reference for game mode polling
 
     // State flags
     private volatile boolean ecsReady = false;
@@ -66,15 +69,18 @@ public class PlayerSession {
      * @param store The entity store
      * @param world The world the player is in
      * @param playerRef The player reference for UI/network operations
+     * @param player The Player entity for game mode polling
      */
     public void setEcsReferences(@Nullable Ref<EntityStore> entityRef,
                                   @Nullable Store<EntityStore> store,
                                   @Nullable World world,
-                                  @Nullable PlayerRef playerRef) {
+                                  @Nullable PlayerRef playerRef,
+                                  @Nullable Player player) {
         this.entityRef = entityRef;
         this.store = store;
         this.world = world;
         this.playerRef = playerRef;
+        this.player = player;
         this.ecsReady = (entityRef != null && entityRef.isValid() && store != null && world != null);
     }
 
@@ -118,6 +124,45 @@ public class PlayerSession {
     }
 
     /**
+     * Gets the player entity for direct access.
+     */
+    @Nullable
+    public Player getPlayer() {
+        return player;
+    }
+
+    /**
+     * Gets the player's current game mode.
+     * Polls directly from the Player entity for up-to-date value.
+     */
+    @Nonnull
+    public GameMode getGameMode() {
+        if (player != null) {
+            try {
+                return player.getGameMode();
+            } catch (Exception e) {
+                // Fall back to Adventure mode if polling fails
+            }
+        }
+        return GameMode.Adventure;
+    }
+
+    /**
+     * Checks if the player is in Creative mode.
+     * Polls directly from the Player entity for up-to-date value.
+     */
+    public boolean isCreativeMode() {
+        return getGameMode() == GameMode.Creative;
+    }
+
+    /**
+     * Checks if the player is in Adventure (Survival) mode.
+     */
+    public boolean isSurvivalMode() {
+        return getGameMode() == GameMode.Adventure;
+    }
+
+    /**
      * Executes an action on the WorldThread if ECS is ready.
      * This is the preferred way to perform ECS operations.
      *
@@ -141,5 +186,6 @@ public class PlayerSession {
         this.store = null;
         this.world = null;
         this.playerRef = null;
+        this.player = null;
     }
 }

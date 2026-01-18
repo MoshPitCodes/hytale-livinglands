@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import com.hypixel.hytale.logger.HytaleLogger;
+import com.livinglands.metabolism.poison.PoisonEffectType;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -84,6 +85,8 @@ public final class ConfigLoader {
         public ConsumablesSection consumables = new ConsumablesSection();
         public SleepSection sleep = new SleepSection();
         public DebuffsSection debuffs = new DebuffsSection();
+        public PoisonSection poison = new PoisonSection();
+        public NativeDebuffsSection nativeDebuffs = new NativeDebuffsSection();
 
         // ========================================
         // METABOLISM SECTION
@@ -219,6 +222,133 @@ public final class ConfigLoader {
             public float staminaDrainTickIntervalSeconds = 1.0f;
         }
 
+        // ========================================
+        // POISON SECTION
+        // ========================================
+        public static class PoisonSection {
+            public boolean enabled = true;
+            public MildToxinJson mildToxin = new MildToxinJson();
+            public SlowPoisonJson slowPoison = new SlowPoisonJson();
+            public PurgeJson purge = new PurgeJson();
+            public NativePoisonJson nativePoison = new NativePoisonJson();
+            public PoisonItemsJson items = new PoisonItemsJson();
+        }
+
+        public static class MildToxinJson {
+            public float hungerDrainPerTick = 2.0f;
+            public float thirstDrainPerTick = 1.5f;
+            public float energyDrainPerTick = 1.0f;
+            public float tickIntervalSeconds = 1.0f;
+            public float durationSeconds = 8.0f;
+        }
+
+        public static class SlowPoisonJson {
+            public float hungerDrainPerTick = 1.0f;
+            public float thirstDrainPerTick = 1.0f;
+            public float energyDrainPerTick = 0.5f;
+            public float tickIntervalSeconds = 3.0f;
+            public float durationSeconds = 45.0f;
+        }
+
+        public static class PurgeJson {
+            public float hungerDrainPerTick = 3.0f;
+            public float thirstDrainPerTick = 2.5f;
+            public float energyDrainPerTick = 2.0f;
+            public float drainIntervalSeconds = 0.5f;
+            public float drainDurationSeconds = 5.0f;
+            public float recoveryDurationSeconds = 20.0f;
+        }
+
+        public static class NativePoisonJson {
+            public boolean enabled = true;
+            public float hungerDrainPerTick = 1.5f;
+            public float thirstDrainPerTick = 1.5f;
+            public float energyDrainPerTick = 1.0f;
+            public float tickIntervalSeconds = 2.0f;
+        }
+
+        public static class PoisonItemsJson {
+            public List<PoisonItemEntryJson> vanilla = new ArrayList<>();
+            public List<PoisonItemEntryJson> modded = new ArrayList<>();
+        }
+
+        public static class PoisonItemEntryJson {
+            public String itemId;
+            public String effectType = "RANDOM";
+            public double hungerRestore = 0;
+            public double thirstRestore = 0;
+
+            public PoisonItemEntryJson() {}
+
+            public PoisonItemEntryJson(String itemId, String effectType, double hungerRestore, double thirstRestore) {
+                this.itemId = itemId;
+                this.effectType = effectType;
+                this.hungerRestore = hungerRestore;
+                this.thirstRestore = thirstRestore;
+            }
+        }
+
+        // ========================================
+        // NATIVE DEBUFFS SECTION
+        // ========================================
+        public static class NativeDebuffsSection {
+            public boolean enabled = true;
+            public PoisonDebuffJson poison = new PoisonDebuffJson();
+            public BurnDebuffJson burn = new BurnDebuffJson();
+            public StunDebuffJson stun = new StunDebuffJson();
+            public FreezeDebuffJson freeze = new FreezeDebuffJson();
+            public RootDebuffJson root = new RootDebuffJson();
+            public SlowDebuffJson slow = new SlowDebuffJson();
+        }
+
+        public static class PoisonDebuffJson {
+            public boolean enabled = true;
+            public float hungerDrainPerTick = 1.5f;
+            public float thirstDrainPerTick = 1.5f;
+            public float energyDrainPerTick = 1.0f;
+            public float tickIntervalSeconds = 2.0f;
+        }
+
+        public static class BurnDebuffJson {
+            public boolean enabled = true;
+            public float hungerDrainPerTick = 0.5f;
+            public float thirstDrainPerTick = 3.0f;
+            public float energyDrainPerTick = 2.0f;
+            public float tickIntervalSeconds = 1.0f;
+        }
+
+        public static class StunDebuffJson {
+            public boolean enabled = true;
+            public float hungerDrainPerTick = 0.5f;
+            public float thirstDrainPerTick = 0.5f;
+            public float energyDrainPerTick = 3.0f;
+            public float tickIntervalSeconds = 1.0f;
+        }
+
+        public static class FreezeDebuffJson {
+            public boolean enabled = true;
+            public float hungerDrainPerTick = 0.5f;
+            public float thirstDrainPerTick = 0.5f;
+            public float energyDrainPerTick = 2.5f;
+            public float tickIntervalSeconds = 1.5f;
+        }
+
+        public static class RootDebuffJson {
+            public boolean enabled = true;
+            public float hungerDrainPerTick = 0.5f;
+            public float thirstDrainPerTick = 0.5f;
+            public float energyDrainPerTick = 2.0f;
+            public float tickIntervalSeconds = 2.0f;
+        }
+
+        public static class SlowDebuffJson {
+            public boolean enabled = true;
+            public float hungerDrainPerTick = 0.5f;
+            public float thirstDrainPerTick = 0.5f;
+            public float energyDrainPerTick = 1.5f;
+            public float tickIntervalSeconds = 2.5f;
+        }
+
         /**
          * Converts JSON config to ModConfig record.
          */
@@ -252,8 +382,10 @@ public final class ConfigLoader {
             var consumablesConfig = toConsumablesConfig();
             var sleepConfig = toSleepConfig();
             var debuffsConfig = toDebuffsConfig();
+            var poisonConfig = toPoisonConfig();
+            var nativeDebuffsConfig = toNativeDebuffsConfig();
 
-            return new ModConfig(metabolismConfig, consumablesConfig, sleepConfig, debuffsConfig);
+            return new ModConfig(metabolismConfig, consumablesConfig, sleepConfig, debuffsConfig, poisonConfig, nativeDebuffsConfig);
         }
 
         private DebuffsConfig toDebuffsConfig() {
@@ -342,6 +474,113 @@ public final class ConfigLoader {
                 s.energyRestoreAmount,
                 s.cooldownMs,
                 s.respectSleepSchedule
+            );
+        }
+
+        private PoisonConfig toPoisonConfig() {
+            var p = poison;
+
+            // Convert poison items
+            var vanillaItems = p.items.vanilla.stream()
+                .map(e -> new PoisonConfig.PoisonItemEntry(
+                    e.itemId,
+                    PoisonEffectType.valueOf(e.effectType),
+                    e.hungerRestore,
+                    e.thirstRestore
+                ))
+                .toList();
+
+            var moddedItems = p.items.modded.stream()
+                .map(e -> new PoisonConfig.PoisonItemEntry(
+                    e.itemId,
+                    PoisonEffectType.valueOf(e.effectType),
+                    e.hungerRestore,
+                    e.thirstRestore
+                ))
+                .toList();
+
+            return new PoisonConfig(
+                p.enabled,
+                new PoisonConfig.MildToxinConfig(
+                    p.mildToxin.hungerDrainPerTick,
+                    p.mildToxin.thirstDrainPerTick,
+                    p.mildToxin.energyDrainPerTick,
+                    p.mildToxin.tickIntervalSeconds,
+                    p.mildToxin.durationSeconds
+                ),
+                new PoisonConfig.SlowPoisonConfig(
+                    p.slowPoison.hungerDrainPerTick,
+                    p.slowPoison.thirstDrainPerTick,
+                    p.slowPoison.energyDrainPerTick,
+                    p.slowPoison.tickIntervalSeconds,
+                    p.slowPoison.durationSeconds
+                ),
+                new PoisonConfig.PurgeConfig(
+                    p.purge.hungerDrainPerTick,
+                    p.purge.thirstDrainPerTick,
+                    p.purge.energyDrainPerTick,
+                    p.purge.drainIntervalSeconds,
+                    p.purge.drainDurationSeconds,
+                    p.purge.recoveryDurationSeconds
+                ),
+                new PoisonConfig.NativePoisonConfig(
+                    p.nativePoison.enabled,
+                    p.nativePoison.hungerDrainPerTick,
+                    p.nativePoison.thirstDrainPerTick,
+                    p.nativePoison.energyDrainPerTick,
+                    p.nativePoison.tickIntervalSeconds
+                ),
+                new PoisonConfig.PoisonItemsSection(vanillaItems, moddedItems)
+            );
+        }
+
+        private DebuffConfig toNativeDebuffsConfig() {
+            var nd = nativeDebuffs;
+
+            return new DebuffConfig(
+                nd.enabled,
+                new DebuffConfig.PoisonDebuffConfig(
+                    nd.poison.enabled,
+                    nd.poison.hungerDrainPerTick,
+                    nd.poison.thirstDrainPerTick,
+                    nd.poison.energyDrainPerTick,
+                    nd.poison.tickIntervalSeconds
+                ),
+                new DebuffConfig.BurnDebuffConfig(
+                    nd.burn.enabled,
+                    nd.burn.hungerDrainPerTick,
+                    nd.burn.thirstDrainPerTick,
+                    nd.burn.energyDrainPerTick,
+                    nd.burn.tickIntervalSeconds
+                ),
+                new DebuffConfig.StunDebuffConfig(
+                    nd.stun.enabled,
+                    nd.stun.hungerDrainPerTick,
+                    nd.stun.thirstDrainPerTick,
+                    nd.stun.energyDrainPerTick,
+                    nd.stun.tickIntervalSeconds
+                ),
+                new DebuffConfig.FreezeDebuffConfig(
+                    nd.freeze.enabled,
+                    nd.freeze.hungerDrainPerTick,
+                    nd.freeze.thirstDrainPerTick,
+                    nd.freeze.energyDrainPerTick,
+                    nd.freeze.tickIntervalSeconds
+                ),
+                new DebuffConfig.RootDebuffConfig(
+                    nd.root.enabled,
+                    nd.root.hungerDrainPerTick,
+                    nd.root.thirstDrainPerTick,
+                    nd.root.energyDrainPerTick,
+                    nd.root.tickIntervalSeconds
+                ),
+                new DebuffConfig.SlowDebuffConfig(
+                    nd.slow.enabled,
+                    nd.slow.hungerDrainPerTick,
+                    nd.slow.thirstDrainPerTick,
+                    nd.slow.energyDrainPerTick,
+                    nd.slow.tickIntervalSeconds
+                )
             );
         }
 
@@ -439,6 +678,78 @@ public final class ConfigLoader {
             json.debuffs.energy.staminaDrainRecoveryThreshold = d.energy().staminaDrainRecoveryThreshold();
             json.debuffs.energy.staminaDrainPerTick = d.energy().staminaDrainPerTick();
             json.debuffs.energy.staminaDrainTickIntervalSeconds = d.energy().staminaDrainTickIntervalSeconds();
+
+            // Poison
+            var p = config.poison();
+            json.poison.enabled = p.enabled();
+            json.poison.mildToxin.hungerDrainPerTick = p.mildToxin().hungerDrainPerTick();
+            json.poison.mildToxin.thirstDrainPerTick = p.mildToxin().thirstDrainPerTick();
+            json.poison.mildToxin.energyDrainPerTick = p.mildToxin().energyDrainPerTick();
+            json.poison.mildToxin.tickIntervalSeconds = p.mildToxin().tickIntervalSeconds();
+            json.poison.mildToxin.durationSeconds = p.mildToxin().durationSeconds();
+            json.poison.slowPoison.hungerDrainPerTick = p.slowPoison().hungerDrainPerTick();
+            json.poison.slowPoison.thirstDrainPerTick = p.slowPoison().thirstDrainPerTick();
+            json.poison.slowPoison.energyDrainPerTick = p.slowPoison().energyDrainPerTick();
+            json.poison.slowPoison.tickIntervalSeconds = p.slowPoison().tickIntervalSeconds();
+            json.poison.slowPoison.durationSeconds = p.slowPoison().durationSeconds();
+            json.poison.purge.hungerDrainPerTick = p.purge().hungerDrainPerTick();
+            json.poison.purge.thirstDrainPerTick = p.purge().thirstDrainPerTick();
+            json.poison.purge.energyDrainPerTick = p.purge().energyDrainPerTick();
+            json.poison.purge.drainIntervalSeconds = p.purge().drainIntervalSeconds();
+            json.poison.purge.drainDurationSeconds = p.purge().drainDurationSeconds();
+            json.poison.purge.recoveryDurationSeconds = p.purge().recoveryDurationSeconds();
+
+            json.poison.nativePoison.enabled = p.nativePoison().enabled();
+            json.poison.nativePoison.hungerDrainPerTick = p.nativePoison().hungerDrainPerTick();
+            json.poison.nativePoison.thirstDrainPerTick = p.nativePoison().thirstDrainPerTick();
+            json.poison.nativePoison.energyDrainPerTick = p.nativePoison().energyDrainPerTick();
+            json.poison.nativePoison.tickIntervalSeconds = p.nativePoison().tickIntervalSeconds();
+
+            json.poison.items.vanilla = p.items().vanilla().stream()
+                .map(e -> new PoisonItemEntryJson(e.itemId(), e.effectType().name(), e.hungerRestore(), e.thirstRestore()))
+                .toList();
+            json.poison.items.modded = p.items().modded().stream()
+                .map(e -> new PoisonItemEntryJson(e.itemId(), e.effectType().name(), e.hungerRestore(), e.thirstRestore()))
+                .toList();
+
+            // Native Debuffs
+            var nd = config.nativeDebuffs();
+            json.nativeDebuffs.enabled = nd.enabled();
+            json.nativeDebuffs.poison.enabled = nd.poison().enabled();
+            json.nativeDebuffs.poison.hungerDrainPerTick = nd.poison().hungerDrainPerTick();
+            json.nativeDebuffs.poison.thirstDrainPerTick = nd.poison().thirstDrainPerTick();
+            json.nativeDebuffs.poison.energyDrainPerTick = nd.poison().energyDrainPerTick();
+            json.nativeDebuffs.poison.tickIntervalSeconds = nd.poison().tickIntervalSeconds();
+
+            json.nativeDebuffs.burn.enabled = nd.burn().enabled();
+            json.nativeDebuffs.burn.hungerDrainPerTick = nd.burn().hungerDrainPerTick();
+            json.nativeDebuffs.burn.thirstDrainPerTick = nd.burn().thirstDrainPerTick();
+            json.nativeDebuffs.burn.energyDrainPerTick = nd.burn().energyDrainPerTick();
+            json.nativeDebuffs.burn.tickIntervalSeconds = nd.burn().tickIntervalSeconds();
+
+            json.nativeDebuffs.stun.enabled = nd.stun().enabled();
+            json.nativeDebuffs.stun.hungerDrainPerTick = nd.stun().hungerDrainPerTick();
+            json.nativeDebuffs.stun.thirstDrainPerTick = nd.stun().thirstDrainPerTick();
+            json.nativeDebuffs.stun.energyDrainPerTick = nd.stun().energyDrainPerTick();
+            json.nativeDebuffs.stun.tickIntervalSeconds = nd.stun().tickIntervalSeconds();
+
+            json.nativeDebuffs.freeze.enabled = nd.freeze().enabled();
+            json.nativeDebuffs.freeze.hungerDrainPerTick = nd.freeze().hungerDrainPerTick();
+            json.nativeDebuffs.freeze.thirstDrainPerTick = nd.freeze().thirstDrainPerTick();
+            json.nativeDebuffs.freeze.energyDrainPerTick = nd.freeze().energyDrainPerTick();
+            json.nativeDebuffs.freeze.tickIntervalSeconds = nd.freeze().tickIntervalSeconds();
+
+            json.nativeDebuffs.root.enabled = nd.root().enabled();
+            json.nativeDebuffs.root.hungerDrainPerTick = nd.root().hungerDrainPerTick();
+            json.nativeDebuffs.root.thirstDrainPerTick = nd.root().thirstDrainPerTick();
+            json.nativeDebuffs.root.energyDrainPerTick = nd.root().energyDrainPerTick();
+            json.nativeDebuffs.root.tickIntervalSeconds = nd.root().tickIntervalSeconds();
+
+            json.nativeDebuffs.slow.enabled = nd.slow().enabled();
+            json.nativeDebuffs.slow.hungerDrainPerTick = nd.slow().hungerDrainPerTick();
+            json.nativeDebuffs.slow.thirstDrainPerTick = nd.slow().thirstDrainPerTick();
+            json.nativeDebuffs.slow.energyDrainPerTick = nd.slow().energyDrainPerTick();
+            json.nativeDebuffs.slow.tickIntervalSeconds = nd.slow().tickIntervalSeconds();
 
             return json;
         }

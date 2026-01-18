@@ -46,7 +46,8 @@ The mod seamlessly integrates with vanilla Hytale items, adding depth without br
 | **⚡ Energy System** | Energy drains slowly throughout the day. Stamina potions can help restore energy quickly. |
 | **🛏️ Bed Rest** | Sleep in a bed to restore energy. Respects the game's sleep schedule - you can only rest during valid sleep hours. |
 | **🍽️ Food Consumption** | All vanilla Hytale foods now restore hunger. Cooked meats restore more than raw foods. Kebabs, pies, and prepared meals provide the best restoration. |
-| **🧪 Potion Effects** | Potions restore thirst when consumed. Stamina potions provide both thirst and energy restoration. |
+| **🧪 Potion Effects** | Health, Mana, and Stamina potions restore metabolism stats. Health potions restore hunger and thirst. Mana/Stamina potions restore energy and thirst. |
+| **☠️ Debuff Effects** | Combat debuffs affect your metabolism! Poison, burn, stun, freeze, root, and slow effects drain your stats while active. |
 | **📊 Status Feedback** | Visual status indicators show your current state: Satiated, Hungry, Starving, Hydrated, Dehydrated, Energized, Exhausted. |
 
 <br/>
@@ -77,6 +78,18 @@ Energy represents your character's overall stamina:
 
 When energy drops below 20, you become **Exhausted**.
 
+### Debuff Effects
+Combat debuffs now impact your metabolism! While affected by these debuffs, your stats will drain:
+
+| Debuff | Hunger | Thirst | Energy | Effect |
+|--------|--------|--------|--------|--------|
+| **Poison** | Moderate | Moderate | Low | Toxins affect all systems |
+| **Burn** | Low | **High** | Moderate | Heat causes severe dehydration |
+| **Stun** | Low | Low | **High** | Panic and struggle drain energy |
+| **Freeze** | Low | Low | **High** | Hypothermia and shivering |
+| **Root** | Low | Low | Moderate | Struggling to break free |
+| **Slow** | Low | Low | Low | Fatigue from impaired movement |
+
 ### Sleeping
 Rest in a bed to restore your energy:
 - **Energy restored**: 50 per sleep
@@ -96,17 +109,23 @@ Rest in a bed to restore your energy:
 | **High** | Cooked meats, Kebabs, Salads | 40-50 |
 | **Premium** | Pies, Meat dishes | 55-65 |
 
+### Potions (Restore Multiple Stats)
+| Type | Hunger | Thirst | Energy | Notes |
+|------|--------|--------|--------|-------|
+| **Health Potions** | Slight | High | None | Hydrating healing effect |
+| **Mana Potions** | None | High | Slight | Magical energy restoration |
+| **Stamina Potions** | None | High | Slight | Physical energy restoration |
+
+Potion tiers (Lesser/Small vs Greater/Large) affect restoration amounts.
+
 ### Drinks (Restore Thirst)
 | Type | Examples | Thirst Restored |
 |------|----------|-----------------|
-| **Potions** | Health, Mana, Regen potions | 20-45 |
-| **Stamina** | Stamina potions | 25-50 (+Energy) |
 | **Water** | Bucket of water | 60 |
 | **Milk** | Bucket of milk | 50 (+Hunger) |
 
 ### Special Items
 - **Salads**: Restore both hunger and thirst
-- **Stamina Potions**: Restore thirst AND energy
 - **Milk**: Restores both hunger and thirst
 
 <br/>
@@ -240,42 +259,48 @@ This ensures only actual food/drink consumption triggers stat restoration, not i
 # 📐 Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Living Lands Plugin                       │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │   Commands  │  │  Listeners  │  │  Metabolism System  │  │
-│  ├─────────────┤  ├─────────────┤  ├─────────────────────┤  │
-│  │ /stats      │  │ Player      │  │ Tick-based updates  │  │
-│  │             │  │ Connect/    │  │ Activity tracking   │  │
-│  │             │  │ Disconnect  │  │ Stat depletion      │  │
-│  │             │  │             │  │ Stat restoration    │  │
-│  │             │  │ Item        │  │                     │  │
-│  │             │  │ Consumption │  │                     │  │
-│  │             │  │             │  │                     │  │
-│  │             │  │ Bed         │  │                     │  │
-│  │             │  │ Interaction │  │                     │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────┘  │
-│         │                │                    │              │
-│         └────────────────┼────────────────────┘              │
-│                          │                                   │
-│                          ▼                                   │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │              Player Metabolism Data                    │  │
-│  │  ┌─────────┐  ┌─────────┐  ┌─────────┐               │  │
-│  │  │ Hunger  │  │ Thirst  │  │ Energy  │               │  │
-│  │  │  0-100  │  │  0-100  │  │  0-100  │               │  │
-│  │  └─────────┘  └─────────┘  └─────────┘               │  │
-│  └───────────────────────────────────────────────────────┘  │
-│                          │                                   │
-│                          ▼                                   │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │              Consumable Registry                       │  │
-│  │  Foods → Hunger    Drinks → Thirst    Stamina → Energy │  │
-│  └───────────────────────────────────────────────────────┘  │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                      Living Lands Plugin                          │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│  ┌─────────────┐  ┌─────────────┐  ┌────────────────────────┐   │
+│  │   Commands  │  │  Listeners  │  │   Metabolism System    │   │
+│  ├─────────────┤  ├─────────────┤  ├────────────────────────┤   │
+│  │ /stats      │  │ Player      │  │ Tick-based updates     │   │
+│  │             │  │ Connect/    │  │ Activity tracking      │   │
+│  │             │  │ Disconnect  │  │ Stat depletion         │   │
+│  │             │  │             │  │ Stat restoration       │   │
+│  │             │  │ Food/Potion │  │                        │   │
+│  │             │  │ Consumption │  │                        │   │
+│  │             │  │             │  │                        │   │
+│  │             │  │ Bed         │  │                        │   │
+│  │             │  │ Interaction │  │                        │   │
+│  └─────────────┘  └─────────────┘  └────────────────────────┘   │
+│         │                │                      │                │
+│         └────────────────┼──────────────────────┘                │
+│                          │                                        │
+│                          ▼                                        │
+│  ┌────────────────────────────────────────────────────────────┐  │
+│  │                 Player Metabolism Data                      │  │
+│  │  ┌─────────┐  ┌─────────┐  ┌─────────┐                    │  │
+│  │  │ Hunger  │  │ Thirst  │  │ Energy  │                    │  │
+│  │  │  0-100  │  │  0-100  │  │  0-100  │                    │  │
+│  │  └─────────┘  └─────────┘  └─────────┘                    │  │
+│  └────────────────────────────────────────────────────────────┘  │
+│                          │                                        │
+│          ┌───────────────┼───────────────┐                       │
+│          ▼               ▼               ▼                       │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐             │
+│  │  Consumable  │ │   Debuff     │ │   Debuffs    │             │
+│  │   Registry   │ │   System     │ │   Config     │             │
+│  ├──────────────┤ ├──────────────┤ ├──────────────┤             │
+│  │ Foods        │ │ Poison       │ │ Drain rates  │             │
+│  │ Potions      │ │ Burn/Fire    │ │ Per debuff   │             │
+│  │ Drinks       │ │ Stun/Freeze  │ │ Toggles      │             │
+│  │              │ │ Root/Slow    │ │              │             │
+│  └──────────────┘ └──────────────┘ └──────────────┘             │
+│                                                                   │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 <br/>
@@ -289,6 +314,7 @@ This ensures only actual food/drink consumption triggers stat restoration, not i
 | Energy System | ✅ Complete |
 | Food Consumption | ✅ Complete |
 | Potion Effects | ✅ Complete |
+| Debuff Effects (Poison, Burn, Stun, etc.) | ✅ Complete |
 | Bed Rest (Energy) | ✅ Complete |
 | Economy System | 📋 Planned |
 | Trader NPCs | 📋 Planned |
