@@ -15,6 +15,7 @@ val hytaleServerPath = "/mnt/c/Users/moshpit/AppData/Roaming/Hytale/install/rele
 
 dependencies {
     // Hytale Server API - compile against installed server, provided at runtime
+    // Note: Builds must be done locally as the server JAR is not publicly available
     compileOnly(files("$hytaleServerPath/HytaleServer.jar"))
 
     // Annotations

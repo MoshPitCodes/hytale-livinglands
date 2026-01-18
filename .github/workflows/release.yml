@@ -1,0 +1,92 @@
+name: Release
+
+# Manual release workflow - since Hytale Server API is not publicly available,
+# builds must be done locally and released via gh CLI or GitHub web UI.
+#
+# Usage (from local machine after building):
+#   ./gradlew clean build
+#   gh release create v1.0.0-beta build/libs/*.jar --title "v1.0.0-beta" --notes-file CHANGELOG.md --prerelease
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0-beta)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: true
+      jar_url:
+        description: 'Direct URL to JAR file (optional - for manual upload)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download JAR from URL
+        if: inputs.jar_url != ''
+        run: |
+          mkdir -p build/libs
+          curl -L -o "build/libs/hytale-livinglands-${{ inputs.version }}.jar" "${{ inputs.jar_url }}"
+
+      - name: Check for JAR file
+        id: check_jar
+        run: |
+          if [ -f "build/libs/hytale-livinglands-${{ inputs.version }}.jar" ]; then
+            echo "jar_found=true" >> $GITHUB_OUTPUT
+          else
+            echo "jar_found=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract changelog for version
+        id: changelog
+        run: |
+          VERSION="${{ inputs.version }}"
+          CHANGELOG=$(awk "/## \[${VERSION}\]/,/## \[/" CHANGELOG.md | head -n -1)
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="Release v${VERSION}"
+          fi
+          echo "$CHANGELOG" > release_notes.md
+          cat release_notes.md
+
+      - name: Create GitHub Release
+        if: steps.check_jar.outputs.jar_found == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          name: v${{ inputs.version }}
+          files: build/libs/*.jar
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ inputs.prerelease }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Release without JAR
+        if: steps.check_jar.outputs.jar_found == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          name: v${{ inputs.version }}
+          body_path: release_notes.md
+          draft: true
+          prerelease: ${{ inputs.prerelease }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notice
+        if: steps.check_jar.outputs.jar_found == 'false'
+        run: |
+          echo "::notice::Release created as DRAFT. Upload the JAR file manually at https://github.com/${{ github.repository }}/releases"
