@@ -1,6 +1,7 @@
 <!-- DO NOT TOUCH THIS SECTION#1: START -->
 <h1 align="center">
    <br>
+   <img src="./.github/assets/logo/hytale-livinglands-logo.png" width="400px" /><br>
       Living Lands | Hytale RPG Survival Mod
    <br>
    <img src="./.github/assets/pallet/pallet-0.png" width="800px" /> <br>
@@ -18,7 +19,7 @@
             <img src="https://img.shields.io/badge/Hytale-Server%20Mod-blue.svg?style=for-the-badge&labelColor=282828&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iIzQ1ODU4OCIgZD0iTTEyIDJMMiA3bDEwIDVsMTAtNUwxMiAyeiIvPjwvc3ZnPg==&logoColor=458588&color=458588">
          </a>
          <a href="https://github.com/MoshPitCodes/hytale-livinglands/blob/main/LICENSE">
-            <img src="https://img.shields.io/static/v1.svg?style=for-the-badge&label=License&message=MIT&colorA=282828&colorB=98971A&logo=unlicense&logoColor=98971A&"/>
+            <img src="https://img.shields.io/static/v1.svg?style=for-the-badge&label=License&message=Apache-2.0&colorA=282828&colorB=98971A&logo=apache&logoColor=98971A&"/>
          </a>
       </div>
       <br>
@@ -300,7 +301,7 @@ This ensures only actual food/drink consumption triggers stat restoration, not i
 
 - **Author**: [MoshPitCodes](https://github.com/MoshPitCodes)
 - **Version**: 1.0.0-SNAPSHOT
-- **License**: MIT
+- **License**: Apache-2.0
 
 ### Resources
 - [Hytale Official](https://hytale.com): Game information
