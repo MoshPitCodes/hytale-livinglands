@@ -1,0 +1,8 @@
+{
+  "$Comment": "Living Lands - Hunger stat for metabolism system",
+  "InitialValue": 100,
+  "Min": 0,
+  "Max": 100,
+  "Shared": false,
+  "ResetType": "MaxValue"
+}

@@ -1,0 +1,76 @@
+# Claude Code - DO NOT COMMIT
+.claude/
+.claude-plugin/
+CLAUDE.md
+
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+*.swp
+*.swo
+*~
+
+# Mac OS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Log files
+*.log
+
+# Temporary files
+tmp/
+temp/
+
+# Environment variables
+.env*
+!.env.example
+
+# Local configuration
+.env
+.env.local
+secrets.nix
+
+# Test output
+out/
+bin/
+
+# Package files
+*.zip
+*.tar.gz
+*.rar
+
+# Compiled class files
+target/
+
+# Sensitive files
+**/secrets/
+*.pem
+*.key
+id_rsa*
+id_ed25519*

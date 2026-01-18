@@ -1,0 +1,14 @@
+# Set default behavior to automatically normalize line endings
+* text=auto
+
+# Shell scripts should always use LF
+*.sh text eol=lf
+.zshrc text eol=lf
+
+# Nix files should use LF
+*.nix text eol=lf
+
+# Explicitly mark files that should not be modified
+*.png binary
+*.jpg binary
+*.zip binary

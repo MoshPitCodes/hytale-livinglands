@@ -1,0 +1,161 @@
+// Living Lands Metabolism Stats HUD
+// Styled similar to vanilla health/stamina bars
+// Positioned in top-left corner with padding
+
+Group {
+  LayoutMode: Top;
+  Anchor: (Top: 20, Left: 20, Width: 220);
+
+  // Hunger Bar (Orange/Brown - like food)
+  Group #HungerBar {
+    Visible: $show_hunger;
+    Anchor: (Height: 28, Bottom: 6);
+    LayoutMode: Left;
+
+    // Fork icon
+    Group {
+      Background: #d35400;
+      Anchor: (Width: 24, Height: 24);
+      // Icon would go here
+    }
+
+    // Bar container
+    Group {
+      Anchor: (Left: 4, Height: 24, Width: 180);
+
+      // Background (dark with transparency)
+      Group {
+        Background: #1a1a1a(0.8);
+        Anchor: (Fill: true);
+
+        // Border highlight
+        Group {
+          Background: #d35400(0.3);
+          Anchor: (Left: 1, Top: 1, Right: 1, Bottom: 1);
+        }
+      }
+
+      // Fill bar (orange gradient look)
+      Group #hunger_fill_bar {
+        Background: #e67e22;
+        Anchor: (Left: 2, Top: 2, Bottom: 2);
+        Width: $hunger_fill * 176;
+
+        // Inner glow effect
+        Group {
+          Background: #f39c12(0.4);
+          Anchor: (Left: 0, Top: 0, Right: 0, Height: 8);
+        }
+      }
+
+      // Value label (centered)
+      Label #hunger_label {
+        Text: $hunger_value;
+        Style: (FontSize: 11, Alignment: Center, TextColor: #ffffff, RenderBold: true);
+        Anchor: (Fill: true);
+      }
+    }
+  }
+
+  // Thirst Bar (Blue - like water)
+  Group #ThirstBar {
+    Visible: $show_thirst;
+    Anchor: (Height: 28, Bottom: 6);
+    LayoutMode: Left;
+
+    // Water drop icon
+    Group {
+      Background: #2980b9;
+      Anchor: (Width: 24, Height: 24);
+      // Icon would go here
+    }
+
+    // Bar container
+    Group {
+      Anchor: (Left: 4, Height: 24, Width: 180);
+
+      // Background (dark with transparency)
+      Group {
+        Background: #1a1a1a(0.8);
+        Anchor: (Fill: true);
+
+        // Border highlight
+        Group {
+          Background: #2980b9(0.3);
+          Anchor: (Left: 1, Top: 1, Right: 1, Bottom: 1);
+        }
+      }
+
+      // Fill bar (blue gradient look)
+      Group #thirst_fill_bar {
+        Background: #3498db;
+        Anchor: (Left: 2, Top: 2, Bottom: 2);
+        Width: $thirst_fill * 176;
+
+        // Inner glow effect
+        Group {
+          Background: #5dade2(0.4);
+          Anchor: (Left: 0, Top: 0, Right: 0, Height: 8);
+        }
+      }
+
+      // Value label (centered)
+      Label #thirst_label {
+        Text: $thirst_value;
+        Style: (FontSize: 11, Alignment: Center, TextColor: #ffffff, RenderBold: true);
+        Anchor: (Fill: true);
+      }
+    }
+  }
+
+  // Energy Bar (Yellow/Gold - like stamina but distinct)
+  Group #EnergyBar {
+    Visible: $show_energy;
+    Anchor: (Height: 28, Bottom: 6);
+    LayoutMode: Left;
+
+    // Lightning/energy icon
+    Group {
+      Background: #d4ac0d;
+      Anchor: (Width: 24, Height: 24);
+      // Icon would go here
+    }
+
+    // Bar container
+    Group {
+      Anchor: (Left: 4, Height: 24, Width: 180);
+
+      // Background (dark with transparency)
+      Group {
+        Background: #1a1a1a(0.8);
+        Anchor: (Fill: true);
+
+        // Border highlight
+        Group {
+          Background: #d4ac0d(0.3);
+          Anchor: (Left: 1, Top: 1, Right: 1, Bottom: 1);
+        }
+      }
+
+      // Fill bar (yellow/gold gradient look)
+      Group #energy_fill_bar {
+        Background: #f1c40f;
+        Anchor: (Left: 2, Top: 2, Bottom: 2);
+        Width: $energy_fill * 176;
+
+        // Inner glow effect
+        Group {
+          Background: #f7dc6f(0.4);
+          Anchor: (Left: 0, Top: 0, Right: 0, Height: 8);
+        }
+      }
+
+      // Value label (centered)
+      Label #energy_label {
+        Text: $energy_value;
+        Style: (FontSize: 11, Alignment: Center, TextColor: #ffffff, RenderBold: true);
+        Anchor: (Fill: true);
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "Require Resolved Comments",
+  "target": "branch",
+  "enforcement": "disabled",
+  "conditions": {
+    "ref_name": {
+      "exclude": [],
+      "include": [
+        "~DEFAULT_BRANCH"
+      ]
+    }
+  },
+  "rules": [],
+  "bypass_actors": []
+}
