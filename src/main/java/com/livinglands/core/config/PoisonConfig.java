@@ -1,6 +1,6 @@
 package com.livinglands.core.config;
 
-import com.livinglands.metabolism.poison.PoisonEffectType;
+import com.livinglands.modules.metabolism.poison.PoisonEffectType;
 
 import java.util.List;
 

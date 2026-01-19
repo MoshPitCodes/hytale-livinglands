@@ -1,0 +1,135 @@
+package com.livinglands.modules.metabolism;
+
+import com.livinglands.api.AbstractModule;
+import com.livinglands.modules.metabolism.commands.StatsCommand;
+import com.livinglands.modules.metabolism.config.MetabolismModuleConfig;
+import com.livinglands.modules.metabolism.consumables.ConsumableRegistry;
+import com.livinglands.modules.metabolism.listeners.BedInteractionListener;
+import com.livinglands.modules.metabolism.listeners.CombatDetectionListener;
+import com.livinglands.modules.metabolism.listeners.DeathHandlerListener;
+import com.livinglands.modules.metabolism.listeners.MetabolismPlayerListener;
+import com.livinglands.modules.metabolism.poison.PoisonRegistry;
+import com.livinglands.modules.metabolism.ui.MetabolismHudManager;
+
+import java.util.Set;
+
+/**
+ * Metabolism module for Living Lands.
+ *
+ * Provides comprehensive survival mechanics:
+ * - Hunger, Thirst, and Energy stats with configurable depletion
+ * - Activity-based depletion multipliers (sprint, swim, combat)
+ * - Debuff effects when stats reach critical levels
+ * - Food/drink consumption for stat restoration
+ * - Poison effects from consumables and native debuffs
+ * - Bed interaction for energy restoration
+ * - HUD display of current stats
+ */
+public final class MetabolismModule extends AbstractModule {
+
+    public static final String ID = "metabolism";
+    public static final String NAME = "Metabolism System";
+    public static final String VERSION = "1.1.0";
+
+    private MetabolismModuleConfig config;
+    private MetabolismSystem system;
+    private MetabolismHudManager hudManager;
+
+    public MetabolismModule() {
+        super(ID, NAME, VERSION, Set.of()); // No dependencies
+    }
+
+    @Override
+    protected void onSetup() {
+        // Load module config
+        config = loadConfig("config.json", MetabolismModuleConfig.class,
+                MetabolismModuleConfig::defaults);
+
+        // Initialize consumable registry from config
+        logger.at(java.util.logging.Level.INFO).log("[%s] Initializing consumable registry...", name);
+        ConsumableRegistry.initialize(config.consumables, logger);
+        logger.at(java.util.logging.Level.INFO).log("[%s] Registered %d consumable items",
+                name, ConsumableRegistry.getRegisteredCount());
+
+        // Initialize poison registry from config
+        logger.at(java.util.logging.Level.INFO).log("[%s] Initializing poison registry...", name);
+        PoisonRegistry.initialize(config.poison, logger);
+        logger.at(java.util.logging.Level.INFO).log("[%s] Registered %d poisonous items",
+                name, PoisonRegistry.getRegisteredCount());
+
+        // Initialize custom stats
+        logger.at(java.util.logging.Level.INFO).log("[%s] Initializing custom stats...", name);
+        HungerStat.initialize();
+        ThirstStat.initialize();
+        EnergyStat.initialize();
+
+        // Create metabolism system
+        logger.at(java.util.logging.Level.INFO).log("[%s] Creating metabolism system...", name);
+        system = new MetabolismSystem(config, logger, context.playerRegistry(), configDirectory);
+
+        // Create HUD manager
+        logger.at(java.util.logging.Level.INFO).log("[%s] Creating HUD manager...", name);
+        hudManager = new MetabolismHudManager(system, context.playerRegistry(), config, logger);
+
+        // Register commands
+        logger.at(java.util.logging.Level.INFO).log("[%s] Registering commands...", name);
+        context.commandRegistry().registerCommand(new StatsCommand(system));
+
+        // Register event listeners
+        logger.at(java.util.logging.Level.INFO).log("[%s] Registering event listeners...", name);
+        new MetabolismPlayerListener(this).register(context.eventRegistry());
+        new BedInteractionListener(this).register(context.eventRegistry());
+        new CombatDetectionListener(this).register(context.eventRegistry());
+        new DeathHandlerListener(this).register(context.eventRegistry());
+    }
+
+    @Override
+    protected void onStart() {
+        var metabolism = config.metabolism;
+        if (metabolism.enableHunger || metabolism.enableThirst || metabolism.enableEnergy) {
+            system.start();
+            hudManager.start();
+
+            logger.at(java.util.logging.Level.INFO).log("[%s] Features enabled:", name);
+            logger.at(java.util.logging.Level.INFO).log("[%s]   - Hunger: %s", name, metabolism.enableHunger);
+            logger.at(java.util.logging.Level.INFO).log("[%s]   - Thirst: %s", name, metabolism.enableThirst);
+            logger.at(java.util.logging.Level.INFO).log("[%s]   - Energy: %s", name, metabolism.enableEnergy);
+        } else {
+            logger.at(java.util.logging.Level.WARNING).log(
+                    "[%s] All metabolism features disabled in configuration", name);
+        }
+    }
+
+    @Override
+    protected void onShutdown() {
+        if (hudManager != null) {
+            hudManager.stop();
+        }
+
+        if (system != null) {
+            system.saveAll();
+            system.stop();
+        }
+    }
+
+    /**
+     * Gets the metabolism system.
+     */
+    public MetabolismSystem getSystem() {
+        return system;
+    }
+
+    /**
+     * Gets the HUD manager.
+     */
+    public MetabolismHudManager getHudManager() {
+        return hudManager;
+    }
+
+    /**
+     * Gets the module configuration.
+     */
+    public MetabolismModuleConfig getConfig() {
+        return config;
+    }
+}
