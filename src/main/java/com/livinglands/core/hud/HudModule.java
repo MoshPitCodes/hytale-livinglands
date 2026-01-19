@@ -8,6 +8,7 @@ import com.livinglands.core.PlayerRegistry;
 import com.livinglands.core.PlayerSession;
 import com.livinglands.core.commands.LivingLandsCommand;
 import com.livinglands.modules.leveling.LevelingSystem;
+import com.livinglands.modules.leveling.ability.AbilitySystem;
 import com.livinglands.modules.metabolism.MetabolismSystem;
 
 import javax.annotation.Nonnull;
@@ -67,6 +68,8 @@ public final class HudModule extends AbstractModule {
     private MetabolismSystem metabolismSystem;
     @Nullable
     private LevelingSystem levelingSystem;
+    @Nullable
+    private AbilitySystem abilitySystem;
 
     public HudModule() {
         super(ID, NAME, VERSION, Set.of());
@@ -367,6 +370,18 @@ public final class HudModule extends AbstractModule {
             panelElement.setLevelingSystem(system);
         }
         logger.at(Level.INFO).log("[%s] Leveling system integrated with panel", name);
+    }
+
+    /**
+     * Set the ability system for the unified panel.
+     * Called by LevelingModule during integration.
+     */
+    public void setAbilitySystem(@Nullable AbilitySystem system) {
+        this.abilitySystem = system;
+        if (panelElement != null) {
+            panelElement.setAbilitySystem(system);
+        }
+        logger.at(Level.INFO).log("[%s] Ability system integrated with panel", name);
     }
 
     /**

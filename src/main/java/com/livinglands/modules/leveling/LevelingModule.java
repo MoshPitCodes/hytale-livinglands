@@ -79,6 +79,7 @@ public final class LevelingModule extends AbstractModule {
 
             // Integrate with unified panel for /ll main command
             hudModule.setLevelingSystem(system);
+            hudModule.setAbilitySystem(abilitySystem);
         } else {
             logger.at(Level.WARNING).log("[%s] HUD module not found, HUD elements not registered", name);
         }

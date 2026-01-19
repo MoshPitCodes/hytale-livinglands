@@ -2,6 +2,8 @@ package com.livinglands.core.hud;
 
 import com.hypixel.hytale.server.core.ui.builder.UICommandBuilder;
 import com.livinglands.modules.leveling.LevelingSystem;
+import com.livinglands.modules.leveling.ability.AbilitySystem;
+import com.livinglands.modules.leveling.ability.AbilityType;
 import com.livinglands.modules.leveling.profession.ProfessionType;
 import com.livinglands.modules.metabolism.MetabolismSystem;
 
@@ -19,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * - Metabolism (Hunger, Thirst, Energy)
  * - Professions (Combat, Mining, Building, Logging, Gathering)
  * - Active Effects (Buffs and Debuffs)
+ * - Passive Abilities (Unlocked profession bonuses)
  *
  * Toggled via /ll main command.
  */
@@ -26,11 +29,14 @@ public class LivingLandsPanelElement implements HudElement {
 
     private static final String ID = "livinglands_panel";
     private static final String NAME = "Living Lands Panel";
+    private static final int MAX_ABILITIES_DISPLAYED = 5;
 
     @Nullable
     private MetabolismSystem metabolismSystem;
     @Nullable
     private LevelingSystem levelingSystem;
+    @Nullable
+    private AbilitySystem abilitySystem;
     @Nullable
     private HudModule hudModule;
 
@@ -43,6 +49,10 @@ public class LivingLandsPanelElement implements HudElement {
 
     public void setLevelingSystem(@Nullable LevelingSystem levelingSystem) {
         this.levelingSystem = levelingSystem;
+    }
+
+    public void setAbilitySystem(@Nullable AbilitySystem abilitySystem) {
+        this.abilitySystem = abilitySystem;
     }
 
     public void setHudModule(@Nonnull HudModule hudModule) {
@@ -149,6 +159,9 @@ public class LivingLandsPanelElement implements HudElement {
 
         // Populate effects section
         populateEffectsSection(builder, playerId);
+
+        // Populate abilities section
+        populateAbilitiesSection(builder, playerId);
 
         // Populate footer
         populateFooter(builder, playerId);
@@ -261,10 +274,32 @@ public class LivingLandsPanelElement implements HudElement {
             }
         }
 
-        // Fill effect slots (up to 4) - uses #PanelEffect for the panel
-        for (int i = 0; i < 4; i++) {
+        // Fill effect slots (up to 3) - uses #PanelEffect for the panel
+        for (int i = 0; i < 3; i++) {
             String effectText = (i < effects.size()) ? effects.get(i) : "";
             builder.set("#PanelEffect" + (i + 1) + ".Text", effectText);
+        }
+    }
+
+    private void populateAbilitiesSection(UICommandBuilder builder, UUID playerId) {
+        List<String> abilities = new ArrayList<>();
+
+        // Get unlocked abilities from the ability system
+        if (abilitySystem != null) {
+            for (AbilityType ability : AbilityType.values()) {
+                if (abilitySystem.isUnlocked(playerId, ability)) {
+                    float chance = abilitySystem.getTriggerChance(playerId, ability);
+                    // Format: "[✓] Ability Name (X%)"
+                    abilities.add(String.format("[✓] %s (%.0f%%)",
+                        ability.getDisplayName(), chance * 100));
+                }
+            }
+        }
+
+        // Fill ability slots (up to MAX_ABILITIES_DISPLAYED) - uses #PanelAbility for the panel
+        for (int i = 0; i < MAX_ABILITIES_DISPLAYED; i++) {
+            String abilityText = (i < abilities.size()) ? abilities.get(i) : "";
+            builder.set("#PanelAbility" + (i + 1) + ".Text", abilityText);
         }
     }
 
