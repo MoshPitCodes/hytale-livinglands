@@ -249,6 +249,51 @@ If you try to sleep outside of Hytale's sleep hours, you'll see a message explai
 
 <br/>
 
+# Leveling System
+
+Living Lands includes a complete profession leveling system with passive abilities.
+
+## Five Professions
+
+| Profession | XP Source | Passive Abilities |
+|------------|-----------|-------------------|
+| **Combat** | Killing mobs | Critical Strike, Lifesteal |
+| **Mining** | Breaking ores | Double Ore, Lucky Strike |
+| **Logging** | Chopping trees | Efficient Chopping, Bark Collector |
+| **Building** | Placing blocks | Material Saver |
+| **Gathering** | Harvesting plants | Double Harvest, Rare Find |
+
+## Passive Abilities
+
+Passive abilities unlock at certain profession levels and have a chance to trigger:
+
+| Ability | Profession | Effect |
+|---------|------------|--------|
+| **Critical Strike** | Combat | 1.5x damage on hit |
+| **Lifesteal** | Combat | Restore 10% of damage dealt as health |
+| **Double Ore** | Mining | Double ore drops |
+| **Lucky Strike** | Mining | Chance to find rare gems |
+| **Efficient Chopping** | Logging | Instantly break entire tree |
+| **Bark Collector** | Logging | Bonus bark/planks when logging |
+| **Material Saver** | Building | Don't consume block when placing |
+| **Double Harvest** | Gathering | Double gathered resources |
+| **Rare Find** | Gathering | Find rare items while gathering |
+
+## Metabolism Integration
+
+The leveling system integrates with metabolism:
+- **Well-Fed Bonus**: +25% XP when all stats are above 80%
+- **Starving Penalty**: -50% XP when any stat is below 20%
+
+## Panel Display
+
+The `/ll main` panel shows:
+- Current profession levels and XP
+- Unlocked passive abilities with trigger chances
+- Total XP earned across all professions
+
+<br/>
+
 # Commands
 
 ## Player Commands
@@ -256,6 +301,8 @@ If you try to sleep outside of Hytale's sleep hours, you'll see a message explai
 | Command | Description |
 |---------|-------------|
 | `/stats` | View your current hunger, thirst, energy, and any active buffs |
+| `/ll main` | Toggle the Living Lands panel (shows metabolism, professions, effects, abilities) |
+| `/skillgui` | Toggle XP gain notifications |
 
 The `/stats` command displays:
 - Current values and status labels
@@ -359,9 +406,9 @@ On first run, `LivingLands/modules.json` is created:
 | Module | Description | Status | Dependencies |
 |--------|-------------|--------|--------------|
 | **metabolism** | Hunger, thirst, energy, buffs, debuffs | ✅ Complete | None |
+| **leveling** | XP, professions, passive abilities | ✅ Complete | hud |
 | **claims** | Land/plot claiming and protection | 📋 Planned | None |
 | **economy** | Currency and transactions | 📋 Planned | None |
-| **leveling** | XP and progression | 📋 Planned | None |
 | **groups** | Clans/parties | 📋 Planned | None |
 | **traders** | NPC merchants | 📋 Planned | economy |
 
@@ -458,6 +505,9 @@ The metabolism module is optimized for **O(n) linear scaling** with player count
 | Player Feedback Messages | ✅ Complete |
 | Modular Architecture | ✅ Complete |
 | Enhanced HUD with Effects | ✅ Complete |
+| Leveling System | ✅ Complete |
+| Profession XP | ✅ Complete |
+| Passive Abilities | ✅ Complete |
 | Economy System | 📋 Planned |
 | Trader NPCs | 📋 Planned |
 | Land Claims | 📋 Planned |
