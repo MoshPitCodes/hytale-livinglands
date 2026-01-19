@@ -1,0 +1,201 @@
+# Living Lands - Hytale RPG Survival Mod
+
+**Living Lands** transforms Hytale into an immersive survival experience. Manage your character's **hunger**, **thirst**, and **energy** while exploring the world. The mod integrates seamlessly with vanilla items - no new blocks or complicated recipes, just pure survival gameplay.
+
+**Version 2.2** features a **buff/debuff system** that rewards well-maintained stats and penalizes neglect, plus a **modular architecture** - enable only the features you want!
+
+---
+
+## Features
+
+### Buff System (New in 2.2)
+
+- **Speed Buff** - Increased movement speed when Energy >= 90%
+- **Defense Buff** - Increased max health when Hunger >= 90%
+- **Stamina Buff** - Increased max stamina when Thirst >= 90%
+- **Hysteresis** - Buffs activate at 90%, deactivate at 80% to prevent flickering
+- **Native Detection** - Detects Hytale food buffs (Health_Boost, Stamina_Boost, Meat_Buff, FruitVeggie_Buff)
+
+### Debuff System (Enhanced in 2.2)
+
+- **Parched State** - Gradual speed/stamina reduction when Thirst < 30 (up to 55% at 0)
+- **Tired State** - Gradual speed reduction when Energy < 30 (up to 40% at 0)
+- **Starvation** - Escalating damage when Hunger = 0
+- **Dehydration** - Damage when Thirst = 0
+- **Exhaustion** - Rapid stamina drain when Energy = 0
+- **Player Feedback** - Colored chat messages when entering/exiting debuff states
+
+### Modular Architecture
+
+- **Toggle Features** - Enable/disable individual modules via `modules.json`
+- **Per-Module Configuration** - Each module has its own config directory
+- **Automatic Dependencies** - Enabling a module auto-enables its requirements
+- **Future-Ready** - Placeholder modules for Claims, Economy, Groups, Leveling, and Traders
+
+### Hunger System
+
+- Depletes naturally over time (1 point/60 seconds)
+- Activities like sprinting (2x), swimming (1.5x), and combat (1.5x) drain it faster
+- Eat vanilla foods to restore - cooked meats and prepared meals give the best restoration
+- Below 20: Starvation status with escalating damage
+
+### Thirst System
+
+- Depletes faster than hunger (1 point/45 seconds)
+- Drink potions, water, or milk to stay hydrated
+- Below 30: Parched status with movement penalties
+- At 0: Dehydration damage
+
+### Energy System
+
+- Slow depletion (1 point/90 seconds)
+- Sleep in beds to restore 50 energy (respects day/night cycle)
+- Stamina potions restore energy quickly
+- Below 30: Tired status with speed reduction
+- At 0: Exhaustion with rapid stamina drain
+
+### Native Debuff Integration
+
+- **Poison Effects** - Poison (T1-T3) drains hunger, thirst, and energy
+- **Burn Effects** - Burn, Lava Burn, Flame Staff cause severe thirst drain
+- **Stun Effects** - Stun, Bomb Explode cause high energy drain
+- **Freeze Effect** - Causes high energy drain (hypothermia)
+- **Root Effect** - Causes moderate energy drain
+- **Slow Effects** - Cause low energy drain (fatigue)
+
+### Real-time HUD
+
+- Custom on-screen display shows all three stats
+- Color-coded warnings when stats get low
+
+---
+
+## Consumables
+
+### Foods (Restore Hunger)
+
+| Tier | Examples | Hunger Restored |
+|------|----------|-----------------|
+| Low | Raw meats, Eggs, Vegetables | 8-18 |
+| Medium | Bread, Cheese, Cooked veggies | 20-35 |
+| High | Cooked meats, Kebabs, Salads | 40-50 |
+| Premium | Pies, Meat dishes | 55-65 |
+
+Items can be configured in server config. This way you should be able to include modded assets.
+
+### Drinks (Restore Thirst)
+
+| Type | Examples | Thirst Restored |
+|------|----------|-----------------|
+| Potions | Health, Mana, Regen | 20-45 |
+| Stamina | Stamina potions | 25-50 (+Energy) |
+| Water/Milk | Buckets | 50-60 |
+
+Items can be configured in server config. This way you should be able to include modded assets.
+
+### Special Items
+
+- **Salads** - Restore both hunger AND thirst
+- **Stamina Potions** - Restore thirst AND energy
+- **Milk** - Restores hunger AND thirst
+- **Health Potions** - Now also restore slight hunger and high thirst
+- **Mana/Signature Potions** - Now also restore slight energy and high thirst
+
+---
+
+## Configuration
+
+### Module Configuration (`modules.json`)
+
+```json
+{
+  "enabled": {
+    "metabolism": true,
+    "claims": false,
+    "economy": false,
+    "groups": false,
+    "leveling": false,
+    "traders": false
+  }
+}
+```
+
+Each module can be toggled independently. Dependent modules are auto-enabled when required.
+
+### Metabolism Configuration (`metabolism/config.json`)
+
+The metabolism module has extensive configuration options:
+- Stat depletion rates
+- Activity multipliers
+- Debuff thresholds and severity
+- Buff activation thresholds and multipliers
+- Food/drink restoration values
+
+---
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `/stats` | View your current hunger, thirst, energy, and active buffs |
+
+---
+
+## Installation
+
+1. Download the JAR file
+2. Place in your Hytale server's `Mods/` folder
+3. Restart the server
+4. Configure modules in `LivingLands/modules.json`
+5. Players automatically receive the HUD when joining
+
+### Requirements
+
+- Java 25+
+- Hytale Server (latest version)
+
+---
+
+## Performance
+
+Living Lands is optimized for servers of all sizes:
+
+- **O(n) Linear Scaling** - Performance scales linearly with player count
+- **Batched Processing** - Effect detection processes 10 players per tick
+- **Thread-Safe** - All ECS access runs on the WorldThread
+- **Efficient Data Structures** - ConcurrentHashMap for all player data
+
+---
+
+## Roadmap
+
+| Feature | Status |
+|---------|--------|
+| Modular Architecture | ✅ Complete |
+| Hunger System | ✅ Complete |
+| Thirst System | ✅ Complete |
+| Energy System | ✅ Complete |
+| Food Consumption | ✅ Complete |
+| Potion Effects | ✅ Complete |
+| Bed Rest | ✅ Complete |
+| Buff System | ✅ Complete |
+| Debuff System | ✅ Complete |
+| Native Buff Detection | ✅ Complete |
+| Native Debuff Integration | ✅ Complete |
+| Player Feedback Messages | ✅ Complete |
+| Economy System | 📋 Planned |
+| Trader NPCs | 📋 Planned |
+| Land Claims | 📋 Planned |
+| Groups/Guilds | 📋 Planned |
+| Leveling System | 📋 Planned |
+| Random Encounters | 📋 Planned |
+| Admin Commands | 📋 Planned |
+
+---
+
+## Links
+
+- **Source Code**: [GitHub](https://github.com/MoshPitCodes/hytale-livinglands)
+- **Issues**: [GitHub Issues](https://github.com/MoshPitCodes/hytale-livinglands/issues)
+- **License**: Apache-2.0
+- **Author**: MoshPitCodes
