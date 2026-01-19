@@ -2,6 +2,61 @@
 
 All notable changes to Living Lands will be documented in this file.
 
+## [2.3.0-beta] - 2026-01-19
+
+### Added
+
+#### Enhanced HUD Layout
+- **Vertically Aligned Progress Bars** - Metabolism bars now align vertically with labels on the left
+- **Active Effects Display** - Buffs and debuffs now display below the metabolism bars on the HUD
+- **Color-Coded Effects** - Buffs display in violet (`[+] Well Fed`), debuffs display in red (`[-] Starving`)
+- **Panel Title** - Main Living Lands panel now displays "LIVING LANDS" title with section headers
+- **XP Notification Repositioned** - XP gain notifications now appear to the right of the metabolism bars
+
+#### HUD Active Effects
+- **Buff Indicators** - Shows `[+] Well Fed`, `[+] Hydrated`, `[+] Energized` when stats >= 80%
+- **Debuff Indicators** - Shows `[-] Starving`, `[-] Dehydrated`, `[-] Exhausted` when stats <= 20%
+- **Separate Display** - Up to 2 buffs (violet) and 2 debuffs (red) displayed simultaneously
+
+#### Passive Abilities Section (Panel)
+- **New Panel Section** - The `/ll main` panel now shows unlocked passive abilities from the leveling system
+- **Ability Display** - Shows up to 5 unlocked abilities with trigger chances (e.g., `[✓] Critical Strike (15%)`)
+- **Green Color Coding** - Abilities display in green (#58d68d) for easy identification
+- **AbilitySystem Integration** - Panel integrates with the leveling module's ability system
+
+#### Leveling Passive Abilities
+Nine passive abilities across five professions:
+- **Combat**: Critical Strike (1.5x damage), Lifesteal (10% heal)
+- **Mining**: Double Ore, Lucky Strike (rare gems)
+- **Logging**: Efficient Chopping (instant tree), Bark Collector
+- **Building**: Material Saver (don't consume materials)
+- **Gathering**: Double Harvest, Rare Find
+
+### Changed
+
+#### UI Element Structure
+- **Text-Based Progress Bars** - Metabolism uses text bars (`75 [|||||||...]`) for reliable rendering
+- **Simplified UI File** - Removed vanilla template references that caused loading errors
+- **Proper Selector Names** - Panel effects now use `#PanelEffect1-3` selectors
+- **Panel Height Increased** - Panel height increased from 420px to 520px to accommodate abilities section
+
+### Fixed
+
+- **UI Loading Crash** - Fixed "Could not resolve relative path" error with vanilla UI template references
+- **Selector Mismatch** - Fixed `#Effect1.Text` selector not found error by using correct `#PanelEffect` selectors
+- **Dynamic Width Error** - Fixed "selector doesn't match a markup property" for `#HungerBar.Anchor.Width`
+
+### Technical Details
+- UI file simplified to use only Group/Label elements without external template dependencies
+- MetabolismHudElement now uses `#HungerBar.Text`, `#ThirstBar.Text`, `#EnergyBar.Text` for bar display
+- Added separate `#Buff1`, `#Buff2` (violet #9b59b6) and `#Debuff1`, `#Debuff2` (red #e74c3c) labels
+- LivingLandsPanelElement updated to use `#PanelEffect1-3` for panel effects section
+- New `#PanelAbility1-5` labels for displaying unlocked abilities
+- AbilitySystem integration via HudModule.setAbilitySystem()
+- XP notification moved from Top: 160 to Top: 16, Left: 310 for right-side alignment
+
+---
+
 ## [2.2.1-beta] - 2026-01-19
 
 ### Added

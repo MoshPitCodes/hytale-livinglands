@@ -6,9 +6,9 @@ import com.hypixel.hytale.server.core.event.events.player.PlayerConnectEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerDisconnectEvent;
 import com.hypixel.hytale.server.core.event.events.player.PlayerReadyEvent;
 import com.livinglands.core.PlayerRegistry;
+import com.livinglands.core.hud.HudModule;
 import com.livinglands.modules.metabolism.MetabolismModule;
 import com.livinglands.modules.metabolism.MetabolismSystem;
-import com.livinglands.modules.metabolism.ui.MetabolismHudManager;
 
 import javax.annotation.Nonnull;
 import java.util.logging.Level;
@@ -29,7 +29,7 @@ public class MetabolismPlayerListener {
     private final HytaleLogger logger;
     private PlayerRegistry playerRegistry;
     private MetabolismSystem metabolismSystem;
-    private MetabolismHudManager hudManager;
+    private HudModule hudModule;
 
     /**
      * Creates a new player event listener.
@@ -50,7 +50,10 @@ public class MetabolismPlayerListener {
         // Get services from module context
         this.playerRegistry = module.getContext().playerRegistry();
         this.metabolismSystem = module.getSystem();
-        this.hudManager = module.getHudManager();
+
+        // Get HudModule for player HUD initialization
+        module.getContext().moduleManager().getModule(HudModule.ID, HudModule.class)
+            .ifPresent(hud -> this.hudModule = hud);
 
         // Register player connect event handler
         eventRegistry.register(PlayerConnectEvent.class, this::onPlayerConnect);
@@ -122,13 +125,12 @@ public class MetabolismPlayerListener {
             // Set ECS references in central PlayerRegistry (including Player for game mode polling)
             playerRegistry.setEcsReferences(playerId, entityRef, store, null, playerRef, player);
 
-            // Initialize HUD for this player
-            var sessionOpt = playerRegistry.getSession(playerId);
-            if (sessionOpt.isPresent() && hudManager != null) {
-                hudManager.initializePlayerHud(playerId, sessionOpt.get());
+            // Initialize HUD for this player (HudModule handles single combined HUD)
+            if (hudModule != null) {
+                hudModule.initializePlayer(playerId);
             }
 
-            logger.at(Level.FINE).log("ECS ready for player: %s", playerId);
+            logger.at(Level.INFO).log("ECS ready for player: %s", playerId);
 
         } catch (Exception e) {
             logger.at(Level.WARNING).withCause(e).log(
@@ -148,9 +150,9 @@ public class MetabolismPlayerListener {
             var playerRef = event.getPlayerRef();
             var playerId = playerRef.getUuid();
 
-            // Remove HUD tracking
-            if (hudManager != null) {
-                hudManager.removePlayer(playerId);
+            // Remove HUD tracking (HudModule handles cleanup)
+            if (hudModule != null) {
+                hudModule.removePlayer(playerId);
             }
 
             // Remove metabolism tracking

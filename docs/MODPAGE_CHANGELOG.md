@@ -4,6 +4,49 @@ All notable changes to Living Lands for players and server administrators.
 
 ---
 
+## Version 2.3.0-beta - January 2026
+
+### New Features
+
+#### Enhanced HUD with Active Effects
+- **Vertically Aligned Bars** - Metabolism bars are now cleanly aligned with labels on the left
+- **Active Effects Display** - Buffs and debuffs now appear below your metabolism bars
+- **Color-Coded Effects** - Buffs display in violet, debuffs display in red for easy identification
+- **Panel Title** - The main Living Lands panel now has proper title and section headers
+- **XP Notifications** - XP gain notifications now appear to the right of the metabolism bars
+
+#### Buff/Debuff Indicators
+When your stats are high (80%+), you'll see violet buff indicators:
+- `[+] Well Fed` - Hunger >= 80%
+- `[+] Hydrated` - Thirst >= 80%
+- `[+] Energized` - Energy >= 80%
+
+When your stats are low (20% or below), you'll see red debuff indicators:
+- `[-] Starving` - Hunger <= 20%
+- `[-] Dehydrated` - Thirst <= 20%
+- `[-] Exhausted` - Energy <= 20%
+
+#### Passive Abilities Display
+The `/ll main` panel now shows your unlocked passive abilities:
+- Abilities display in green with trigger chances (e.g., `[✓] Critical Strike (15%)`)
+- Up to 5 abilities shown at once
+- Integrates with the leveling system
+
+#### Leveling System Abilities
+Nine passive abilities across five professions:
+- **Combat**: Critical Strike (1.5x damage), Lifesteal (10% heal)
+- **Mining**: Double Ore, Lucky Strike (rare gems)
+- **Logging**: Efficient Chopping (instant tree), Bark Collector
+- **Building**: Material Saver (don't consume materials)
+- **Gathering**: Double Harvest, Rare Find
+
+### Fixed
+
+- **UI Loading Issues** - Fixed crashes that could occur when loading the custom HUD
+- **Display Errors** - Fixed errors with UI element selectors not being found
+
+---
+
 ## Version 2.2.1-beta - January 2026
 
 ### New Features

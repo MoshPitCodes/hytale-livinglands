@@ -1,8 +1,10 @@
 package com.livinglands.core;
 
+import com.hypixel.hytale.component.ComponentRegistryProxy;
 import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.event.EventRegistry;
 import com.hypixel.hytale.server.core.command.system.CommandRegistry;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.livinglands.api.AbstractModule;
 import com.livinglands.api.Module;
 import com.livinglands.api.ModuleContext;
@@ -34,6 +36,7 @@ public final class ModuleManager {
     // Context dependencies (set before lifecycle methods)
     private EventRegistry eventRegistry;
     private CommandRegistry commandRegistry;
+    private ComponentRegistryProxy<EntityStore> entityStoreRegistry;
     private PlayerRegistry playerRegistry;
 
     /**
@@ -53,9 +56,11 @@ public final class ModuleManager {
      */
     public void setRegistries(@Nonnull EventRegistry eventRegistry,
                                @Nonnull CommandRegistry commandRegistry,
+                               @Nonnull ComponentRegistryProxy<EntityStore> entityStoreRegistry,
                                @Nonnull PlayerRegistry playerRegistry) {
         this.eventRegistry = eventRegistry;
         this.commandRegistry = commandRegistry;
+        this.entityStoreRegistry = entityStoreRegistry;
         this.playerRegistry = playerRegistry;
     }
 
@@ -92,7 +97,7 @@ public final class ModuleManager {
      * 3. Calls setup() on each enabled module
      */
     public void setupAll() {
-        if (eventRegistry == null || commandRegistry == null || playerRegistry == null) {
+        if (eventRegistry == null || commandRegistry == null || entityStoreRegistry == null || playerRegistry == null) {
             throw new IllegalStateException("Registries must be set before setupAll()");
         }
 
@@ -126,6 +131,7 @@ public final class ModuleManager {
                 pluginDirectory,
                 eventRegistry,
                 commandRegistry,
+                entityStoreRegistry,
                 playerRegistry,
                 this
         );

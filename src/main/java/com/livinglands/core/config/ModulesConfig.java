@@ -71,15 +71,19 @@ public class ModulesConfig {
     }
 
     /**
-     * Creates default configuration with metabolism enabled.
+     * Creates default configuration with core modules enabled.
      */
     @Nonnull
     public static ModulesConfig defaults() {
         var config = new ModulesConfig();
+        // Core modules (always enabled)
+        config.enabled.put("hud", true);
+        // Feature modules
         config.enabled.put("metabolism", true);
+        config.enabled.put("leveling", true);
+        // Future modules (disabled by default)
         config.enabled.put("claims", false);
         config.enabled.put("economy", false);
-        config.enabled.put("leveling", false);
         config.enabled.put("groups", false);
         config.enabled.put("traders", false);
         return config;

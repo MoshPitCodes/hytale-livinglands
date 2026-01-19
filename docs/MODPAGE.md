@@ -2,7 +2,7 @@
 
 **Living Lands** transforms Hytale into an immersive survival experience. Manage your character's **hunger**, **thirst**, and **energy** while exploring the world. The mod integrates seamlessly with vanilla items - no new blocks or complicated recipes, just pure survival gameplay.
 
-**Version 2.2.1** features a **buff/debuff system** that rewards well-maintained stats and penalizes neglect, plus a **modular architecture** - enable only the features you want!
+**Version 2.3.0** features an **enhanced HUD** with real-time buff/debuff indicators, a **buff/debuff system** that rewards well-maintained stats and penalizes neglect, plus a **modular architecture** - enable only the features you want!
 
 ---
 
@@ -65,8 +65,37 @@
 
 ### Real-time HUD
 
-- Custom on-screen display shows all three stats
+- Custom on-screen display shows all three stats with text-based progress bars
+- **Active Effects Display** - Buffs shown in violet, debuffs shown in red below the bars
+- **XP Notifications** - XP gain notifications appear to the right of metabolism bars
 - Color-coded warnings when stats get low
+- Buff indicators: `[+] Well Fed`, `[+] Hydrated`, `[+] Energized`
+- Debuff indicators: `[-] Starving`, `[-] Dehydrated`, `[-] Exhausted`
+
+### Leveling System
+
+Five professions with XP and passive abilities:
+
+| Profession | XP Source | Abilities |
+|------------|-----------|-----------|
+| **Combat** | Killing mobs | Critical Strike, Lifesteal |
+| **Mining** | Breaking ores | Double Ore, Lucky Strike |
+| **Logging** | Chopping trees | Efficient Chopping, Bark Collector |
+| **Building** | Placing blocks | Material Saver |
+| **Gathering** | Harvesting | Double Harvest, Rare Find |
+
+### Passive Abilities
+
+Unlockable abilities with trigger chances:
+- **Critical Strike** - 1.5x damage on hit
+- **Lifesteal** - Heal 10% of damage dealt
+- **Double Ore** - Double ore drops
+- **Lucky Strike** - Find rare gems
+- **Efficient Chopping** - Instant tree felling
+- **Bark Collector** - Bonus wood materials
+- **Material Saver** - Don't consume blocks
+- **Double Harvest** - Double gathered resources
+- **Rare Find** - Find rare items
 
 ---
 
@@ -138,6 +167,9 @@ The metabolism module has extensive configuration options:
 | Command | Description |
 |---------|-------------|
 | `/stats` | View your current hunger, thirst, energy, and active buffs |
+| `/ll main` | Toggle the Living Lands panel (metabolism, professions, effects, abilities) |
+| `/skillgui` | Toggle XP gain notifications |
+| `/setlevel` | (Admin) Set a player's profession level |
 
 ---
 
@@ -183,11 +215,14 @@ Living Lands is optimized for servers of all sizes:
 | Native Buff Detection | ✅ Complete |
 | Native Debuff Integration | ✅ Complete |
 | Player Feedback Messages | ✅ Complete |
+| Enhanced HUD with Effects | ✅ Complete |
+| Leveling System | ✅ Complete |
+| Profession XP | ✅ Complete |
+| Passive Abilities | ✅ Complete |
 | Economy System | 📋 Planned |
 | Trader NPCs | 📋 Planned |
 | Land Claims | 📋 Planned |
 | Groups/Guilds | 📋 Planned |
-| Leveling System | 📋 Planned |
 | Random Encounters | 📋 Planned |
 | Admin Commands | 📋 Planned |
 

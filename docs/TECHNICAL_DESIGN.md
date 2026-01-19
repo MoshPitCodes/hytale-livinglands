@@ -668,6 +668,8 @@ public record DebuffsConfig(
 | `LivingLandsPlugin` | `com.livinglands` | Plugin entry point |
 | `ModuleManager` | `com.livinglands.core` | Module lifecycle |
 | `PlayerRegistry` | `com.livinglands.core` | Player session management |
+| `HudModule` | `com.livinglands.core.hud` | HUD system management |
+| `LivingLandsPanelElement` | `com.livinglands.core.hud` | Unified panel display |
 | `MetabolismModule` | `com.livinglands.modules.metabolism` | Module wrapper |
 | `MetabolismSystem` | `com.livinglands.modules.metabolism` | Core metabolism logic |
 | `DebuffsSystem` | `com.livinglands.modules.metabolism` | Low-stat penalties |
@@ -677,6 +679,10 @@ public record DebuffsConfig(
 | `FoodConsumptionProcessor` | `com.livinglands.modules.metabolism.consumables` | Food detection |
 | `ActivityDetector` | `com.livinglands.modules.metabolism` | Movement detection |
 | `PlayerMetabolismData` | `com.livinglands.modules.metabolism` | Per-player state |
+| `LevelingModule` | `com.livinglands.modules.leveling` | Leveling module wrapper |
+| `LevelingSystem` | `com.livinglands.modules.leveling` | Core leveling logic |
+| `AbilitySystem` | `com.livinglands.modules.leveling.ability` | Passive ability management |
+| `AbilityType` | `com.livinglands.modules.leveling.ability` | Ability definitions |
 
 ---
 
@@ -688,3 +694,6 @@ public record DebuffsConfig(
 | 1.1.0-beta | Native debuff system, enhanced potion detection |
 | 2.0.0-beta | Modular architecture refactor |
 | 2.1.0-beta | Buff system, enhanced debuffs, speed modification |
+| 2.2.0-beta | Speed modification client sync, performance optimization |
+| 2.2.1-beta | Stamina debuff implementation |
+| 2.3.0-beta | Enhanced HUD, passive abilities panel, leveling integration |

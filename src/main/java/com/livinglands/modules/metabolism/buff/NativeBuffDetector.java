@@ -119,25 +119,65 @@ public class NativeBuffDetector {
     }
 
     /**
-     * Gets the effect ID from an active effect.
+     * Gets the effect ID from an active effect via reflection.
+     * Uses multiple fallback strategies for robustness.
      */
     private String getEffectId(Object effect) {
+        if (effect == null) {
+            return null;
+        }
+
+        // Strategy 1: Try getType().getId() pattern
         try {
-            // Try to get the effect type and its ID
-            var getType = effect.getClass().getMethod("getType");
-            var type = getType.invoke(effect);
-            if (type != null) {
-                var getId = type.getClass().getMethod("getId");
-                var id = getId.invoke(type);
-                return id != null ? id.toString() : null;
+            var effectClass = effect.getClass();
+            if (hasMethod(effectClass, "getType")) {
+                var getType = effectClass.getMethod("getType");
+                var type = getType.invoke(effect);
+                if (type != null && hasMethod(type.getClass(), "getId")) {
+                    var getId = type.getClass().getMethod("getId");
+                    var id = getId.invoke(type);
+                    if (id != null) {
+                        return id.toString();
+                    }
+                }
             }
         } catch (Exception e) {
-            // Fall back to toString
-            try {
-                return effect.toString();
-            } catch (Exception ignored) {}
+            logger.at(Level.FINEST).withCause(e).log("Failed to get effect ID via getType().getId()");
         }
+
+        // Strategy 2: Try direct getId() method
+        try {
+            if (hasMethod(effect.getClass(), "getId")) {
+                var getId = effect.getClass().getMethod("getId");
+                var id = getId.invoke(effect);
+                if (id != null) {
+                    return id.toString();
+                }
+            }
+        } catch (Exception e) {
+            logger.at(Level.FINEST).withCause(e).log("Failed to get effect ID via direct getId()");
+        }
+
+        // Strategy 3: Fall back to toString
+        try {
+            return effect.toString();
+        } catch (Exception e) {
+            logger.at(Level.FINEST).withCause(e).log("Failed to get effect ID via toString");
+        }
+
         return null;
+    }
+
+    /**
+     * Checks if a class has a method with the given name (no parameters).
+     */
+    private boolean hasMethod(Class<?> clazz, String methodName) {
+        try {
+            clazz.getMethod(methodName);
+            return true;
+        } catch (NoSuchMethodException e) {
+            return false;
+        }
     }
 
     /**

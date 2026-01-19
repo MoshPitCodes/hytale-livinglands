@@ -4,6 +4,7 @@ import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
 import com.livinglands.core.ModuleManager;
 import com.livinglands.core.PlayerRegistry;
+import com.livinglands.core.hud.HudModule;
 import com.livinglands.modules.claims.ClaimsModule;
 import com.livinglands.modules.economy.EconomyModule;
 import com.livinglands.modules.groups.GroupsModule;
@@ -82,7 +83,7 @@ public class LivingLandsPlugin extends JavaPlugin {
             getLogger().at(Level.INFO).log("Initializing module manager...");
             moduleManager = new ModuleManager(getLogger(), pluginDirectory);
             moduleManager.loadConfig();
-            moduleManager.setRegistries(getEventRegistry(), getCommandRegistry(), playerRegistry);
+            moduleManager.setRegistries(getEventRegistry(), getCommandRegistry(), getEntityStoreRegistry(), playerRegistry);
 
             // Register all available modules
             registerModules();
@@ -100,16 +101,20 @@ public class LivingLandsPlugin extends JavaPlugin {
 
     /**
      * Registers all available modules with the module manager.
+     * Order matters - core modules should be registered first.
      */
     private void registerModules() {
         getLogger().at(Level.INFO).log("Registering modules...");
 
-        // Core gameplay modules
+        // Core infrastructure modules (register first, no dependencies)
+        moduleManager.register(new HudModule());
+
+        // Core gameplay modules (depend on HUD)
         moduleManager.register(new MetabolismModule());
+        moduleManager.register(new LevelingModule());
 
         // Future modules (register all - disabled by default in modules.json)
         moduleManager.register(new ClaimsModule());
-        moduleManager.register(new LevelingModule());
         moduleManager.register(new GroupsModule());
         moduleManager.register(new EconomyModule());
         moduleManager.register(new TradersModule());  // Depends on economy - will auto-enable it
