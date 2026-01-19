@@ -33,6 +33,8 @@
 
 **Living Lands** is an immersive RPG survival mod for Hytale that transforms the gameplay experience by introducing realistic survival mechanics. Manage your character's hunger, thirst, and energy while exploring the world. Consume food and drinks to stay alive, and rest to recover your strength.
 
+The mod features a **modular architecture** allowing server administrators to enable or disable features independently. Each module (Metabolism, Plot Claims, Economy, etc.) can be toggled via configuration, making it easy to customize the experience for your server.
+
 The mod seamlessly integrates with vanilla Hytale items, adding depth without breaking the core gameplay experience.
 
 <br/>
@@ -215,9 +217,54 @@ cd hytale-livinglands
 - **Hytale Server**: Latest version
 - **Gradle**: 9.x (included via wrapper)
 
-### Configuration
+### Modular Configuration
 
-The mod uses sensible defaults that work well for most servers:
+Living Lands uses a **modular architecture** where each feature is a separate module that can be enabled or disabled. On first run, the mod creates a `modules.json` file:
+
+```json
+{
+  "enabled": {
+    "metabolism": true,
+    "claims": false,
+    "economy": false,
+    "leveling": false,
+    "groups": false,
+    "traders": false
+  }
+}
+```
+
+| Module | Description | Dependencies |
+|--------|-------------|--------------|
+| **metabolism** | Hunger, thirst, energy systems | None |
+| **claims** | Land/plot claiming and protection | None |
+| **economy** | Currency and transaction system | None |
+| **leveling** | XP and level progression | None |
+| **groups** | Clan/party management | None |
+| **traders** | NPC merchants | economy (auto-enabled) |
+
+**Note**: When enabling a module with dependencies (like `traders`), the required modules are automatically enabled.
+
+### Configuration Directory Structure
+
+```
+LivingLands/
+├── modules.json              # Enable/disable modules
+├── metabolism/
+│   └── config.json           # Metabolism-specific settings
+├── claims/
+│   └── config.json           # Claims settings (when implemented)
+├── economy/
+│   └── config.json           # Economy settings (when implemented)
+└── playerdata/
+    └── {uuid}.json           # Per-player persistent data
+```
+
+Each module has its own configuration file in its dedicated folder, making it easy to manage settings for individual features.
+
+### Metabolism Configuration
+
+The metabolism module uses sensible defaults that work well for most servers:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
@@ -258,50 +305,58 @@ This ensures only actual food/drink consumption triggers stat restoration, not i
 
 # 📐 Architecture
 
+Living Lands uses a **modular plugin architecture** that allows server administrators to enable/disable features independently.
+
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                      Living Lands Plugin                          │
-├──────────────────────────────────────────────────────────────────┤
-│                                                                   │
-│  ┌─────────────┐  ┌─────────────┐  ┌────────────────────────┐   │
-│  │   Commands  │  │  Listeners  │  │   Metabolism System    │   │
-│  ├─────────────┤  ├─────────────┤  ├────────────────────────┤   │
-│  │ /stats      │  │ Player      │  │ Tick-based updates     │   │
-│  │             │  │ Connect/    │  │ Activity tracking      │   │
-│  │             │  │ Disconnect  │  │ Stat depletion         │   │
-│  │             │  │             │  │ Stat restoration       │   │
-│  │             │  │ Food/Potion │  │                        │   │
-│  │             │  │ Consumption │  │                        │   │
-│  │             │  │             │  │                        │   │
-│  │             │  │ Bed         │  │                        │   │
-│  │             │  │ Interaction │  │                        │   │
-│  └─────────────┘  └─────────────┘  └────────────────────────┘   │
-│         │                │                      │                │
-│         └────────────────┼──────────────────────┘                │
-│                          │                                        │
-│                          ▼                                        │
-│  ┌────────────────────────────────────────────────────────────┐  │
-│  │                 Player Metabolism Data                      │  │
-│  │  ┌─────────┐  ┌─────────┐  ┌─────────┐                    │  │
-│  │  │ Hunger  │  │ Thirst  │  │ Energy  │                    │  │
-│  │  │  0-100  │  │  0-100  │  │  0-100  │                    │  │
-│  │  └─────────┘  └─────────┘  └─────────┘                    │  │
-│  └────────────────────────────────────────────────────────────┘  │
-│                          │                                        │
-│          ┌───────────────┼───────────────┐                       │
-│          ▼               ▼               ▼                       │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐             │
-│  │  Consumable  │ │   Debuff     │ │   Debuffs    │             │
-│  │   Registry   │ │   System     │ │   Config     │             │
-│  ├──────────────┤ ├──────────────┤ ├──────────────┤             │
-│  │ Foods        │ │ Poison       │ │ Drain rates  │             │
-│  │ Potions      │ │ Burn/Fire    │ │ Per debuff   │             │
-│  │ Drinks       │ │ Stun/Freeze  │ │ Toggles      │             │
-│  │              │ │ Root/Slow    │ │              │             │
-│  └──────────────┘ └──────────────┘ └──────────────┘             │
-│                                                                   │
-└──────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                        Living Lands Plugin                              │
+├────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │                        Module Manager                             │  │
+│  │  • Registration & Discovery    • Dependency Resolution            │  │
+│  │  • Lifecycle Orchestration     • Auto-enable Dependencies         │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+│                                    │                                    │
+│         ┌──────────────────────────┼──────────────────────────┐        │
+│         ▼                          ▼                          ▼        │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────┐   │
+│  │  Metabolism  │  │    Claims    │  │   Economy    │  │ Traders  │   │
+│  │    Module    │  │    Module    │  │   Module     │  │  Module  │   │
+│  ├──────────────┤  ├──────────────┤  ├──────────────┤  ├──────────┤   │
+│  │ ✅ Enabled   │  │ ⬚ Disabled  │  │ ⬚ Disabled  │  │⬚ Disabled│   │
+│  │ Hunger       │  │ Plot Claims  │  │ Currency     │  │ NPC      │   │
+│  │ Thirst       │  │ Protection   │  │ Wallets      │  │ Merchants│   │
+│  │ Energy       │  │ Permissions  │  │ Transactions │  │ Trading  │   │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────┘   │
+│         │                                                     │        │
+│         ▼                                                     ▼        │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │                      Shared Core Services                         │  │
+│  │  • PlayerRegistry (session management)                            │  │
+│  │  • EventRegistry (listener registration)                          │  │
+│  │  • CommandRegistry (command registration)                         │  │
+│  │  • PlayerDataPersistence (JSON file I/O)                          │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+│                                                                         │
+└────────────────────────────────────────────────────────────────────────┘
 ```
+
+### Module Lifecycle
+
+Each module follows a consistent lifecycle:
+
+1. **Registration** - Module is registered with ModuleManager
+2. **Setup** - Configuration loaded, commands/events registered
+3. **Start** - Background tasks and tick loops activated
+4. **Shutdown** - Data saved, resources released
+
+### Adding New Modules
+
+Developers can create new modules by:
+1. Extending `AbstractModule`
+2. Implementing `onSetup()`, `onStart()`, `onShutdown()`
+3. Registering with `ModuleManager` in the main plugin
 
 <br/>
 
@@ -320,13 +375,14 @@ This ensures only actual food/drink consumption triggers stat restoration, not i
 | Trader NPCs | 📋 Planned |
 | Land Claims | 📋 Planned |
 | Admin Commands | 📋 Planned |
+| **Modular Architecture** | ✅ Complete |
 
 <br/>
 
 # 👥 Credits
 
 - **Author**: [MoshPitCodes](https://github.com/MoshPitCodes)
-- **Version**: 1.0.0-beta
+- **Version**: 2.0.0-beta
 - **License**: Apache-2.0
 
 ### Resources
