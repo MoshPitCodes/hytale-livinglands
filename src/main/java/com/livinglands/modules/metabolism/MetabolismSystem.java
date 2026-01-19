@@ -401,6 +401,12 @@ public class MetabolismSystem {
         poisonEffectsSystem.removePlayer(playerUuid);
         debuffEffectsSystem.removePlayer(playerUuid);
         foodConsumptionProcessor.removePlayer(playerUuid);
+        if (buffsSystem != null) {
+            buffsSystem.removePlayer(playerUuid);
+        }
+        if (buffEffectsSystem != null) {
+            buffEffectsSystem.removePlayer(playerUuid);
+        }
     }
 
     /**
