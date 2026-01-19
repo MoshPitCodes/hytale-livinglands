@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "com.livinglands"
-version = "2.0.0-beta"
+version = "2.2.0-beta"
 
 repositories {
     mavenCentral()

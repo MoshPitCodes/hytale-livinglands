@@ -3,6 +3,8 @@ package com.livinglands.modules.metabolism;
 import com.hypixel.hytale.logger.HytaleLogger;
 import com.livinglands.core.PlayerRegistry;
 import com.livinglands.core.persistence.PlayerDataPersistence;
+import com.livinglands.modules.metabolism.buff.BuffEffectsSystem;
+import com.livinglands.modules.metabolism.buff.BuffsSystem;
 import com.livinglands.modules.metabolism.config.MetabolismModuleConfig;
 import com.livinglands.modules.metabolism.listeners.FoodConsumptionProcessor;
 import com.livinglands.modules.metabolism.poison.PoisonEffectsSystem;
@@ -10,6 +12,8 @@ import com.livinglands.modules.metabolism.debuff.DebuffEffectsSystem;
 
 import java.nio.file.Path;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -39,6 +43,10 @@ public class MetabolismSystem {
     // Update frequency for food effect detection (50ms to catch 100ms instant heals)
     private static final long EFFECT_DETECTION_INTERVAL_MS = 50L;
 
+    // Batch size for effect detection - process this many players per tick
+    // With 50ms tick and batch of 10, all 100 players processed in 500ms (still fast enough for 100ms effects)
+    private static final int EFFECT_DETECTION_BATCH_SIZE = 10;
+
     private final MetabolismModuleConfig config;
     private final HytaleLogger logger;
     private final PlayerRegistry playerRegistry;
@@ -66,6 +74,13 @@ public class MetabolismSystem {
     private ScheduledFuture<?> tickTask;
     private ScheduledFuture<?> effectDetectionTask;
     private volatile boolean running = false;
+
+    // Batch processing state for effect detection
+    private volatile int effectDetectionBatchIndex = 0;
+
+    // Buff systems (optional, initialized by module if enabled)
+    private BuffsSystem buffsSystem;
+    private BuffEffectsSystem buffEffectsSystem;
 
     /**
      * Creates a new metabolism system.
@@ -172,6 +187,11 @@ public class MetabolismSystem {
             // Process native Hytale debuff effects (poison, burn, stun, freeze, root, slow)
             debuffEffectsSystem.processDebuffEffects();
 
+            // Process buff effects (if enabled)
+            if (buffEffectsSystem != null) {
+                buffEffectsSystem.processBuffEffects();
+            }
+
         } catch (Exception e) {
             // Silently handle tick errors to avoid spam
         }
@@ -181,11 +201,34 @@ public class MetabolismSystem {
      * High-frequency effect detection tick - called every 50ms.
      * Detects food consumption by monitoring for new food buff effects.
      * This runs faster than the main tick to catch instant heals (100ms duration).
+     *
+     * Uses batched processing to avoid O(n) overhead every 50ms:
+     * - Processes EFFECT_DETECTION_BATCH_SIZE players per tick
+     * - Cycles through all players over multiple ticks
+     * - With batch size 10 and 50ms tick, 100 players processed in 500ms
      */
     private void effectDetectionTick() {
         try {
-            // Process food consumption detection for all tracked players
-            playerData.keySet().forEach(foodConsumptionProcessor::processPlayer);
+            // Get snapshot of player IDs for iteration
+            List<UUID> playerIds = new ArrayList<>(playerData.keySet());
+            int totalPlayers = playerIds.size();
+
+            if (totalPlayers == 0) {
+                return;
+            }
+
+            // Calculate batch boundaries
+            int startIndex = effectDetectionBatchIndex;
+            int endIndex = Math.min(startIndex + EFFECT_DETECTION_BATCH_SIZE, totalPlayers);
+
+            // Process this batch of players
+            for (int i = startIndex; i < endIndex; i++) {
+                foodConsumptionProcessor.processPlayer(playerIds.get(i));
+            }
+
+            // Advance batch index for next tick, wrapping around
+            effectDetectionBatchIndex = endIndex >= totalPlayers ? 0 : endIndex;
+
         } catch (Exception e) {
             // Silently handle tick errors to avoid spam
         }
@@ -238,6 +281,11 @@ public class MetabolismSystem {
 
             // Process debuffs based on current stat levels
             debuffsSystem.processDebuffs(data.getPlayerUuid(), data);
+
+            // Process buffs based on current stat levels (if enabled)
+            if (buffsSystem != null) {
+                buffsSystem.processBuffs(data.getPlayerUuid(), data);
+            }
 
         } catch (Exception e) {
             // Silently handle player processing errors
@@ -385,6 +433,12 @@ public class MetabolismSystem {
         poisonEffectsSystem.removePlayer(playerUuid);
         debuffEffectsSystem.removePlayer(playerUuid);
         foodConsumptionProcessor.removePlayer(playerUuid);
+        if (buffsSystem != null) {
+            buffsSystem.removePlayer(playerUuid);
+        }
+        if (buffEffectsSystem != null) {
+            buffEffectsSystem.removePlayer(playerUuid);
+        }
     }
 
     /**
@@ -553,5 +607,29 @@ public class MetabolismSystem {
      */
     public DebuffEffectsSystem getDebuffEffectsSystem() {
         return debuffEffectsSystem;
+    }
+
+    /**
+     * Gets the debuffs system for stat-level debuffs.
+     * Used by the buff system to check if debuffs are active.
+     */
+    public DebuffsSystem getDebuffsSystem() {
+        return debuffsSystem;
+    }
+
+    /**
+     * Sets the buff systems for high-metabolism buffs.
+     * Called by MetabolismModule when buffs are enabled.
+     */
+    public void setBuffSystems(BuffsSystem buffsSystem, BuffEffectsSystem buffEffectsSystem) {
+        this.buffsSystem = buffsSystem;
+        this.buffEffectsSystem = buffEffectsSystem;
+    }
+
+    /**
+     * Gets the buffs system (may be null if buffs are disabled).
+     */
+    public BuffsSystem getBuffsSystem() {
+        return buffsSystem;
     }
 }

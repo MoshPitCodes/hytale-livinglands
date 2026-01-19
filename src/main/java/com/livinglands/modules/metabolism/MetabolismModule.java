@@ -1,6 +1,8 @@
 package com.livinglands.modules.metabolism;
 
 import com.livinglands.api.AbstractModule;
+import com.livinglands.modules.metabolism.buff.BuffEffectsSystem;
+import com.livinglands.modules.metabolism.buff.BuffsSystem;
 import com.livinglands.modules.metabolism.commands.StatsCommand;
 import com.livinglands.modules.metabolism.config.MetabolismModuleConfig;
 import com.livinglands.modules.metabolism.consumables.ConsumableRegistry;
@@ -34,6 +36,8 @@ public final class MetabolismModule extends AbstractModule {
     private MetabolismModuleConfig config;
     private MetabolismSystem system;
     private MetabolismHudManager hudManager;
+    private BuffsSystem buffsSystem;
+    private BuffEffectsSystem buffEffectsSystem;
 
     public MetabolismModule() {
         super(ID, NAME, VERSION, Set.of()); // No dependencies
@@ -71,9 +75,22 @@ public final class MetabolismModule extends AbstractModule {
         logger.at(java.util.logging.Level.INFO).log("[%s] Creating HUD manager...", name);
         hudManager = new MetabolismHudManager(system, context.playerRegistry(), config, logger);
 
+        // Initialize buff systems
+        if (config.buffs.enabled) {
+            logger.at(java.util.logging.Level.INFO).log("[%s] Initializing buff system...", name);
+            buffsSystem = new BuffsSystem(config.buffs, logger, context.playerRegistry());
+            buffsSystem.setDebuffsSystem(system.getDebuffsSystem());
+
+            buffEffectsSystem = new BuffEffectsSystem(config.buffs, logger);
+            buffEffectsSystem.setMetabolismSystem(system, context.playerRegistry());
+
+            // Wire buff system into metabolism system
+            system.setBuffSystems(buffsSystem, buffEffectsSystem);
+        }
+
         // Register commands
         logger.at(java.util.logging.Level.INFO).log("[%s] Registering commands...", name);
-        context.commandRegistry().registerCommand(new StatsCommand(system));
+        context.commandRegistry().registerCommand(new StatsCommand(system, buffsSystem));
 
         // Register event listeners
         logger.at(java.util.logging.Level.INFO).log("[%s] Registering event listeners...", name);

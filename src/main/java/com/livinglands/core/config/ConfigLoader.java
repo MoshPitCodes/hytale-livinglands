@@ -209,6 +209,9 @@ public final class ConfigLoader {
             public double blurStartThreshold = 20.0;
             public float damageTickIntervalSeconds = 4.0f;
             public float damageAtZero = 1.5f;
+            public double slowStartThreshold = 30.0;
+            public float minSpeedMultiplier = 0.45f;
+            public float minStaminaRegenMultiplier = 0.45f;
         }
 
         public static class EnergyDebuffsJson {
@@ -406,7 +409,10 @@ public final class ConfigLoader {
                     d.thirst.recoveryThreshold,
                     d.thirst.blurStartThreshold,
                     d.thirst.damageTickIntervalSeconds,
-                    d.thirst.damageAtZero
+                    d.thirst.damageAtZero,
+                    d.thirst.slowStartThreshold,
+                    d.thirst.minSpeedMultiplier,
+                    d.thirst.minStaminaRegenMultiplier
                 ),
                 new DebuffsConfig.EnergyDebuffs(
                     d.energy.enabled,
@@ -669,6 +675,9 @@ public final class ConfigLoader {
             json.debuffs.thirst.blurStartThreshold = d.thirst().blurStartThreshold();
             json.debuffs.thirst.damageTickIntervalSeconds = d.thirst().damageTickIntervalSeconds();
             json.debuffs.thirst.damageAtZero = d.thirst().damageAtZero();
+            json.debuffs.thirst.slowStartThreshold = d.thirst().slowStartThreshold();
+            json.debuffs.thirst.minSpeedMultiplier = d.thirst().minSpeedMultiplier();
+            json.debuffs.thirst.minStaminaRegenMultiplier = d.thirst().minStaminaRegenMultiplier();
 
             json.debuffs.energy.enabled = d.energy().enabled();
             json.debuffs.energy.slowStartThreshold = d.energy().slowStartThreshold();

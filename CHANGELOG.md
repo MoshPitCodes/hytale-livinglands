@@ -2,6 +2,137 @@
 
 All notable changes to Living Lands will be documented in this file.
 
+## [2.2.0-beta] - 2026-01-19
+
+### Fixed
+
+#### Speed Modification Client Sync
+- **Movement Settings Sync** - Speed buffs/debuffs now properly sync to the client via `MovementManager.update(PacketHandler)`
+- **Debuff Speed Penalties** - Players now actually feel speed reductions from thirst/energy debuffs
+- **Buff Speed Bonuses** - Speed buff from high energy now works correctly in-game
+- **Thirst Speed Debuff** - Parched state speed reduction now visible to players
+- **Energy Speed Debuff** - Tired state speed reduction now visible to players
+
+#### Stat Modifier Compatibility
+- **StaticModifier Usage** - Replaced custom `MultiplyModifier` class with Hytale's built-in `StaticModifier`
+- **Server Crash Fix** - Fixed codec serialization error that crashed server on player save
+- **Client Compatibility** - Fixed "Only static modifiers supported on the client currently" error
+
+### Changed
+
+#### Performance Optimization
+- **Batched Effect Detection** - Food consumption detection now processes players in batches of 10 per 50ms tick
+- **O(n) Scaling** - Reduced per-tick overhead from O(n) to O(batch_size) for effect detection
+- **High Player Count Support** - Improved performance for servers with 100+ players
+
+### Technical Details
+- Added `PlayerRef` import for accessing `PacketHandler` to sync movement settings
+- Added `movementManager.update(playerRef.getPacketHandler())` calls after all speed modifications
+- Added `EFFECT_DETECTION_BATCH_SIZE = 10` constant for configurable batch processing
+- Added `effectDetectionBatchIndex` for round-robin batch iteration
+- Removed unused `MultiplyModifier` inner class from `DebuffsSystem`
+
+---
+
+## [2.1.0-beta] - 2026-01-19
+
+### Added
+
+#### Buff System (High Metabolism Rewards)
+- **Speed Buff** - Increased movement speed when Energy ≥ 90%
+- **Defense Buff** - Increased max health when Hunger ≥ 90%
+- **Stamina Buff** - Increased max stamina when Thirst ≥ 90%
+- **Hysteresis System** - Buffs activate at 90%, deactivate at 80% to prevent flickering
+- **Buff Priority** - Debuffs suppress all buffs (debuffs take priority)
+- **Buff Detection** - Detects native Hytale food buffs (Health_Boost, Stamina_Boost, Meat_Buff, FruitVeggie_Buff)
+
+#### Enhanced Thirst Debuffs
+- **Parched State** - New debuff tier when Thirst < 30
+- **Gradual Speed Reduction** - Speed decreases proportionally as thirst drops (up to 55% reduction at 0)
+- **Gradual Stamina Regen Reduction** - Stamina regeneration slows proportionally (up to 55% reduction at 0)
+- **Separate from Dehydrated** - Parched applies movement penalties, Dehydrated (Thirst = 0) adds damage
+
+#### Enhanced Energy Debuffs
+- **Tired State** - New debuff tier when Energy < 30 (separate from Exhausted)
+- **Gradual Speed Reduction** - Speed decreases proportionally as energy drops (up to 40% reduction at 0)
+- **Exhausted State** - Stamina drains rapidly when Energy = 0
+
+#### Player Feedback System
+- **Chat Messages** - Players receive colored messages when entering/exiting debuff states
+- **State Entry Messages** - Red messages warn of debuff activation (e.g., "You are starving! Find food quickly!")
+- **State Exit Messages** - Green messages confirm recovery (e.g., "You are no longer starving.")
+- **All States Covered** - Feedback for Starving, Dehydrated, Parched, Tired, and Exhausted states
+
+#### StatsCommand Enhancement
+- **Active Buffs Display** - `/stats` command now shows list of active buffs
+
+### Changed
+
+#### Debuff Severity
+- **Thirst Debuff Severity** - Increased from 15% to 55% maximum speed/stamina reduction
+- **Proportional Scaling** - Debuffs now scale linearly based on stat level below threshold
+
+#### Architecture
+- **BuffsSystem** - New system for managing stat-based buffs
+- **BuffEffectsSystem** - New system for detecting native Hytale food buff effects
+- **NativeBuffDetector** - Detects active buff effects from EffectControllerComponent
+- **BuffType Enum** - SPEED, DEFENSE, STAMINA_REGEN, STRENGTH, VITALITY
+- **BuffConfig** - Configuration for buff activation/deactivation thresholds and multipliers
+
+#### Documentation
+- **README Overhaul** - Complete rewrite with clearer structure and comprehensive documentation
+- **Buff System Documentation** - Detailed explanation of buff mechanics and hysteresis
+- **Debuff System Documentation** - Detailed explanation of debuff tiers and severity scaling
+- **Architecture Diagrams** - Updated to show new buff/debuff systems
+
+### Technical Details
+- New package: `com.livinglands.modules.metabolism.buff`
+- New files: `BuffType.java`, `BuffConfig.java`, `BuffsSystem.java`, `BuffEffectsSystem.java`, `NativeBuffDetector.java`, `ActiveBuffDetails.java`
+- New tracking sets in DebuffsSystem: `parchedPlayers`, `tiredPlayers`
+- Thread-safe player feedback via `sendDebuffMessage()` helper
+
+---
+
+## [2.0.0-beta] - 2026-01-19
+
+### Added
+
+#### Modular Plugin Architecture
+- **Module API** - Sealed `Module` interface and `AbstractModule` base class for lifecycle management
+- **ModuleManager** - Handles registration, dependency resolution via topological sort, and orchestration
+- **modules.json Configuration** - Server administrators can toggle features independently
+- **Per-Module Config Directories** - Each module receives dedicated configuration (e.g., `LivingLands/<module>/config.json`)
+- **Module Lifecycle States** - Progression through: DISABLED → SETUP → STARTED → STOPPED → ERROR
+- **Dependency Injection** - Clean dependency injection via `ModuleContext`
+
+#### New Modules
+- **Metabolism Module** - Refactored into a self-contained module with dedicated config
+- **Claims Module** - Placeholder for future land claiming system
+- **Economy Module** - Placeholder for future economy system
+- **Groups Module** - Placeholder for future group/guild system
+- **Leveling Module** - Placeholder for future leveling system
+- **Traders Module** - Placeholder for future NPC trader system
+- **Automatic Dependency Enablement** - Enabling dependent modules auto-enables requirements (e.g., Traders → Economy)
+
+### Changed
+
+#### Architecture
+- **Codebase Restructure** - Entire codebase restructured to support enable/disable of individual features via configuration
+- **Backward Compatibility** - Existing Metabolism functionality preserved
+
+### Fixed
+
+#### Chat Display
+- **Chat Color Format** - Fixed chat message colors by enforcing hex code format (#RRGGBB, rgb(), rgba())
+- **ColorUtil** - Added utility for semantic color name conversion (Hytale's Message API only recognizes hex formats)
+
+### Technical Details
+- 50 files changed with 2,228 additions and 677 deletions
+- New package structure: `com.livinglands.core`, `com.livinglands.modules.*`
+- New config: `modules.json` for module enable/disable toggles
+
+---
+
 ## [1.1.0-beta] - 2026-01-19
 
 ### Added

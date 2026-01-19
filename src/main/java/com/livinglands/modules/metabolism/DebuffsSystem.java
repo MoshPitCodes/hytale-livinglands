@@ -3,14 +3,18 @@ package com.livinglands.modules.metabolism;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.logger.HytaleLogger;
+import com.hypixel.hytale.server.core.Message;
+import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.entity.entities.player.movement.MovementManager;
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap;
 import com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntityStatTypes;
-import com.hypixel.hytale.server.core.modules.entitystats.modifier.Modifier;
+import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.livinglands.core.PlayerRegistry;
 import com.livinglands.core.PlayerSession;
 import com.livinglands.core.config.DebuffsConfig;
+import com.livinglands.util.ColorUtil;
 
 import javax.annotation.Nonnull;
 import java.util.Map;
@@ -31,8 +35,10 @@ import java.util.logging.Level;
  */
 public class DebuffsSystem {
 
-    private static final String MODIFIER_KEY_SPEED = "livinglands_energy_speed";
-    private static final String MODIFIER_KEY_STAMINA = "livinglands_energy_stamina";
+    private static final String MODIFIER_KEY_ENERGY_SPEED = "livinglands_energy_speed";
+    private static final String MODIFIER_KEY_ENERGY_STAMINA = "livinglands_energy_stamina";
+    private static final String MODIFIER_KEY_THIRST_SPEED = "livinglands_thirst_speed";
+    private static final String MODIFIER_KEY_THIRST_STAMINA = "livinglands_thirst_stamina";
 
     private final DebuffsConfig config;
     private final HytaleLogger logger;
@@ -52,10 +58,19 @@ public class DebuffsSystem {
     // Player enters exhausted state when energy <= staminaDrainStartThreshold
     // Player exits exhausted state when energy >= staminaDrainRecoveryThreshold
     private final Set<UUID> exhaustedPlayers = ConcurrentHashMap.newKeySet();
+    // Track players with thirst-based speed/stamina debuffs
+    private final Set<UUID> parchedPlayers = ConcurrentHashMap.newKeySet();
+    // Track players with energy-based tired debuffs
+    private final Set<UUID> tiredPlayers = ConcurrentHashMap.newKeySet();
 
     // Track when we last logged warning messages
     private final Map<UUID, Long> lastWarningTime = new ConcurrentHashMap<>();
     private static final long WARNING_COOLDOWN_MS = 10000; // 10 seconds between warnings
+
+    // Track original base speed for each player to restore when debuffs are removed
+    private final Map<UUID, Float> originalBaseSpeeds = new ConcurrentHashMap<>();
+    // Track current speed multiplier per player (combined from all debuffs)
+    private final Map<UUID, Float> currentSpeedMultipliers = new ConcurrentHashMap<>();
 
     /**
      * Creates a new debuffs system.
@@ -97,10 +112,13 @@ public class DebuffsSystem {
                 return;
             }
 
+            // Get player for feedback messages
+            var player = session.getPlayer();
+
             // Process each debuff type
-            processHungerDebuff(playerId, data, ref, store, world);
-            processThirstDebuff(playerId, data, ref, store, world);
-            processEnergyDebuff(playerId, data, ref, store, world);
+            processHungerDebuff(playerId, data, ref, store, world, player);
+            processThirstDebuff(playerId, data, ref, store, world, player);
+            processEnergyDebuff(playerId, data, ref, store, world, player);
 
         } catch (Exception e) {
             logger.at(Level.WARNING).withCause(e).log(
@@ -114,7 +132,7 @@ public class DebuffsSystem {
      * Uses hysteresis: damage starts at damageStartThreshold, stops at recoveryThreshold.
      */
     private void processHungerDebuff(UUID playerId, PlayerMetabolismData data,
-                                      Ref<EntityStore> ref, Store<EntityStore> store, World world) {
+                                      Ref<EntityStore> ref, Store<EntityStore> store, World world, Player player) {
         if (!config.hunger().enabled()) {
             return;
         }
@@ -128,6 +146,7 @@ public class DebuffsSystem {
             starvingPlayers.add(playerId);
             isCurrentlyStarving = true;
             logger.at(Level.INFO).log("Player %s entered starvation state (hunger: %.1f)", playerId, hunger);
+            sendDebuffMessage(player, "You are starving! Find food quickly!", true);
         }
 
         // Check if player should exit starving state (recovered enough)
@@ -137,6 +156,7 @@ public class DebuffsSystem {
             lastHungerDamageTime.remove(playerId);
             logger.at(Level.INFO).log("Player %s RECOVERED from starvation (hunger: %.1f >= %.1f)",
                 playerId, hunger, recoveryThreshold);
+            sendDebuffMessage(player, "You are no longer starving.", false);
             return;
         }
 
@@ -168,11 +188,11 @@ public class DebuffsSystem {
     }
 
     /**
-     * Process thirst debuff - damage when dehydrated.
+     * Process thirst debuff - speed/stamina reduction when parched, damage when dehydrated.
      * Uses hysteresis: damage starts at damageStartThreshold, stops at recoveryThreshold.
      */
     private void processThirstDebuff(UUID playerId, PlayerMetabolismData data,
-                                      Ref<EntityStore> ref, Store<EntityStore> store, World world) {
+                                      Ref<EntityStore> ref, Store<EntityStore> store, World world, Player player) {
         if (!config.thirst().enabled()) {
             return;
         }
@@ -180,12 +200,17 @@ public class DebuffsSystem {
         var thirst = data.getThirst();
         var isCurrentlyDehydrated = dehydratedPlayers.contains(playerId);
         var recoveryThreshold = config.thirst().recoveryThreshold();
+        var slowThreshold = config.thirst().slowStartThreshold();
 
-        // Check if player should enter dehydrated state
+        // Process speed/stamina debuff when thirst is low (parched state)
+        processThirstSpeedDebuff(playerId, thirst, slowThreshold, ref, store, world, player);
+
+        // Check if player should enter dehydrated state (critical - damage)
         if (!isCurrentlyDehydrated && thirst <= config.thirst().damageStartThreshold()) {
             dehydratedPlayers.add(playerId);
             isCurrentlyDehydrated = true;
             logger.at(Level.INFO).log("Player %s entered dehydration state (thirst: %.1f)", playerId, thirst);
+            sendDebuffMessage(player, "You are severely dehydrated! Find water immediately!", true);
         }
 
         // Check if player should exit dehydrated state (recovered enough)
@@ -194,6 +219,7 @@ public class DebuffsSystem {
             lastThirstDamageTime.remove(playerId);
             logger.at(Level.INFO).log("Player %s RECOVERED from dehydration (thirst: %.1f >= %.1f)",
                 playerId, thirst, recoveryThreshold);
+            sendDebuffMessage(player, "You are no longer dehydrated.", false);
             return;
         }
 
@@ -219,17 +245,65 @@ public class DebuffsSystem {
     }
 
     /**
+     * Process thirst-based speed and stamina regen debuff.
+     * Applies gradual reduction as thirst decreases below the slow threshold.
+     */
+    private void processThirstSpeedDebuff(UUID playerId, double thirst, double slowThreshold,
+                                           Ref<EntityStore> ref, Store<EntityStore> store, World world, Player player) {
+        var isCurrentlyParched = parchedPlayers.contains(playerId);
+
+        if (thirst < slowThreshold) {
+            // Calculate how much to debuff (0 at threshold, max at 0 thirst)
+            var debuffRatio = 1.0 - (thirst / slowThreshold);
+
+            // Calculate speed multiplier (1.0 at threshold, minSpeed at 0)
+            var speedMultiplier = 1.0f - ((1.0f - config.thirst().minSpeedMultiplier()) * (float) debuffRatio);
+
+            // Calculate stamina regen multiplier (1.0 at threshold, minStaminaRegen at 0)
+            var staminaRegenMultiplier = 1.0f - ((1.0f - config.thirst().minStaminaRegenMultiplier()) * (float) debuffRatio);
+
+            // Track that player is parched
+            if (!isCurrentlyParched) {
+                parchedPlayers.add(playerId);
+                logger.at(Level.INFO).log("Player %s entered parched state (thirst: %.1f < %.1f)",
+                    playerId, thirst, slowThreshold);
+                sendDebuffMessage(player, "You are getting thirsty. Your speed and stamina are reduced.", true);
+            }
+
+            // Apply modifiers to entity stats (on WorldThread)
+            applyThirstSpeedModifier(playerId, ref, store, world, speedMultiplier);
+            applyThirstStaminaRegenModifier(ref, store, world, staminaRegenMultiplier);
+
+            // Log warning periodically
+            if (thirst <= slowThreshold / 2) {
+                logWarning(playerId, "Thirst debuff: speed=%.2f, stamina_regen=%.2f", speedMultiplier, staminaRegenMultiplier);
+            }
+        } else if (isCurrentlyParched) {
+            // Remove debuff when thirst is above threshold
+            parchedPlayers.remove(playerId);
+            removeThirstSpeedModifier(playerId, ref, store, world);
+            removeThirstStaminaRegenModifier(ref, store, world);
+            logger.at(Level.INFO).log("Player %s RECOVERED from parched state (thirst: %.1f >= %.1f)",
+                playerId, thirst, slowThreshold);
+            sendDebuffMessage(player, "Your thirst is quenched. Speed and stamina restored.", false);
+        }
+    }
+
+    /**
      * Process energy debuff - reduced movement speed, increased stamina cost, and stamina drain at 0.
      * Uses hysteresis for stamina drain: starts at staminaDrainStartThreshold, stops at staminaDrainRecoveryThreshold.
      */
     private void processEnergyDebuff(UUID playerId, PlayerMetabolismData data,
-                                      Ref<EntityStore> ref, Store<EntityStore> store, World world) {
+                                      Ref<EntityStore> ref, Store<EntityStore> store, World world, Player player) {
         if (!config.energy().enabled()) {
             return;
         }
 
         var energy = data.getEnergy();
         var slowThreshold = config.energy().slowStartThreshold();
+
+        // Track if player just entered tired state for messaging
+        boolean wasTired = tiredPlayers.contains(playerId);
 
         // Speed/stamina consumption debuff when energy is low
         if (energy < slowThreshold) {
@@ -242,8 +316,14 @@ public class DebuffsSystem {
             // Calculate stamina multiplier (1.0 at threshold, maxStamina at 0)
             var staminaMultiplier = 1.0f + ((config.energy().maxStaminaMultiplier() - 1.0f) * (float) debuffRatio);
 
+            // Track tired state and send message on entry
+            if (!wasTired) {
+                tiredPlayers.add(playerId);
+                sendDebuffMessage(player, "You are getting tired. Your speed is reduced.", true);
+            }
+
             // Apply modifiers to entity stats (on WorldThread)
-            applySpeedModifier(ref, store, world, speedMultiplier);
+            applySpeedModifier(playerId, ref, store, world, speedMultiplier);
             applyStaminaModifier(ref, store, world, staminaMultiplier);
 
             // Log warning at low energy
@@ -252,12 +332,16 @@ public class DebuffsSystem {
             }
         } else {
             // Remove modifiers when energy is above threshold (on WorldThread)
-            removeSpeedModifier(ref, store, world);
+            if (wasTired) {
+                tiredPlayers.remove(playerId);
+                sendDebuffMessage(player, "You feel rested. Speed restored.", false);
+            }
+            removeSpeedModifier(playerId, ref, store, world);
             removeStaminaModifier(ref, store, world);
         }
 
         // Stamina drain when energy hits 0 (with hysteresis)
-        processStaminaDrain(playerId, data, ref, store, world);
+        processStaminaDrain(playerId, data, ref, store, world, player);
     }
 
     /**
@@ -265,7 +349,7 @@ public class DebuffsSystem {
      * Uses hysteresis: drain starts at staminaDrainStartThreshold (0), stops at staminaDrainRecoveryThreshold (50).
      */
     private void processStaminaDrain(UUID playerId, PlayerMetabolismData data,
-                                      Ref<EntityStore> ref, Store<EntityStore> store, World world) {
+                                      Ref<EntityStore> ref, Store<EntityStore> store, World world, Player player) {
         var energy = data.getEnergy();
         var isCurrentlyExhausted = exhaustedPlayers.contains(playerId);
         var recoveryThreshold = config.energy().staminaDrainRecoveryThreshold();
@@ -276,6 +360,7 @@ public class DebuffsSystem {
             isCurrentlyExhausted = true;
             logger.at(Level.INFO).log("Player %s entered exhausted state (energy: %.1f) - stamina drain active",
                 playerId, energy);
+            sendDebuffMessage(player, "You are exhausted! Your stamina is draining rapidly. Rest now!", true);
         }
 
         // Check if player should exit exhausted state (energy recovered to threshold)
@@ -284,6 +369,7 @@ public class DebuffsSystem {
             lastStaminaDrainTime.remove(playerId);
             logger.at(Level.INFO).log("Player %s RECOVERED from exhaustion (energy: %.1f >= %.1f)",
                 playerId, energy, recoveryThreshold);
+            sendDebuffMessage(player, "You are no longer exhausted.", false);
             return;
         }
 
@@ -346,22 +432,50 @@ public class DebuffsSystem {
 
     /**
      * Apply speed modifier based on energy level.
+     * Uses MovementManager component to modify player movement speed.
      * Uses world.execute() to ensure thread-safe ECS access.
+     *
+     * @param playerId The player's UUID (for tracking original speed)
+     * @param ref The entity reference
+     * @param store The entity store
+     * @param world The world for thread-safe execution
+     * @param multiplier The speed multiplier (e.g., 0.6 = 60% of normal speed)
      */
-    private void applySpeedModifier(Ref<EntityStore> ref, Store<EntityStore> store,
+    private void applySpeedModifier(UUID playerId, Ref<EntityStore> ref, Store<EntityStore> store,
                                      World world, float multiplier) {
         world.execute(() -> {
             try {
-                var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
-                if (statMap != null) {
-                    // Find the movement speed stat - this may vary by game version
-                    // For now, we'll use a percentage modifier approach
-                    var modifier = new MultiplyModifier(multiplier);
-                    // Note: The exact stat ID for movement speed may need adjustment
-                    // statMap.putModifier(movementSpeedStatId, MODIFIER_KEY_SPEED, modifier);
+                var movementManager = store.getComponent(ref, MovementManager.getComponentType());
+                if (movementManager != null) {
+                    var settings = movementManager.getSettings();
+                    if (settings != null) {
+                        // Store original base speed if not already stored
+                        if (!originalBaseSpeeds.containsKey(playerId)) {
+                            originalBaseSpeeds.put(playerId, settings.baseSpeed);
+                            logger.at(Level.INFO).log("Stored original base speed for player %s: %.2f",
+                                playerId, settings.baseSpeed);
+                        }
+
+                        // Calculate new speed
+                        float originalSpeed = originalBaseSpeeds.get(playerId);
+                        float newSpeed = originalSpeed * multiplier;
+
+                        // Apply the modified speed
+                        settings.baseSpeed = newSpeed;
+                        currentSpeedMultipliers.put(playerId, multiplier);
+
+                        // Sync the movement settings to the client
+                        var playerRef = store.getComponent(ref, PlayerRef.getComponentType());
+                        if (playerRef != null) {
+                            movementManager.update(playerRef.getPacketHandler());
+                        }
+
+                        logger.at(Level.INFO).log("Applied energy speed debuff to player %s: %.2f -> %.2f (%.0f%% of normal)",
+                            playerId, originalSpeed, newSpeed, multiplier * 100);
+                    }
                 }
             } catch (Exception e) {
-                logger.at(Level.FINE).withCause(e).log("Error applying speed modifier");
+                logger.at(Level.WARNING).withCause(e).log("Error applying speed modifier for player %s", playerId);
             }
         });
     }
@@ -388,17 +502,41 @@ public class DebuffsSystem {
 
     /**
      * Remove speed modifier when energy recovers.
+     * Restores original base speed from stored value.
      * Uses world.execute() to ensure thread-safe ECS access.
+     *
+     * @param playerId The player's UUID
+     * @param ref The entity reference
+     * @param store The entity store
+     * @param world The world for thread-safe execution
      */
-    private void removeSpeedModifier(Ref<EntityStore> ref, Store<EntityStore> store, World world) {
+    private void removeSpeedModifier(UUID playerId, Ref<EntityStore> ref, Store<EntityStore> store, World world) {
         world.execute(() -> {
             try {
-                var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
-                if (statMap != null) {
-                    // statMap.removeModifier(movementSpeedStatId, MODIFIER_KEY_SPEED);
+                // Only restore if we have stored the original speed and no other debuffs are active
+                if (!parchedPlayers.contains(playerId) && originalBaseSpeeds.containsKey(playerId)) {
+                    var movementManager = store.getComponent(ref, MovementManager.getComponentType());
+                    if (movementManager != null) {
+                        var settings = movementManager.getSettings();
+                        if (settings != null) {
+                            float originalSpeed = originalBaseSpeeds.get(playerId);
+                            settings.baseSpeed = originalSpeed;
+                            currentSpeedMultipliers.remove(playerId);
+                            originalBaseSpeeds.remove(playerId);
+
+                            // Sync the movement settings to the client
+                            var playerRef = store.getComponent(ref, PlayerRef.getComponentType());
+                            if (playerRef != null) {
+                                movementManager.update(playerRef.getPacketHandler());
+                            }
+
+                            logger.at(Level.INFO).log("Restored original speed for player %s: %.2f",
+                                playerId, originalSpeed);
+                        }
+                    }
                 }
             } catch (Exception e) {
-                logger.at(Level.FINE).withCause(e).log("Error removing speed modifier");
+                logger.at(Level.WARNING).withCause(e).log("Error removing speed modifier for player %s", playerId);
             }
         });
     }
@@ -412,12 +550,167 @@ public class DebuffsSystem {
             try {
                 var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
                 if (statMap != null) {
-                    // statMap.removeModifier(staminaStatId, MODIFIER_KEY_STAMINA);
+                    // statMap.removeModifier(staminaStatId, MODIFIER_KEY_ENERGY_STAMINA);
                 }
             } catch (Exception e) {
                 logger.at(Level.FINE).withCause(e).log("Error removing stamina modifier");
             }
         });
+    }
+
+    /**
+     * Apply thirst-based speed modifier.
+     * Uses MovementManager component to modify player movement speed.
+     * Uses world.execute() to ensure thread-safe ECS access.
+     *
+     * @param playerId The player's UUID (for tracking original speed)
+     * @param ref The entity reference
+     * @param store The entity store
+     * @param world The world for thread-safe execution
+     * @param multiplier The speed multiplier (e.g., 0.45 = 45% of normal speed)
+     */
+    private void applyThirstSpeedModifier(UUID playerId, Ref<EntityStore> ref, Store<EntityStore> store,
+                                           World world, float multiplier) {
+        world.execute(() -> {
+            try {
+                var movementManager = store.getComponent(ref, MovementManager.getComponentType());
+                if (movementManager != null) {
+                    var settings = movementManager.getSettings();
+                    if (settings != null) {
+                        // Store original base speed if not already stored
+                        if (!originalBaseSpeeds.containsKey(playerId)) {
+                            originalBaseSpeeds.put(playerId, settings.baseSpeed);
+                            logger.at(Level.INFO).log("Stored original base speed for player %s: %.2f",
+                                playerId, settings.baseSpeed);
+                        }
+
+                        // Calculate new speed
+                        float originalSpeed = originalBaseSpeeds.get(playerId);
+                        float newSpeed = originalSpeed * multiplier;
+
+                        // Apply the modified speed
+                        settings.baseSpeed = newSpeed;
+                        currentSpeedMultipliers.put(playerId, multiplier);
+
+                        // Sync the movement settings to the client
+                        var playerRef = store.getComponent(ref, PlayerRef.getComponentType());
+                        if (playerRef != null) {
+                            movementManager.update(playerRef.getPacketHandler());
+                        }
+
+                        logger.at(Level.INFO).log("Applied thirst speed debuff to player %s: %.2f -> %.2f (%.0f%% of normal)",
+                            playerId, originalSpeed, newSpeed, multiplier * 100);
+                    }
+                }
+            } catch (Exception e) {
+                logger.at(Level.WARNING).withCause(e).log("Error applying thirst speed modifier for player %s", playerId);
+            }
+        });
+    }
+
+    /**
+     * Apply thirst-based stamina regen modifier.
+     * Uses world.execute() to ensure thread-safe ECS access.
+     *
+     * Note: Hytale API has getStamina() but no getMaxStamina().
+     * For now, we log the modifier value; actual implementation requires
+     * finding the appropriate stat ID or using an alternative approach.
+     */
+    private void applyThirstStaminaRegenModifier(Ref<EntityStore> ref, Store<EntityStore> store,
+                                                  World world, float multiplier) {
+        world.execute(() -> {
+            try {
+                var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
+                if (statMap != null) {
+                    // TODO: Find appropriate stat ID for stamina regen/max stamina
+                    // Options to investigate:
+                    // 1. Check for stamina regen rate stat
+                    // 2. Apply modifier to stamina directly (drain faster)
+                    // 3. Use custom EntityEffect system
+                    logger.at(Level.FINE).log("Thirst stamina regen modifier: %.2f (implementation TBD)", multiplier);
+                }
+            } catch (Exception e) {
+                logger.at(Level.FINE).withCause(e).log("Error applying thirst stamina regen modifier");
+            }
+        });
+    }
+
+    /**
+     * Remove thirst-based speed modifier.
+     * Restores original base speed from stored value.
+     * Uses world.execute() to ensure thread-safe ECS access.
+     *
+     * @param playerId The player's UUID
+     * @param ref The entity reference
+     * @param store The entity store
+     * @param world The world for thread-safe execution
+     */
+    private void removeThirstSpeedModifier(UUID playerId, Ref<EntityStore> ref, Store<EntityStore> store, World world) {
+        world.execute(() -> {
+            try {
+                // Only restore if we have stored the original speed and no other debuffs are active
+                if (!tiredPlayers.contains(playerId) && originalBaseSpeeds.containsKey(playerId)) {
+                    var movementManager = store.getComponent(ref, MovementManager.getComponentType());
+                    if (movementManager != null) {
+                        var settings = movementManager.getSettings();
+                        if (settings != null) {
+                            float originalSpeed = originalBaseSpeeds.get(playerId);
+                            settings.baseSpeed = originalSpeed;
+                            currentSpeedMultipliers.remove(playerId);
+                            originalBaseSpeeds.remove(playerId);
+
+                            // Sync the movement settings to the client
+                            var playerRef = store.getComponent(ref, PlayerRef.getComponentType());
+                            if (playerRef != null) {
+                                movementManager.update(playerRef.getPacketHandler());
+                            }
+
+                            logger.at(Level.INFO).log("Restored original speed for player %s (thirst recovered): %.2f",
+                                playerId, originalSpeed);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                logger.at(Level.WARNING).withCause(e).log("Error removing thirst speed modifier for player %s", playerId);
+            }
+        });
+    }
+
+    /**
+     * Remove thirst-based stamina regen modifier.
+     * Uses world.execute() to ensure thread-safe ECS access.
+     */
+    private void removeThirstStaminaRegenModifier(Ref<EntityStore> ref, Store<EntityStore> store, World world) {
+        world.execute(() -> {
+            try {
+                var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
+                if (statMap != null) {
+                    // TODO: Remove modifier when implementation is complete
+                    logger.at(Level.FINE).log("Removed thirst stamina regen modifier");
+                }
+            } catch (Exception e) {
+                logger.at(Level.FINE).withCause(e).log("Error removing thirst stamina regen modifier");
+            }
+        });
+    }
+
+    /**
+     * Send a debuff feedback message to the player.
+     *
+     * @param player The player to send the message to
+     * @param message The message text
+     * @param isEntering True if entering debuff state (red), false if exiting (green)
+     */
+    private void sendDebuffMessage(Player player, String message, boolean isEntering) {
+        if (player == null) {
+            return;
+        }
+        try {
+            var color = isEntering ? ColorUtil.getHexColor("red") : ColorUtil.getHexColor("green");
+            player.sendMessage(Message.raw(message).color(color));
+        } catch (Exception e) {
+            logger.at(Level.FINE).withCause(e).log("Error sending debuff message to player");
+        }
     }
 
     /**
@@ -445,22 +738,23 @@ public class DebuffsSystem {
         starvingPlayers.remove(playerId);
         dehydratedPlayers.remove(playerId);
         exhaustedPlayers.remove(playerId);
+        parchedPlayers.remove(playerId);
+        tiredPlayers.remove(playerId);
         lastWarningTime.remove(playerId);
+        originalBaseSpeeds.remove(playerId);
+        currentSpeedMultipliers.remove(playerId);
     }
 
     /**
-     * Simple multiply modifier for stat values.
+     * Checks if a player has any active debuffs.
+     * Used by the buff system to determine if buffs should be suppressed.
      */
-    private static class MultiplyModifier extends Modifier {
-        private final float multiplier;
-
-        public MultiplyModifier(float multiplier) {
-            this.multiplier = multiplier;
-        }
-
-        @Override
-        public float apply(float value) {
-            return value * multiplier;
-        }
+    public boolean hasActiveDebuffs(UUID playerId) {
+        return starvingPlayers.contains(playerId) ||
+               dehydratedPlayers.contains(playerId) ||
+               exhaustedPlayers.contains(playerId) ||
+               parchedPlayers.contains(playerId) ||
+               tiredPlayers.contains(playerId);
     }
+
 }

@@ -12,9 +12,13 @@ import com.livinglands.modules.metabolism.EnergyStat;
 import com.livinglands.modules.metabolism.HungerStat;
 import com.livinglands.modules.metabolism.MetabolismSystem;
 import com.livinglands.modules.metabolism.ThirstStat;
+import com.livinglands.modules.metabolism.buff.BuffType;
+import com.livinglands.modules.metabolism.buff.BuffsSystem;
 import com.livinglands.util.ColorUtil;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.Set;
 
 /**
  * Command to display all player survival stats at once.
@@ -27,10 +31,12 @@ import javax.annotation.Nonnull;
 public class StatsCommand extends AbstractPlayerCommand {
 
     private final MetabolismSystem metabolismSystem;
+    private final BuffsSystem buffsSystem;
 
-    public StatsCommand(@Nonnull MetabolismSystem metabolismSystem) {
+    public StatsCommand(@Nonnull MetabolismSystem metabolismSystem, @Nullable BuffsSystem buffsSystem) {
         super("stats", "Display your survival stats", false);
         this.metabolismSystem = metabolismSystem;
+        this.buffsSystem = buffsSystem;
     }
 
     @Override
@@ -128,6 +134,24 @@ public class StatsCommand extends AbstractPlayerCommand {
                         .bold(true)
                 );
                 hasWarning = true;
+            }
+
+            // Display active buffs
+            if (buffsSystem != null) {
+                Set<BuffType> activeBuffs = buffsSystem.getActiveBuffs(playerRef.getUuid());
+                if (!activeBuffs.isEmpty()) {
+                    ctx.sendMessage(
+                        Message.raw("Active Buffs:")
+                            .color(ColorUtil.getHexColor("green"))
+                            .bold(true)
+                    );
+                    for (BuffType buff : activeBuffs) {
+                        ctx.sendMessage(
+                            Message.raw("  + " + buff.getDisplayName())
+                                .color(ColorUtil.getHexColor("lime"))
+                        );
+                    }
+                }
             }
 
         } catch (Exception e) {
