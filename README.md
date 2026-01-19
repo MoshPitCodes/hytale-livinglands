@@ -457,6 +457,7 @@ The metabolism module is optimized for **O(n) linear scaling** with player count
 | Enhanced Debuff System | ✅ Complete |
 | Player Feedback Messages | ✅ Complete |
 | Modular Architecture | ✅ Complete |
+| Enhanced HUD with Effects | ✅ Complete |
 | Economy System | 📋 Planned |
 | Trader NPCs | 📋 Planned |
 | Land Claims | 📋 Planned |
@@ -467,7 +468,7 @@ The metabolism module is optimized for **O(n) linear scaling** with player count
 # Credits
 
 - **Author**: [MoshPitCodes](https://github.com/MoshPitCodes)
-- **Version**: 2.2.1-beta
+- **Version**: 2.3.0-beta
 - **License**: Apache-2.0
 
 ### Resources

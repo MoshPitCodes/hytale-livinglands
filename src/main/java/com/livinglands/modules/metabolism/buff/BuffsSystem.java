@@ -334,7 +334,9 @@ public class BuffsSystem {
                         Message.raw("Buffs suppressed - metabolism too low")
                             .color(ColorUtil.getHexColor("gray"))
                     );
-                } catch (Exception ignored) {}
+                } catch (Exception e) {
+                    logger.at(Level.FINE).withCause(e).log("Failed to send buff suppression message to player %s", playerId);
+                }
             }
         }
     }
@@ -357,7 +359,9 @@ public class BuffsSystem {
 
         try {
             player.sendMessage(Message.raw(message).color(color));
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            logger.at(Level.FINE).withCause(e).log("Failed to send buff message to player");
+        }
     }
 
     /**

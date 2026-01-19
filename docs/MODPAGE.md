@@ -2,7 +2,7 @@
 
 **Living Lands** transforms Hytale into an immersive survival experience. Manage your character's **hunger**, **thirst**, and **energy** while exploring the world. The mod integrates seamlessly with vanilla items - no new blocks or complicated recipes, just pure survival gameplay.
 
-**Version 2.2.1** features a **buff/debuff system** that rewards well-maintained stats and penalizes neglect, plus a **modular architecture** - enable only the features you want!
+**Version 2.3.0** features an **enhanced HUD** with real-time buff/debuff indicators, a **buff/debuff system** that rewards well-maintained stats and penalizes neglect, plus a **modular architecture** - enable only the features you want!
 
 ---
 
@@ -65,8 +65,11 @@
 
 ### Real-time HUD
 
-- Custom on-screen display shows all three stats
+- Custom on-screen display shows all three stats with text-based progress bars
+- **Active Effects Display** - Buffs shown in violet, debuffs shown in red below the bars
 - Color-coded warnings when stats get low
+- Buff indicators: `[+] Well Fed`, `[+] Hydrated`, `[+] Energized`
+- Debuff indicators: `[-] Starving`, `[-] Dehydrated`, `[-] Exhausted`
 
 ---
 
@@ -183,6 +186,7 @@ Living Lands is optimized for servers of all sizes:
 | Native Buff Detection | ✅ Complete |
 | Native Debuff Integration | ✅ Complete |
 | Player Feedback Messages | ✅ Complete |
+| Enhanced HUD with Effects | ✅ Complete |
 | Economy System | 📋 Planned |
 | Trader NPCs | 📋 Planned |
 | Land Claims | 📋 Planned |

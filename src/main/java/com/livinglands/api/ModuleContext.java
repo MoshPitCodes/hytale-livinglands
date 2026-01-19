@@ -1,8 +1,10 @@
 package com.livinglands.api;
 
+import com.hypixel.hytale.component.ComponentRegistryProxy;
 import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.event.EventRegistry;
 import com.hypixel.hytale.server.core.command.system.CommandRegistry;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.livinglands.core.ModuleManager;
 import com.livinglands.core.PlayerRegistry;
 
@@ -15,22 +17,24 @@ import java.util.Optional;
  *
  * This record is passed to modules during setup and provides:
  * - Plugin infrastructure (logger, directories)
- * - Hytale registries (commands, events)
+ * - Hytale registries (commands, events, ECS)
  * - Core services (player registry)
  * - Inter-module access (module manager)
  *
- * @param logger          The plugin logger
- * @param pluginDirectory Root plugin data directory (LivingLands/)
- * @param eventRegistry   Hytale event registry for listener registration
- * @param commandRegistry Hytale command registry for command registration
- * @param playerRegistry  Shared player session registry
- * @param moduleManager   Module manager for inter-module access
+ * @param logger              The plugin logger
+ * @param pluginDirectory     Root plugin data directory (LivingLands/)
+ * @param eventRegistry       Hytale event registry for listener registration
+ * @param commandRegistry     Hytale command registry for command registration
+ * @param entityStoreRegistry Hytale ECS registry for system registration
+ * @param playerRegistry      Shared player session registry
+ * @param moduleManager       Module manager for inter-module access
  */
 public record ModuleContext(
         @Nonnull HytaleLogger logger,
         @Nonnull Path pluginDirectory,
         @Nonnull EventRegistry eventRegistry,
         @Nonnull CommandRegistry commandRegistry,
+        @Nonnull ComponentRegistryProxy<EntityStore> entityStoreRegistry,
         @Nonnull PlayerRegistry playerRegistry,
         @Nonnull ModuleManager moduleManager
 ) {

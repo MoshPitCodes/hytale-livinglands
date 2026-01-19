@@ -1,6 +1,7 @@
 package com.livinglands.modules.metabolism;
 
 import com.livinglands.api.AbstractModule;
+import com.livinglands.core.hud.HudModule;
 import com.livinglands.modules.metabolism.buff.BuffEffectsSystem;
 import com.livinglands.modules.metabolism.buff.BuffsSystem;
 import com.livinglands.modules.metabolism.commands.StatsCommand;
@@ -11,7 +12,7 @@ import com.livinglands.modules.metabolism.listeners.CombatDetectionListener;
 import com.livinglands.modules.metabolism.listeners.DeathHandlerListener;
 import com.livinglands.modules.metabolism.listeners.MetabolismPlayerListener;
 import com.livinglands.modules.metabolism.poison.PoisonRegistry;
-import com.livinglands.modules.metabolism.ui.MetabolismHudManager;
+import com.livinglands.modules.metabolism.ui.MetabolismHudElement;
 
 import java.util.Set;
 
@@ -35,12 +36,12 @@ public final class MetabolismModule extends AbstractModule {
 
     private MetabolismModuleConfig config;
     private MetabolismSystem system;
-    private MetabolismHudManager hudManager;
+    private MetabolismHudElement hudElement;
     private BuffsSystem buffsSystem;
     private BuffEffectsSystem buffEffectsSystem;
 
     public MetabolismModule() {
-        super(ID, NAME, VERSION, Set.of()); // No dependencies
+        super(ID, NAME, VERSION, Set.of(HudModule.ID)); // Depends on HUD module
     }
 
     @Override
@@ -71,9 +72,19 @@ public final class MetabolismModule extends AbstractModule {
         logger.at(java.util.logging.Level.INFO).log("[%s] Creating metabolism system...", name);
         system = new MetabolismSystem(config, logger, context.playerRegistry(), configDirectory);
 
-        // Create HUD manager
-        logger.at(java.util.logging.Level.INFO).log("[%s] Creating HUD manager...", name);
-        hudManager = new MetabolismHudManager(system, context.playerRegistry(), config, logger);
+        // Register HUD element with HudModule
+        logger.at(java.util.logging.Level.INFO).log("[%s] Registering HUD element...", name);
+        var hudModuleOpt = context.moduleManager().getModule(HudModule.ID, HudModule.class);
+        if (hudModuleOpt.isPresent()) {
+            var hudModule = hudModuleOpt.get();
+            hudElement = new MetabolismHudElement(system, config);
+            hudModule.registerElement(hudElement);
+
+            // Integrate with unified panel for /ll main command
+            hudModule.setMetabolismSystem(system);
+        } else {
+            logger.at(java.util.logging.Level.WARNING).log("[%s] HUD module not found, HUD element not registered", name);
+        }
 
         // Initialize buff systems
         if (config.buffs.enabled) {
@@ -105,7 +116,6 @@ public final class MetabolismModule extends AbstractModule {
         var metabolism = config.metabolism;
         if (metabolism.enableHunger || metabolism.enableThirst || metabolism.enableEnergy) {
             system.start();
-            hudManager.start();
 
             logger.at(java.util.logging.Level.INFO).log("[%s] Features enabled:", name);
             logger.at(java.util.logging.Level.INFO).log("[%s]   - Hunger: %s", name, metabolism.enableHunger);
@@ -119,10 +129,6 @@ public final class MetabolismModule extends AbstractModule {
 
     @Override
     protected void onShutdown() {
-        if (hudManager != null) {
-            hudManager.stop();
-        }
-
         if (system != null) {
             system.saveAll();
             system.stop();
@@ -134,13 +140,6 @@ public final class MetabolismModule extends AbstractModule {
      */
     public MetabolismSystem getSystem() {
         return system;
-    }
-
-    /**
-     * Gets the HUD manager.
-     */
-    public MetabolismHudManager getHudManager() {
-        return hudManager;
     }
 
     /**

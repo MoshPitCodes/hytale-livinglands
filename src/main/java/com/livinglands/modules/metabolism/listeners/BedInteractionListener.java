@@ -294,7 +294,9 @@ public class BedInteractionListener {
                         Message.raw(String.format("You must wait %d seconds before resting again.", remaining))
                             .color(ColorUtil.getHexColor("yellow"))
                     );
-                } catch (Exception ignored) {}
+                } catch (Exception e) {
+                    logger.at(Level.FINE).withCause(e).log("Failed to send cooldown message to player %s", playerId);
+                }
             }
             logger.at(Level.FINE).log(
                 "Player %s bed rest on cooldown: %d seconds remaining",
@@ -315,7 +317,9 @@ public class BedInteractionListener {
                         Message.raw(String.format("You feel rested. Energy +%.0f", energyRestored))
                             .color(ColorUtil.getHexColor("green"))
                     );
-                } catch (Exception ignored) {}
+                } catch (Exception e) {
+                    logger.at(Level.FINE).withCause(e).log("Failed to send rest message to player %s", playerId);
+                }
             }
 
             logger.at(Level.INFO).log(
@@ -329,7 +333,9 @@ public class BedInteractionListener {
                         Message.raw("You are already fully rested.")
                             .color(ColorUtil.getHexColor("gray"))
                     );
-                } catch (Exception ignored) {}
+                } catch (Exception e) {
+                    logger.at(Level.FINE).withCause(e).log("Failed to send already-rested message to player %s", playerId);
+                }
             }
             logger.at(Level.FINE).log(
                 "Player %s used bed but energy already full",

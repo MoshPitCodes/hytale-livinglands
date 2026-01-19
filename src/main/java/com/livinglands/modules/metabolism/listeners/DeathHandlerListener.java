@@ -7,6 +7,7 @@ import com.hypixel.hytale.server.core.entity.Entity;
 import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.event.events.player.AddPlayerToWorldEvent;
 import com.hypixel.hytale.server.core.event.events.entity.EntityRemoveEvent;
+import com.hypixel.hytale.server.core.modules.entity.damage.DeathComponent;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.livinglands.modules.metabolism.MetabolismModule;
 import com.livinglands.modules.metabolism.MetabolismSystem;
@@ -22,8 +23,8 @@ import java.util.logging.Level;
  * Listener for player death and respawn handling.
  * Resets metabolism stats when player respawns after death.
  *
- * Uses EntityRemoveEvent + AddPlayerToWorldEvent pattern since
- * LivingEntityDeathEvent is not available in the current API.
+ * Uses EntityRemoveEvent to detect death (by checking for DeathComponent)
+ * and AddPlayerToWorldEvent to detect respawn.
  */
 public class DeathHandlerListener {
 
@@ -32,7 +33,7 @@ public class DeathHandlerListener {
     private final MetabolismModuleConfig config;
     private final HytaleLogger logger;
 
-    // Track players who died (removed with low health) and need stats reset on respawn
+    // Track players who have died and need stats reset on respawn
     private final Set<UUID> deadPlayers = ConcurrentHashMap.newKeySet();
 
     public DeathHandlerListener(@Nonnull MetabolismModule module) {
@@ -71,23 +72,22 @@ public class DeathHandlerListener {
             }
             var playerId = playerRef.getUuid();
 
-            // Check metabolism data - if hunger/thirst is critical, assume death
-            var dataOpt = metabolismSystem.getPlayerData(playerId);
-            if (dataOpt.isPresent()) {
-                var data = dataOpt.get();
-                var debuffs = config.debuffs;
-
-                // Check if death was likely from starvation/dehydration
-                boolean likelyMetabolismDeath =
-                    (debuffs.hunger().enabled() && data.getHunger() <= debuffs.hunger().damageStartThreshold()) ||
-                    (debuffs.thirst().enabled() && data.getThirst() <= debuffs.thirst().damageStartThreshold());
-
-                if (likelyMetabolismDeath) {
+            // Check if the player has a DeathComponent (indicates actual death, not disconnect)
+            var holder = entity.toHolder();
+            if (holder != null) {
+                var deathComponent = holder.getComponent(DeathComponent.getComponentType());
+                if (deathComponent != null) {
+                    // Player actually died - track for respawn reset
                     deadPlayers.add(playerId);
-                    logger.at(Level.INFO).log(
-                        "Player %s removed (possible metabolism death: hunger=%.0f, thirst=%.0f)",
-                        playerId, data.getHunger(), data.getThirst()
-                    );
+
+                    var dataOpt = metabolismSystem.getPlayerData(playerId);
+                    if (dataOpt.isPresent()) {
+                        var data = dataOpt.get();
+                        logger.at(Level.INFO).log(
+                            "Player %s died - tracking for respawn reset (hunger=%.0f, thirst=%.0f, energy=%.0f)",
+                            playerId, data.getHunger(), data.getThirst(), data.getEnergy()
+                        );
+                    }
                 }
             }
 
@@ -115,7 +115,7 @@ public class DeathHandlerListener {
                 resetPlayerStats(playerId);
 
                 logger.at(Level.INFO).log(
-                    "Player %s respawned - metabolism stats reset",
+                    "Player %s respawned - metabolism stats reset to initial values",
                     playerId
                 );
             }

@@ -445,6 +445,12 @@ public class DebuffsSystem {
      */
     private void applySpeedModifier(UUID playerId, Ref<EntityStore> ref, Store<EntityStore> store,
                                      World world, float multiplier) {
+        // Only update if multiplier changed significantly (avoid spamming updates)
+        Float currentMultiplier = currentSpeedMultipliers.get(playerId);
+        if (currentMultiplier != null && Math.abs(currentMultiplier - multiplier) < 0.01f) {
+            return; // No significant change, skip update
+        }
+
         world.execute(() -> {
             try {
                 var movementManager = store.getComponent(ref, MovementManager.getComponentType());
@@ -454,7 +460,7 @@ public class DebuffsSystem {
                         // Store original base speed if not already stored
                         if (!originalBaseSpeeds.containsKey(playerId)) {
                             originalBaseSpeeds.put(playerId, settings.baseSpeed);
-                            logger.at(Level.INFO).log("Stored original base speed for player %s: %.2f",
+                            logger.at(Level.FINE).log("Stored original base speed for player %s: %.2f",
                                 playerId, settings.baseSpeed);
                         }
 
@@ -472,7 +478,7 @@ public class DebuffsSystem {
                             movementManager.update(playerRef.getPacketHandler());
                         }
 
-                        logger.at(Level.INFO).log("Applied energy speed debuff to player %s: %.2f -> %.2f (%.0f%% of normal)",
+                        logger.at(Level.FINE).log("Applied energy speed debuff to player %s: %.2f -> %.2f (%.0f%% of normal)",
                             playerId, originalSpeed, newSpeed, multiplier * 100);
                     }
                 }
@@ -592,6 +598,12 @@ public class DebuffsSystem {
      */
     private void applyThirstSpeedModifier(UUID playerId, Ref<EntityStore> ref, Store<EntityStore> store,
                                            World world, float multiplier) {
+        // Only update if multiplier changed significantly (avoid spamming updates)
+        Float currentMultiplier = currentSpeedMultipliers.get(playerId);
+        if (currentMultiplier != null && Math.abs(currentMultiplier - multiplier) < 0.01f) {
+            return; // No significant change, skip update
+        }
+
         world.execute(() -> {
             try {
                 var movementManager = store.getComponent(ref, MovementManager.getComponentType());
@@ -601,7 +613,7 @@ public class DebuffsSystem {
                         // Store original base speed if not already stored
                         if (!originalBaseSpeeds.containsKey(playerId)) {
                             originalBaseSpeeds.put(playerId, settings.baseSpeed);
-                            logger.at(Level.INFO).log("Stored original base speed for player %s: %.2f",
+                            logger.at(Level.FINE).log("Stored original base speed for player %s: %.2f",
                                 playerId, settings.baseSpeed);
                         }
 
@@ -619,7 +631,7 @@ public class DebuffsSystem {
                             movementManager.update(playerRef.getPacketHandler());
                         }
 
-                        logger.at(Level.INFO).log("Applied thirst speed debuff to player %s: %.2f -> %.2f (%.0f%% of normal)",
+                        logger.at(Level.FINE).log("Applied thirst speed debuff to player %s: %.2f -> %.2f (%.0f%% of normal)",
                             playerId, originalSpeed, newSpeed, multiplier * 100);
                     }
                 }
