@@ -2,6 +2,35 @@
 
 All notable changes to Living Lands will be documented in this file.
 
+## [2.3.1-beta] - 2026-01-20
+
+### Fixed
+
+#### Death Detection
+- **Metabolism Reset on Death** - Fixed metabolism not resetting when players die and respawn
+- **ECS-Based Detection** - Now uses `KillFeedEvent.DecedentMessage` ECS system to reset metabolism immediately on death rather than waiting for respawn event
+
+#### Mining/Logging XP Exploit
+- **Player-Placed Block Detection** - Fixed exploit where players could gain XP by breaking blocks they placed themselves
+- **Empty Block Event Handling** - Fixed issue where `BreakBlockEvent` with `block=Empty` (fires when placing blocks) was corrupting block tracking
+- **Correct Hytale Block IDs** - Updated to use actual Hytale block naming conventions:
+  - Ores: `Ore_Copper`, `Ore_Iron`, `Ore_Gold`, etc. (prefix matching)
+  - Rocks: `Rock_Stone`, `Rock_Basalt`, `Rock_Sandstone`, etc. (exact matching)
+  - Wood: `Wood_*` prefix (e.g., `Wood_Oak_Trunk`, `Wood_Birch_Roots`)
+  - Leaves: `Plant_Leaves_*` prefix (e.g., `Plant_Leaves_Oak`)
+
+#### Player-Placed Block Persistence
+- **Cross-Restart Tracking** - Player-placed blocks are now tracked persistently across server restarts
+- **Per-World Storage** - Placed block positions stored per-world in `LivingLands/leveling/placed_blocks/`
+
+### Technical Details
+- New `PlayerDeathSystem` ECS system listens to `KillFeedEvent.DecedentMessage`
+- `MiningXpSystem` and `LoggingXpSystem` skip events where `blockId == "Empty"`
+- Block ID matching uses prefix patterns for ores/wood/leaves and exact matches for stone blocks
+- `PlacedBlockPersistence` saves/loads placed block positions per world
+
+---
+
 ## [2.3.0-beta] - 2026-01-19
 
 ### Added

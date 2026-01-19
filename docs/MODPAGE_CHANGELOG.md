@@ -4,6 +4,25 @@ All notable changes to Living Lands for players and server administrators.
 
 ---
 
+## Version 2.3.1-beta - January 2026
+
+### Fixed
+
+#### Death Detection
+- **Metabolism Reset on Death** - Fixed metabolism not resetting when players die and respawn
+- Metabolism stats now properly reset to initial values immediately when you die
+
+#### Mining/Logging XP Exploit
+- **Player-Placed Block Detection** - Fixed exploit where players could gain XP by breaking blocks they placed themselves
+- Breaking player-placed ores, rocks, wood, or leaves no longer awards XP
+- Only naturally-generated blocks award XP
+
+#### Player-Placed Block Tracking
+- **Persistent Tracking** - Player-placed blocks are now tracked across server restarts
+- Your placed blocks will still be tracked after the server reboots
+
+---
+
 ## Version 2.3.0-beta - January 2026
 
 ### New Features
