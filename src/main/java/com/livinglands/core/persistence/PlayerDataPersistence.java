@@ -3,7 +3,7 @@ package com.livinglands.core.persistence;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.hypixel.hytale.logger.HytaleLogger;
-import com.livinglands.metabolism.PlayerMetabolismData;
+import com.livinglands.modules.metabolism.PlayerMetabolismData;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;

@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import com.hypixel.hytale.logger.HytaleLogger;
-import com.livinglands.metabolism.poison.PoisonEffectType;
+import com.livinglands.modules.metabolism.poison.PoisonEffectType;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
