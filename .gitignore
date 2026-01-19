@@ -42,6 +42,7 @@ Desktop.ini
 
 # Log files
 *.log
+serverlogs/
 
 # Temporary files
 tmp/

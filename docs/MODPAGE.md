@@ -2,7 +2,7 @@
 
 **Living Lands** transforms Hytale into an immersive survival experience. Manage your character's **hunger**, **thirst**, and **energy** while exploring the world. The mod integrates seamlessly with vanilla items - no new blocks or complicated recipes, just pure survival gameplay.
 
-**Version 2.3.0** features an **enhanced HUD** with real-time buff/debuff indicators, a **buff/debuff system** that rewards well-maintained stats and penalizes neglect, plus a **modular architecture** - enable only the features you want!
+**Version 2.3.1** features an **enhanced HUD** with real-time buff/debuff indicators, a **buff/debuff system** that rewards well-maintained stats and penalizes neglect, plus a **modular architecture** - enable only the features you want!
 
 ---
 
