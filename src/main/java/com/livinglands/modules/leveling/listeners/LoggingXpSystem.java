@@ -33,19 +33,13 @@ public class LoggingXpSystem extends EntityEventSystem<EntityStore, BreakBlockEv
     private final HytaleLogger logger;
     private final ComponentType<EntityStore, PlayerRef> playerRefType;
 
-    // Block types that award logging XP
-    private static final Set<String> LOG_BLOCKS = Set.of(
-        "hytale:oak_log", "hytale:birch_log", "hytale:spruce_log",
-        "hytale:palm_log", "hytale:cactus_log", "hytale:dead_log",
-        "hytale:cherry_log", "hytale:jungle_log", "hytale:acacia_log",
-        "hytale:log", "hytale:wood"
-    );
+    // Wood block prefixes that award logging XP
+    // Wood names follow pattern: Wood_{TreeType}_{Part}
+    private static final String WOOD_PREFIX = "Wood_";
 
-    private static final Set<String> LEAF_BLOCKS = Set.of(
-        "hytale:oak_leaves", "hytale:birch_leaves", "hytale:spruce_leaves",
-        "hytale:palm_leaves", "hytale:cherry_leaves", "hytale:jungle_leaves",
-        "hytale:acacia_leaves", "hytale:leaves"
-    );
+    // Leaf block prefix
+    // Leaf names follow pattern: Plant_Leaves_{TreeType}
+    private static final String LEAVES_PREFIX = "Plant_Leaves_";
 
     public LoggingXpSystem(@Nonnull LevelingSystem system,
                            @Nonnull LevelingModuleConfig config,
@@ -122,12 +116,7 @@ public class LoggingXpSystem extends EntityEventSystem<EntityStore, BreakBlockEv
      * Check if a block is a logging-related block.
      */
     private boolean isLoggingBlock(String blockId) {
-        if (LOG_BLOCKS.contains(blockId) || LEAF_BLOCKS.contains(blockId)) {
-            return true;
-        }
-        // Also check for partial matches (different wood types)
-        String lower = blockId.toLowerCase();
-        return lower.contains("log") || lower.contains("wood") || lower.contains("leaves");
+        return blockId.startsWith(WOOD_PREFIX) || blockId.startsWith(LEAVES_PREFIX);
     }
 
     /**
@@ -140,12 +129,14 @@ public class LoggingXpSystem extends EntityEventSystem<EntityStore, BreakBlockEv
             return configuredXp;
         }
 
-        // Fall back to defaults
-        if (LOG_BLOCKS.contains(blockId) || blockId.toLowerCase().contains("log")) {
-            return 5; // Log XP
+        // Wood blocks (trunk, roots, branches) give more XP
+        if (blockId.startsWith(WOOD_PREFIX)) {
+            return 5; // Wood XP
         }
-        if (LEAF_BLOCKS.contains(blockId) || blockId.toLowerCase().contains("leaves")) {
-            return 1; // Small XP for leaves
+
+        // Leaves give small XP
+        if (blockId.startsWith(LEAVES_PREFIX)) {
+            return 1; // Leaves XP
         }
 
         return 0;

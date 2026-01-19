@@ -30,20 +30,21 @@ public class MiningXpSystem extends EntityEventSystem<EntityStore, BreakBlockEve
     private final HytaleLogger logger;
     private final ComponentType<EntityStore, PlayerRef> playerRefType;
 
-    // Block types that award mining XP (ores and stone variants)
-    private static final Set<String> ORE_BLOCKS = Set.of(
-        "hytale:coal_ore", "hytale:iron_ore", "hytale:gold_ore",
-        "hytale:copper_ore", "hytale:silver_ore", "hytale:cobalt_ore",
-        "hytale:mythril_ore", "hytale:diamond_ore", "hytale:emerald_ore",
-        "hytale:ruby_ore", "hytale:sapphire_ore"
+    // Block types that award mining XP (ores)
+    // Ore names follow pattern: Ore_{Material}_{RockType}
+    private static final Set<String> ORE_PREFIXES = Set.of(
+        "Ore_Copper", "Ore_Iron", "Ore_Gold", "Ore_Silver",
+        "Ore_Cobalt", "Ore_Mithril", "Ore_Adamantite",
+        "Ore_Thorium", "Ore_Onyxium"
     );
 
+    // Rock/stone blocks that award small mining XP
     private static final Set<String> STONE_BLOCKS = Set.of(
-        "hytale:stone", "hytale:cobblestone", "hytale:granite",
-        "hytale:diorite", "hytale:andesite", "hytale:sandstone",
-        // Hytale uses different naming conventions
-        "Rock_Stone", "Rock_Cobblestone", "Rock_Granite",
-        "Rock_Diorite", "Rock_Andesite", "Rock_Sandstone"
+        "Rock_Stone", "Rock_Stone_Mossy", "Rock_Shale", "Rock_Slate",
+        "Rock_Quartzite", "Rock_Sandstone", "Rock_Sandstone_Red",
+        "Rock_Sandstone_White", "Rock_Basalt", "Rock_Volcanic",
+        "Rock_Marble", "Rock_Calcite", "Rock_Aqua", "Rock_Chalk", "Rock_Salt"
+        // Note: Rock_Bedrock excluded - unbreakable
     );
 
     public MiningXpSystem(@Nonnull LevelingSystem system,
@@ -124,10 +125,14 @@ public class MiningXpSystem extends EntityEventSystem<EntityStore, BreakBlockEve
             return configuredXp;
         }
 
-        // Fall back to defaults
-        if (ORE_BLOCKS.contains(blockId)) {
-            return 15; // Base ore XP
+        // Check if it's an ore block (prefix match)
+        for (String orePrefix : ORE_PREFIXES) {
+            if (blockId.startsWith(orePrefix)) {
+                return 15; // Base ore XP
+            }
         }
+
+        // Check if it's a stone/rock block
         if (STONE_BLOCKS.contains(blockId)) {
             return 1; // Small XP for stone
         }
