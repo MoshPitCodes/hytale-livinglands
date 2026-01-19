@@ -5,16 +5,13 @@ import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.Player;
-import com.hypixel.hytale.server.core.entity.entities.player.movement.MovementManager;
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap;
 import com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntityStatTypes;
 import com.hypixel.hytale.server.core.modules.entitystats.modifier.Modifier;
 import com.hypixel.hytale.server.core.modules.entitystats.modifier.StaticModifier;
-import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.livinglands.core.PlayerRegistry;
-import com.livinglands.core.PlayerSession;
 import com.livinglands.core.config.DebuffsConfig;
 import com.livinglands.util.ColorUtil;
 
@@ -37,14 +34,13 @@ import java.util.logging.Level;
  */
 public class DebuffsSystem {
 
-    private static final String MODIFIER_KEY_ENERGY_SPEED = "livinglands_energy_speed";
     private static final String MODIFIER_KEY_ENERGY_STAMINA = "livinglands_energy_stamina";
-    private static final String MODIFIER_KEY_THIRST_SPEED = "livinglands_thirst_speed";
     private static final String MODIFIER_KEY_THIRST_STAMINA = "livinglands_thirst_stamina";
 
     private final DebuffsConfig config;
     private final HytaleLogger logger;
     private final PlayerRegistry playerRegistry;
+    private SpeedManager speedManager;
 
     // Track starvation damage progression per player
     private final Map<UUID, Integer> starvationTicks = new ConcurrentHashMap<>();
@@ -69,11 +65,6 @@ public class DebuffsSystem {
     private final Map<UUID, Long> lastWarningTime = new ConcurrentHashMap<>();
     private static final long WARNING_COOLDOWN_MS = 10000; // 10 seconds between warnings
 
-    // Track original base speed for each player to restore when debuffs are removed
-    private final Map<UUID, Float> originalBaseSpeeds = new ConcurrentHashMap<>();
-    // Track current speed multiplier per player (combined from all debuffs)
-    private final Map<UUID, Float> currentSpeedMultipliers = new ConcurrentHashMap<>();
-
     /**
      * Creates a new debuffs system.
      *
@@ -86,6 +77,14 @@ public class DebuffsSystem {
         this.config = config;
         this.logger = logger;
         this.playerRegistry = playerRegistry;
+    }
+
+    /**
+     * Sets the centralized speed manager.
+     * Must be called before processing debuffs.
+     */
+    public void setSpeedManager(@Nonnull SpeedManager speedManager) {
+        this.speedManager = speedManager;
     }
 
     /**
@@ -272,8 +271,10 @@ public class DebuffsSystem {
                 sendDebuffMessage(player, "You are getting thirsty. Your speed and stamina are reduced.", true);
             }
 
-            // Apply modifiers to entity stats (on WorldThread)
-            applyThirstSpeedModifier(playerId, ref, store, world, speedMultiplier);
+            // Set thirst speed multiplier via centralized SpeedManager
+            if (speedManager != null) {
+                speedManager.setThirstDebuffMultiplier(playerId, speedMultiplier);
+            }
             applyThirstStaminaRegenModifier(ref, store, world, staminaRegenMultiplier);
 
             // Log warning periodically
@@ -283,7 +284,9 @@ public class DebuffsSystem {
         } else if (isCurrentlyParched) {
             // Remove debuff when thirst is above threshold
             parchedPlayers.remove(playerId);
-            removeThirstSpeedModifier(playerId, ref, store, world);
+            if (speedManager != null) {
+                speedManager.clearThirstDebuffMultiplier(playerId);
+            }
             removeThirstStaminaRegenModifier(ref, store, world);
             logger.at(Level.INFO).log("Player %s RECOVERED from parched state (thirst: %.1f >= %.1f)",
                 playerId, thirst, slowThreshold);
@@ -324,8 +327,10 @@ public class DebuffsSystem {
                 sendDebuffMessage(player, "You are getting tired. Your speed is reduced.", true);
             }
 
-            // Apply modifiers to entity stats (on WorldThread)
-            applySpeedModifier(playerId, ref, store, world, speedMultiplier);
+            // Set energy speed multiplier via centralized SpeedManager
+            if (speedManager != null) {
+                speedManager.setEnergyDebuffMultiplier(playerId, speedMultiplier);
+            }
             applyStaminaModifier(ref, store, world, staminaMultiplier);
 
             // Log warning at low energy
@@ -333,12 +338,14 @@ public class DebuffsSystem {
                 logWarning(playerId, "Energy debuff: speed=%.2f, stamina=%.2f", speedMultiplier, staminaMultiplier);
             }
         } else {
-            // Remove modifiers when energy is above threshold (on WorldThread)
+            // Remove modifiers when energy is above threshold
             if (wasTired) {
                 tiredPlayers.remove(playerId);
                 sendDebuffMessage(player, "You feel rested. Speed restored.", false);
             }
-            removeSpeedModifier(playerId, ref, store, world);
+            if (speedManager != null) {
+                speedManager.clearEnergyDebuffMultiplier(playerId);
+            }
             removeStaminaModifier(ref, store, world);
         }
 
@@ -433,62 +440,6 @@ public class DebuffsSystem {
     }
 
     /**
-     * Apply speed modifier based on energy level.
-     * Uses MovementManager component to modify player movement speed.
-     * Uses world.execute() to ensure thread-safe ECS access.
-     *
-     * @param playerId The player's UUID (for tracking original speed)
-     * @param ref The entity reference
-     * @param store The entity store
-     * @param world The world for thread-safe execution
-     * @param multiplier The speed multiplier (e.g., 0.6 = 60% of normal speed)
-     */
-    private void applySpeedModifier(UUID playerId, Ref<EntityStore> ref, Store<EntityStore> store,
-                                     World world, float multiplier) {
-        // Only update if multiplier changed significantly (avoid spamming updates)
-        Float currentMultiplier = currentSpeedMultipliers.get(playerId);
-        if (currentMultiplier != null && Math.abs(currentMultiplier - multiplier) < 0.01f) {
-            return; // No significant change, skip update
-        }
-
-        world.execute(() -> {
-            try {
-                var movementManager = store.getComponent(ref, MovementManager.getComponentType());
-                if (movementManager != null) {
-                    var settings = movementManager.getSettings();
-                    if (settings != null) {
-                        // Store original base speed if not already stored
-                        if (!originalBaseSpeeds.containsKey(playerId)) {
-                            originalBaseSpeeds.put(playerId, settings.baseSpeed);
-                            logger.at(Level.FINE).log("Stored original base speed for player %s: %.2f",
-                                playerId, settings.baseSpeed);
-                        }
-
-                        // Calculate new speed
-                        float originalSpeed = originalBaseSpeeds.get(playerId);
-                        float newSpeed = originalSpeed * multiplier;
-
-                        // Apply the modified speed
-                        settings.baseSpeed = newSpeed;
-                        currentSpeedMultipliers.put(playerId, multiplier);
-
-                        // Sync the movement settings to the client
-                        var playerRef = store.getComponent(ref, PlayerRef.getComponentType());
-                        if (playerRef != null) {
-                            movementManager.update(playerRef.getPacketHandler());
-                        }
-
-                        logger.at(Level.FINE).log("Applied energy speed debuff to player %s: %.2f -> %.2f (%.0f%% of normal)",
-                            playerId, originalSpeed, newSpeed, multiplier * 100);
-                    }
-                }
-            } catch (Exception e) {
-                logger.at(Level.WARNING).withCause(e).log("Error applying speed modifier for player %s", playerId);
-            }
-        });
-    }
-
-    /**
      * Apply stamina modifier based on energy level.
      * Reduces max stamina when energy is low, effectively making stamina deplete faster.
      * Uses StaticModifier with MULTIPLICATIVE calculation on MAX value.
@@ -526,47 +477,6 @@ public class DebuffsSystem {
     }
 
     /**
-     * Remove speed modifier when energy recovers.
-     * Restores original base speed from stored value.
-     * Uses world.execute() to ensure thread-safe ECS access.
-     *
-     * @param playerId The player's UUID
-     * @param ref The entity reference
-     * @param store The entity store
-     * @param world The world for thread-safe execution
-     */
-    private void removeSpeedModifier(UUID playerId, Ref<EntityStore> ref, Store<EntityStore> store, World world) {
-        world.execute(() -> {
-            try {
-                // Only restore if we have stored the original speed and no other debuffs are active
-                if (!parchedPlayers.contains(playerId) && originalBaseSpeeds.containsKey(playerId)) {
-                    var movementManager = store.getComponent(ref, MovementManager.getComponentType());
-                    if (movementManager != null) {
-                        var settings = movementManager.getSettings();
-                        if (settings != null) {
-                            float originalSpeed = originalBaseSpeeds.get(playerId);
-                            settings.baseSpeed = originalSpeed;
-                            currentSpeedMultipliers.remove(playerId);
-                            originalBaseSpeeds.remove(playerId);
-
-                            // Sync the movement settings to the client
-                            var playerRef = store.getComponent(ref, PlayerRef.getComponentType());
-                            if (playerRef != null) {
-                                movementManager.update(playerRef.getPacketHandler());
-                            }
-
-                            logger.at(Level.INFO).log("Restored original speed for player %s: %.2f",
-                                playerId, originalSpeed);
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                logger.at(Level.WARNING).withCause(e).log("Error removing speed modifier for player %s", playerId);
-            }
-        });
-    }
-
-    /**
      * Remove stamina modifier when energy recovers.
      * Uses world.execute() to ensure thread-safe ECS access.
      */
@@ -581,62 +491,6 @@ public class DebuffsSystem {
                 }
             } catch (Exception e) {
                 logger.at(Level.FINE).withCause(e).log("Error removing stamina modifier");
-            }
-        });
-    }
-
-    /**
-     * Apply thirst-based speed modifier.
-     * Uses MovementManager component to modify player movement speed.
-     * Uses world.execute() to ensure thread-safe ECS access.
-     *
-     * @param playerId The player's UUID (for tracking original speed)
-     * @param ref The entity reference
-     * @param store The entity store
-     * @param world The world for thread-safe execution
-     * @param multiplier The speed multiplier (e.g., 0.45 = 45% of normal speed)
-     */
-    private void applyThirstSpeedModifier(UUID playerId, Ref<EntityStore> ref, Store<EntityStore> store,
-                                           World world, float multiplier) {
-        // Only update if multiplier changed significantly (avoid spamming updates)
-        Float currentMultiplier = currentSpeedMultipliers.get(playerId);
-        if (currentMultiplier != null && Math.abs(currentMultiplier - multiplier) < 0.01f) {
-            return; // No significant change, skip update
-        }
-
-        world.execute(() -> {
-            try {
-                var movementManager = store.getComponent(ref, MovementManager.getComponentType());
-                if (movementManager != null) {
-                    var settings = movementManager.getSettings();
-                    if (settings != null) {
-                        // Store original base speed if not already stored
-                        if (!originalBaseSpeeds.containsKey(playerId)) {
-                            originalBaseSpeeds.put(playerId, settings.baseSpeed);
-                            logger.at(Level.FINE).log("Stored original base speed for player %s: %.2f",
-                                playerId, settings.baseSpeed);
-                        }
-
-                        // Calculate new speed
-                        float originalSpeed = originalBaseSpeeds.get(playerId);
-                        float newSpeed = originalSpeed * multiplier;
-
-                        // Apply the modified speed
-                        settings.baseSpeed = newSpeed;
-                        currentSpeedMultipliers.put(playerId, multiplier);
-
-                        // Sync the movement settings to the client
-                        var playerRef = store.getComponent(ref, PlayerRef.getComponentType());
-                        if (playerRef != null) {
-                            movementManager.update(playerRef.getPacketHandler());
-                        }
-
-                        logger.at(Level.FINE).log("Applied thirst speed debuff to player %s: %.2f -> %.2f (%.0f%% of normal)",
-                            playerId, originalSpeed, newSpeed, multiplier * 100);
-                    }
-                }
-            } catch (Exception e) {
-                logger.at(Level.WARNING).withCause(e).log("Error applying thirst speed modifier for player %s", playerId);
             }
         });
     }
@@ -671,47 +525,6 @@ public class DebuffsSystem {
                 }
             } catch (Exception e) {
                 logger.at(Level.FINE).withCause(e).log("Error applying thirst stamina modifier");
-            }
-        });
-    }
-
-    /**
-     * Remove thirst-based speed modifier.
-     * Restores original base speed from stored value.
-     * Uses world.execute() to ensure thread-safe ECS access.
-     *
-     * @param playerId The player's UUID
-     * @param ref The entity reference
-     * @param store The entity store
-     * @param world The world for thread-safe execution
-     */
-    private void removeThirstSpeedModifier(UUID playerId, Ref<EntityStore> ref, Store<EntityStore> store, World world) {
-        world.execute(() -> {
-            try {
-                // Only restore if we have stored the original speed and no other debuffs are active
-                if (!tiredPlayers.contains(playerId) && originalBaseSpeeds.containsKey(playerId)) {
-                    var movementManager = store.getComponent(ref, MovementManager.getComponentType());
-                    if (movementManager != null) {
-                        var settings = movementManager.getSettings();
-                        if (settings != null) {
-                            float originalSpeed = originalBaseSpeeds.get(playerId);
-                            settings.baseSpeed = originalSpeed;
-                            currentSpeedMultipliers.remove(playerId);
-                            originalBaseSpeeds.remove(playerId);
-
-                            // Sync the movement settings to the client
-                            var playerRef = store.getComponent(ref, PlayerRef.getComponentType());
-                            if (playerRef != null) {
-                                movementManager.update(playerRef.getPacketHandler());
-                            }
-
-                            logger.at(Level.INFO).log("Restored original speed for player %s (thirst recovered): %.2f",
-                                playerId, originalSpeed);
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                logger.at(Level.WARNING).withCause(e).log("Error removing thirst speed modifier for player %s", playerId);
             }
         });
     }
@@ -782,8 +595,7 @@ public class DebuffsSystem {
         parchedPlayers.remove(playerId);
         tiredPlayers.remove(playerId);
         lastWarningTime.remove(playerId);
-        originalBaseSpeeds.remove(playerId);
-        currentSpeedMultipliers.remove(playerId);
+        // Note: SpeedManager cleanup is handled separately
     }
 
     /**

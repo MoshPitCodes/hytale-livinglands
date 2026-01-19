@@ -2,6 +2,23 @@
 
 All notable changes to Living Lands will be documented in this file.
 
+## [2.3.2-beta] - 2026-01-20
+
+### Fixed
+
+#### Speed Modification Flickering
+- **Centralized Speed Management** - Fixed speed flickering caused by race condition between buff and debuff systems
+- **SpeedManager** - New centralized component that tracks original speed and combines all multipliers before applying
+- **Single Update Per Tick** - Speed is now applied once after both systems process, eliminating conflicting updates
+
+### Technical Details
+- New `SpeedManager` class handles all speed modifications centrally
+- `DebuffsSystem` and `BuffsSystem` now set multipliers via SpeedManager instead of directly modifying baseSpeed
+- Combined multiplier calculated as: `energyDebuff * thirstDebuff * buff` (debuffs take priority over buffs)
+- Original base speed captured only once on first modification, ensuring correct restoration
+
+---
+
 ## [2.3.1-beta] - 2026-01-20
 
 ### Fixed
