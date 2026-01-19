@@ -11,6 +11,7 @@ import com.livinglands.modules.metabolism.listeners.BedInteractionListener;
 import com.livinglands.modules.metabolism.listeners.CombatDetectionListener;
 import com.livinglands.modules.metabolism.listeners.DeathHandlerListener;
 import com.livinglands.modules.metabolism.listeners.MetabolismPlayerListener;
+import com.livinglands.modules.metabolism.listeners.PlayerDeathSystem;
 import com.livinglands.modules.metabolism.poison.PoisonRegistry;
 import com.livinglands.modules.metabolism.ui.MetabolismHudElement;
 
@@ -39,6 +40,7 @@ public final class MetabolismModule extends AbstractModule {
     private MetabolismHudElement hudElement;
     private BuffsSystem buffsSystem;
     private BuffEffectsSystem buffEffectsSystem;
+    private PlayerDeathSystem playerDeathSystem;
 
     public MetabolismModule() {
         super(ID, NAME, VERSION, Set.of(HudModule.ID)); // Depends on HUD module
@@ -108,7 +110,15 @@ public final class MetabolismModule extends AbstractModule {
         new MetabolismPlayerListener(this).register(context.eventRegistry());
         new BedInteractionListener(this).register(context.eventRegistry());
         new CombatDetectionListener(this).register(context.eventRegistry());
-        new DeathHandlerListener(this).register(context.eventRegistry());
+
+        // Register death detection ECS system
+        playerDeathSystem = new PlayerDeathSystem(system, config, logger);
+        context.entityStoreRegistry().registerSystem(playerDeathSystem);
+
+        // Register respawn handler (uses death system for tracking)
+        new DeathHandlerListener(this, playerDeathSystem).register(context.eventRegistry());
+
+        logger.at(java.util.logging.Level.INFO).log("[%s] Death/respawn detection registered (ECS)", name);
     }
 
     @Override
