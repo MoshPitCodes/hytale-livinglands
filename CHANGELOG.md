@@ -2,6 +2,25 @@
 
 All notable changes to Living Lands will be documented in this file.
 
+## [2.2.1-beta] - 2026-01-19
+
+### Added
+
+#### Stamina Debuff Implementation
+- **Energy Stamina Debuff** - Low energy now reduces max stamina, making stamina deplete faster
+- **Thirst Stamina Debuff** - Low thirst now reduces max stamina pool, simulating reduced stamina regeneration
+
+### Technical Details
+- Implemented `applyStaminaModifier` using `StaticModifier` with `MULTIPLICATIVE` on `MAX` stamina
+- Implemented `removeStaminaModifier` to properly clean up energy-based stamina debuffs
+- Implemented `applyThirstStaminaRegenModifier` using `StaticModifier` for thirst-based stamina reduction
+- Implemented `removeThirstStaminaRegenModifier` to properly clean up thirst-based stamina debuffs
+- Uses separate modifier keys (`MODIFIER_KEY_ENERGY_STAMINA`, `MODIFIER_KEY_THIRST_STAMINA`) for independent tracking
+- Energy debuff uses inverse multiplier (1.5x consumption = 0.67x max stamina)
+- Thirst debuff uses direct multiplier (0.45 = 45% max stamina at 0 thirst)
+
+---
+
 ## [2.2.0-beta] - 2026-01-19
 
 ### Fixed
