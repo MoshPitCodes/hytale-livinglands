@@ -5,18 +5,16 @@ import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.Player;
-import com.hypixel.hytale.server.core.entity.entities.player.movement.MovementManager;
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap;
 import com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntityStatTypes;
 import com.hypixel.hytale.server.core.modules.entitystats.modifier.Modifier;
 import com.hypixel.hytale.server.core.modules.entitystats.modifier.StaticModifier;
-import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.livinglands.core.PlayerRegistry;
-import com.livinglands.core.PlayerSession;
 import com.livinglands.modules.metabolism.DebuffsSystem;
 import com.livinglands.modules.metabolism.PlayerMetabolismData;
+import com.livinglands.modules.metabolism.SpeedManager;
 import com.livinglands.util.ColorUtil;
 
 import javax.annotation.Nonnull;
@@ -49,14 +47,12 @@ public class BuffsSystem {
     private final HytaleLogger logger;
     private final PlayerRegistry playerRegistry;
     private DebuffsSystem debuffsSystem;
+    private SpeedManager speedManager;
 
     // Track which players have which buffs active
     private final Set<UUID> speedBuffedPlayers = ConcurrentHashMap.newKeySet();
     private final Set<UUID> defenseBuffedPlayers = ConcurrentHashMap.newKeySet();
     private final Set<UUID> staminaBuffedPlayers = ConcurrentHashMap.newKeySet();
-
-    // Track original base speed for speed buff restoration
-    private final Map<UUID, Float> originalBaseSpeeds = new ConcurrentHashMap<>();
 
     /**
      * Creates a new buffs system.
@@ -77,6 +73,14 @@ public class BuffsSystem {
      */
     public void setDebuffsSystem(DebuffsSystem debuffsSystem) {
         this.debuffsSystem = debuffsSystem;
+    }
+
+    /**
+     * Sets the centralized speed manager.
+     * Must be called before processing buffs.
+     */
+    public void setSpeedManager(@Nonnull SpeedManager speedManager) {
+        this.speedManager = speedManager;
     }
 
     /**
@@ -177,38 +181,18 @@ public class BuffsSystem {
      */
     private void applyStatModifier(UUID playerId, BuffType buffType, float multiplier,
                                     Ref<EntityStore> ref, Store<EntityStore> store, World world) {
+        // Handle SPEED buff via centralized SpeedManager (not on WorldThread)
+        if (buffType == BuffType.SPEED) {
+            if (speedManager != null) {
+                speedManager.setBuffMultiplier(playerId, multiplier);
+                logger.at(Level.INFO).log("Set speed buff multiplier for player %s: %.2f", playerId, multiplier);
+            }
+            return;
+        }
+
         world.execute(() -> {
             try {
                 switch (buffType) {
-                    case SPEED -> {
-                        // Apply speed buff via MovementManager
-                        var movementManager = store.getComponent(ref, MovementManager.getComponentType());
-                        if (movementManager != null) {
-                            var settings = movementManager.getSettings();
-                            if (settings != null) {
-                                // Store original base speed if not already stored
-                                if (!originalBaseSpeeds.containsKey(playerId)) {
-                                    originalBaseSpeeds.put(playerId, settings.baseSpeed);
-                                    logger.at(Level.INFO).log("Stored original base speed for player %s (buff): %.2f",
-                                        playerId, settings.baseSpeed);
-                                }
-
-                                // Calculate and apply new speed
-                                float originalSpeed = originalBaseSpeeds.get(playerId);
-                                float newSpeed = originalSpeed * multiplier;
-                                settings.baseSpeed = newSpeed;
-
-                                // Sync the movement settings to the client
-                                var playerRef = store.getComponent(ref, PlayerRef.getComponentType());
-                                if (playerRef != null) {
-                                    movementManager.update(playerRef.getPacketHandler());
-                                }
-
-                                logger.at(Level.INFO).log("Applied speed buff to player %s: %.2f -> %.2f (%.0f%% of normal)",
-                                    playerId, originalSpeed, newSpeed, multiplier * 100);
-                            }
-                        }
-                    }
                     case DEFENSE -> {
                         // Apply max health buff using StaticModifier with MULTIPLICATIVE calculation
                         var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
@@ -256,32 +240,18 @@ public class BuffsSystem {
      */
     private void removeStatModifier(UUID playerId, BuffType buffType, Ref<EntityStore> ref,
                                      Store<EntityStore> store, World world) {
+        // Handle SPEED buff via centralized SpeedManager (not on WorldThread)
+        if (buffType == BuffType.SPEED) {
+            if (speedManager != null) {
+                speedManager.clearBuffMultiplier(playerId);
+                logger.at(Level.INFO).log("Cleared speed buff multiplier for player %s", playerId);
+            }
+            return;
+        }
+
         world.execute(() -> {
             try {
                 switch (buffType) {
-                    case SPEED -> {
-                        // Restore original speed via MovementManager
-                        if (originalBaseSpeeds.containsKey(playerId)) {
-                            var movementManager = store.getComponent(ref, MovementManager.getComponentType());
-                            if (movementManager != null) {
-                                var settings = movementManager.getSettings();
-                                if (settings != null) {
-                                    float originalSpeed = originalBaseSpeeds.get(playerId);
-                                    settings.baseSpeed = originalSpeed;
-                                    originalBaseSpeeds.remove(playerId);
-
-                                    // Sync the movement settings to the client
-                                    var playerRef = store.getComponent(ref, PlayerRef.getComponentType());
-                                    if (playerRef != null) {
-                                        movementManager.update(playerRef.getPacketHandler());
-                                    }
-
-                                    logger.at(Level.INFO).log("Removed speed buff from player %s, restored speed: %.2f",
-                                        playerId, originalSpeed);
-                                }
-                            }
-                        }
-                    }
                     case DEFENSE -> {
                         var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
                         if (statMap != null) {
@@ -400,6 +370,6 @@ public class BuffsSystem {
         speedBuffedPlayers.remove(playerId);
         defenseBuffedPlayers.remove(playerId);
         staminaBuffedPlayers.remove(playerId);
-        originalBaseSpeeds.remove(playerId);
+        // Note: SpeedManager cleanup is handled separately
     }
 }

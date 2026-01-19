@@ -82,6 +82,9 @@ public class MetabolismSystem {
     private BuffsSystem buffsSystem;
     private BuffEffectsSystem buffEffectsSystem;
 
+    // Centralized speed management to prevent conflicts between buff and debuff systems
+    private final SpeedManager speedManager;
+
     /**
      * Creates a new metabolism system.
      *
@@ -96,7 +99,9 @@ public class MetabolismSystem {
         this.logger = logger;
         this.playerRegistry = playerRegistry;
         this.playerData = new ConcurrentHashMap<>();
+        this.speedManager = new SpeedManager(logger);
         this.debuffsSystem = new DebuffsSystem(config.debuffs, logger, playerRegistry);
+        this.debuffsSystem.setSpeedManager(speedManager); // Wire centralized speed management
         this.poisonEffectsSystem = new PoisonEffectsSystem(config.poison, logger);
         this.poisonEffectsSystem.setMetabolismSystem(this, playerRegistry); // Wire back-reference for stat manipulation
         this.debuffEffectsSystem = new DebuffEffectsSystem(config.nativeDebuffs, logger);
@@ -287,6 +292,9 @@ public class MetabolismSystem {
                 buffsSystem.processBuffs(data.getPlayerUuid(), data);
             }
 
+            // Apply combined speed modifier from SpeedManager AFTER both systems have set their multipliers
+            applySpeedFromManager(data.getPlayerUuid());
+
         } catch (Exception e) {
             // Silently handle player processing errors
         }
@@ -433,11 +441,43 @@ public class MetabolismSystem {
         poisonEffectsSystem.removePlayer(playerUuid);
         debuffEffectsSystem.removePlayer(playerUuid);
         foodConsumptionProcessor.removePlayer(playerUuid);
+        speedManager.removePlayer(playerUuid);
         if (buffsSystem != null) {
             buffsSystem.removePlayer(playerUuid);
         }
         if (buffEffectsSystem != null) {
             buffEffectsSystem.removePlayer(playerUuid);
+        }
+    }
+
+    /**
+     * Applies the combined speed modifier from SpeedManager to the player.
+     * Called after both debuffs and buffs have set their multipliers.
+     */
+    private void applySpeedFromManager(UUID playerUuid) {
+        var sessionOpt = playerRegistry.getSession(playerUuid);
+        if (sessionOpt.isEmpty()) {
+            return;
+        }
+
+        var session = sessionOpt.get();
+        if (!session.isEcsReady()) {
+            return;
+        }
+
+        var ref = session.getEntityRef();
+        var store = session.getStore();
+        var world = session.getWorld();
+
+        if (ref == null || store == null || world == null) {
+            return;
+        }
+
+        // Check if there are any active modifiers
+        if (speedManager.hasActiveModifiers(playerUuid)) {
+            speedManager.applySpeedModifier(playerUuid, ref, store, world);
+        } else {
+            speedManager.restoreOriginalSpeedIfNoModifiers(playerUuid, ref, store, world);
         }
     }
 
@@ -624,6 +664,10 @@ public class MetabolismSystem {
     public void setBuffSystems(BuffsSystem buffsSystem, BuffEffectsSystem buffEffectsSystem) {
         this.buffsSystem = buffsSystem;
         this.buffEffectsSystem = buffEffectsSystem;
+        // Wire centralized speed management into buff system
+        if (buffsSystem != null) {
+            buffsSystem.setSpeedManager(speedManager);
+        }
     }
 
     /**

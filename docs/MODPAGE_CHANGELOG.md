@@ -4,6 +4,16 @@ All notable changes to Living Lands for players and server administrators.
 
 ---
 
+## Version 2.3.2-beta - January 2026
+
+### Fixed
+
+#### Speed Flickering
+- **Fixed Speed Flickering** - Movement speed no longer flickers when buffs and debuffs are active
+- The speed system now uses centralized management to prevent conflicts
+
+---
+
 ## Version 2.3.1-beta - January 2026
 
 ### Fixed

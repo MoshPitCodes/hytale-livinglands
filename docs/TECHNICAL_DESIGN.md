@@ -698,3 +698,4 @@ public record DebuffsConfig(
 | 2.2.1-beta | Stamina debuff implementation |
 | 2.3.0-beta | Enhanced HUD, passive abilities panel, leveling integration |
 | 2.3.1-beta | Death detection fix, mining/logging XP exploit fix, block persistence |
+| 2.3.2-beta | Speed flickering fix via centralized SpeedManager |
