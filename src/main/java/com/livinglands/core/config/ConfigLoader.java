@@ -87,6 +87,7 @@ public final class ConfigLoader {
         public DebuffsSection debuffs = new DebuffsSection();
         public PoisonSection poison = new PoisonSection();
         public NativeDebuffsSection nativeDebuffs = new NativeDebuffsSection();
+        public LevelingSection leveling = new LevelingSection();
 
         // ========================================
         // METABOLISM SECTION
@@ -349,6 +350,19 @@ public final class ConfigLoader {
             public float tickIntervalSeconds = 2.5f;
         }
 
+        // ========================================
+        // LEVELING SECTION
+        // ========================================
+        public static class LevelingSection {
+            public boolean enabled = true;
+            public int maxLevel = 100;
+            public double baseXpPerLevel = 100.0;
+            public double xpScalingFactor = 1.15;
+            public double healthPerLevel = 5.0;
+            public double staminaPerLevel = 3.0;
+            public int skillPointsPerLevel = 1;
+        }
+
         /**
          * Converts JSON config to ModConfig record.
          */
@@ -384,8 +398,9 @@ public final class ConfigLoader {
             var debuffsConfig = toDebuffsConfig();
             var poisonConfig = toPoisonConfig();
             var nativeDebuffsConfig = toNativeDebuffsConfig();
+            var levelingConfig = toLevelingConfig();
 
-            return new ModConfig(metabolismConfig, consumablesConfig, sleepConfig, debuffsConfig, poisonConfig, nativeDebuffsConfig);
+            return new ModConfig(metabolismConfig, consumablesConfig, sleepConfig, debuffsConfig, poisonConfig, nativeDebuffsConfig, levelingConfig);
         }
 
         private DebuffsConfig toDebuffsConfig() {
@@ -584,6 +599,19 @@ public final class ConfigLoader {
             );
         }
 
+        private LevelingConfig toLevelingConfig() {
+            var l = leveling;
+            return new LevelingConfig(
+                l.enabled,
+                l.maxLevel,
+                l.baseXpPerLevel,
+                l.xpScalingFactor,
+                l.healthPerLevel,
+                l.staminaPerLevel,
+                l.skillPointsPerLevel
+            );
+        }
+
         /**
          * Creates JSON config from ModConfig record.
          */
@@ -750,6 +778,16 @@ public final class ConfigLoader {
             json.nativeDebuffs.slow.thirstDrainPerTick = nd.slow().thirstDrainPerTick();
             json.nativeDebuffs.slow.energyDrainPerTick = nd.slow().energyDrainPerTick();
             json.nativeDebuffs.slow.tickIntervalSeconds = nd.slow().tickIntervalSeconds();
+
+            // Leveling
+            var l = config.leveling();
+            json.leveling.enabled = l.enabled();
+            json.leveling.maxLevel = l.maxLevel();
+            json.leveling.baseXpPerLevel = l.baseXpPerLevel();
+            json.leveling.xpScalingFactor = l.xpScalingFactor();
+            json.leveling.healthPerLevel = l.healthPerLevel();
+            json.leveling.staminaPerLevel = l.staminaPerLevel();
+            json.leveling.skillPointsPerLevel = l.skillPointsPerLevel();
 
             return json;
         }

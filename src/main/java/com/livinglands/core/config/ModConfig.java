@@ -10,7 +10,8 @@ public record ModConfig(
     SleepConfig sleep,
     DebuffsConfig debuffs,
     PoisonConfig poison,
-    DebuffConfig nativeDebuffs
+    DebuffConfig nativeDebuffs,
+    LevelingConfig leveling
 ) {
     /**
      * Creates a default configuration instance.
@@ -22,7 +23,8 @@ public record ModConfig(
             SleepConfig.defaultConfig(),
             DebuffsConfig.defaultConfig(),
             PoisonConfig.defaults(),
-            DebuffConfig.defaults()
+            DebuffConfig.defaults(),
+            LevelingConfig.defaults()
         );
     }
 
@@ -31,6 +33,7 @@ public record ModConfig(
      */
     public ModConfig() {
         this(new MetabolismConfig(), ConsumablesConfig.defaultConfig(), SleepConfig.defaultConfig(),
-             DebuffsConfig.defaultConfig(), PoisonConfig.defaults(), DebuffConfig.defaults());
+             DebuffsConfig.defaultConfig(), PoisonConfig.defaults(), DebuffConfig.defaults(),
+             LevelingConfig.defaults());
     }
 }

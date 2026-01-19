@@ -19,6 +19,7 @@ import com.livinglands.metabolism.ThirstStat;
 import com.livinglands.metabolism.consumables.ConsumableRegistry;
 import com.livinglands.metabolism.poison.PoisonRegistry;
 import com.livinglands.ui.MetabolismHudManager;
+import com.livinglands.leveling.LevelingModule;
 
 import javax.annotation.Nonnull;
 import java.util.logging.Level;
@@ -58,6 +59,7 @@ public class LivingLandsPlugin extends JavaPlugin {
     // Systems
     private MetabolismSystem metabolismSystem;
     private MetabolismHudManager hudManager;
+    private LevelingModule levelingModule;
 
     /**
      * Plugin constructor with initialization context.
@@ -118,6 +120,10 @@ public class LivingLandsPlugin extends JavaPlugin {
             getLogger().at(Level.INFO).log("Initializing HUD manager...");
             hudManager = new MetabolismHudManager(metabolismSystem, playerRegistry, config, getLogger());
 
+            // Initialize leveling module
+            getLogger().at(Level.INFO).log("Initializing leveling module...");
+            levelingModule = new LevelingModule(config.leveling(), getLogger(), playerRegistry, pluginDirectory);
+
             // Register commands
             getLogger().at(Level.INFO).log("Registering commands...");
             getCommandRegistry().registerCommand(new StatsCommand(metabolismSystem));
@@ -170,12 +176,18 @@ public class LivingLandsPlugin extends JavaPlugin {
                 getLogger().at(Level.WARNING).log("Metabolism system disabled in configuration");
             }
 
+            // Start leveling module if enabled
+            if (levelingModule != null) {
+                levelingModule.start();
+            }
+
             getLogger().at(Level.INFO).log("========================================");
             getLogger().at(Level.INFO).log("Living Lands started successfully!");
             getLogger().at(Level.INFO).log("Features enabled:");
             getLogger().at(Level.INFO).log("  - Hunger: %s", metabolism.enableHunger());
             getLogger().at(Level.INFO).log("  - Thirst: %s", metabolism.enableThirst());
             getLogger().at(Level.INFO).log("  - Energy: %s", metabolism.enableEnergy());
+            getLogger().at(Level.INFO).log("  - Leveling: %s", config.leveling().enabled());
             getLogger().at(Level.INFO).log("========================================");
 
         } catch (Exception e) {
@@ -203,6 +215,11 @@ public class LivingLandsPlugin extends JavaPlugin {
                 metabolismSystem.saveAll();
                 metabolismSystem.stop();
                 getLogger().at(Level.INFO).log("Metabolism system stopped");
+            }
+
+            // Stop leveling module
+            if (levelingModule != null) {
+                levelingModule.stop();
             }
 
             // Shutdown player registry
@@ -247,6 +264,14 @@ public class LivingLandsPlugin extends JavaPlugin {
      */
     public MetabolismHudManager getHudManager() {
         return hudManager;
+    }
+
+    /**
+     * Gets the leveling module.
+     * Exposed for testing and external access.
+     */
+    public LevelingModule getLevelingModule() {
+        return levelingModule;
     }
 
     /**

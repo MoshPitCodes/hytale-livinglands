@@ -8,6 +8,7 @@ import com.livinglands.LivingLandsPlugin;
 import com.livinglands.core.PlayerRegistry;
 import com.livinglands.metabolism.MetabolismSystem;
 import com.livinglands.ui.MetabolismHudManager;
+import com.livinglands.leveling.LevelingModule;
 
 import javax.annotation.Nonnull;
 import java.util.logging.Level;
@@ -28,6 +29,7 @@ public class PlayerEventListener {
     private final PlayerRegistry playerRegistry;
     private final MetabolismSystem metabolismSystem;
     private final MetabolismHudManager hudManager;
+    private final LevelingModule levelingModule;
 
     /**
      * Creates a new player event listener.
@@ -39,6 +41,7 @@ public class PlayerEventListener {
         this.playerRegistry = plugin.getPlayerRegistry();
         this.metabolismSystem = plugin.getMetabolismSystem();
         this.hudManager = plugin.getHudManager();
+        this.levelingModule = plugin.getLevelingModule();
     }
 
     /**
@@ -82,6 +85,11 @@ public class PlayerEventListener {
                 metabolismSystem.initializePlayer(playerId);
             }
 
+            // Initialize leveling for this player (only if enabled)
+            if (levelingModule != null && levelingModule.isEnabled()) {
+                levelingModule.initializePlayer(playerId);
+            }
+
             plugin.getLogger().at(Level.INFO).log("Player connected: %s", playerId);
 
         } catch (Exception e) {
@@ -123,6 +131,11 @@ public class PlayerEventListener {
                 hudManager.initializePlayerHud(playerId, sessionOpt.get());
             }
 
+            // Apply leveling stat modifiers (only if enabled)
+            if (levelingModule != null && levelingModule.isEnabled()) {
+                levelingModule.applyStatModifiers(playerId);
+            }
+
             plugin.getLogger().at(Level.FINE).log("ECS ready for player: %s", playerId);
 
         } catch (Exception e) {
@@ -151,6 +164,11 @@ public class PlayerEventListener {
             // Remove metabolism tracking
             if (metabolismSystem != null) {
                 metabolismSystem.removePlayer(playerId);
+            }
+
+            // Remove leveling tracking (only if enabled)
+            if (levelingModule != null && levelingModule.isEnabled()) {
+                levelingModule.removePlayer(playerId);
             }
 
             // Unregister from central PlayerRegistry
