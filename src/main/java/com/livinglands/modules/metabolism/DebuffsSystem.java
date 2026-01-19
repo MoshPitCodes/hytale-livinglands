@@ -8,6 +8,8 @@ import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.entities.player.movement.MovementManager;
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap;
 import com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntityStatTypes;
+import com.hypixel.hytale.server.core.modules.entitystats.modifier.Modifier;
+import com.hypixel.hytale.server.core.modules.entitystats.modifier.StaticModifier;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
@@ -481,8 +483,15 @@ public class DebuffsSystem {
     }
 
     /**
-     * Apply stamina consumption modifier based on energy level.
+     * Apply stamina modifier based on energy level.
+     * Reduces max stamina when energy is low, effectively making stamina deplete faster.
+     * Uses StaticModifier with MULTIPLICATIVE calculation on MAX value.
      * Uses world.execute() to ensure thread-safe ECS access.
+     *
+     * @param ref The entity reference
+     * @param store The entity store
+     * @param world The world for thread-safe execution
+     * @param multiplier The stamina multiplier (e.g., 0.7 = 70% max stamina)
      */
     private void applyStaminaModifier(Ref<EntityStore> ref, Store<EntityStore> store,
                                        World world, float multiplier) {
@@ -491,8 +500,18 @@ public class DebuffsSystem {
                 var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
                 if (statMap != null) {
                     var staminaStatId = DefaultEntityStatTypes.getStamina();
-                    // Note: Modifying stamina consumption rate may require a different approach
-                    // statMap.putModifier(staminaStatId, MODIFIER_KEY_STAMINA, modifier);
+                    // Apply a multiplicative modifier to max stamina
+                    // multiplier > 1.0 means increased stamina consumption (lower effective max)
+                    // We invert: if multiplier is 1.5x consumption, we reduce max by 1/1.5 = 0.67
+                    float maxMultiplier = 1.0f / multiplier;
+                    var modifier = new StaticModifier(
+                        Modifier.ModifierTarget.MAX,
+                        StaticModifier.CalculationType.MULTIPLICATIVE,
+                        maxMultiplier
+                    );
+                    statMap.putModifier(staminaStatId, MODIFIER_KEY_ENERGY_STAMINA, modifier);
+                    logger.at(Level.FINE).log("Applied energy stamina debuff: %.2fx consumption (%.2f max multiplier)",
+                        multiplier, maxMultiplier);
                 }
             } catch (Exception e) {
                 logger.at(Level.FINE).withCause(e).log("Error applying stamina modifier");
@@ -550,7 +569,9 @@ public class DebuffsSystem {
             try {
                 var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
                 if (statMap != null) {
-                    // statMap.removeModifier(staminaStatId, MODIFIER_KEY_ENERGY_STAMINA);
+                    var staminaStatId = DefaultEntityStatTypes.getStamina();
+                    statMap.removeModifier(staminaStatId, MODIFIER_KEY_ENERGY_STAMINA);
+                    logger.at(Level.FINE).log("Removed energy stamina debuff");
                 }
             } catch (Exception e) {
                 logger.at(Level.FINE).withCause(e).log("Error removing stamina modifier");
@@ -609,12 +630,15 @@ public class DebuffsSystem {
     }
 
     /**
-     * Apply thirst-based stamina regen modifier.
+     * Apply thirst-based stamina modifier.
+     * Reduces max stamina when thirst is low, simulating reduced stamina regeneration.
+     * Uses StaticModifier with MULTIPLICATIVE calculation on MAX value.
      * Uses world.execute() to ensure thread-safe ECS access.
      *
-     * Note: Hytale API has getStamina() but no getMaxStamina().
-     * For now, we log the modifier value; actual implementation requires
-     * finding the appropriate stat ID or using an alternative approach.
+     * @param ref The entity reference
+     * @param store The entity store
+     * @param world The world for thread-safe execution
+     * @param multiplier The stamina modifier (e.g., 0.45 = 45% max stamina)
      */
     private void applyThirstStaminaRegenModifier(Ref<EntityStore> ref, Store<EntityStore> store,
                                                   World world, float multiplier) {
@@ -622,15 +646,19 @@ public class DebuffsSystem {
             try {
                 var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
                 if (statMap != null) {
-                    // TODO: Find appropriate stat ID for stamina regen/max stamina
-                    // Options to investigate:
-                    // 1. Check for stamina regen rate stat
-                    // 2. Apply modifier to stamina directly (drain faster)
-                    // 3. Use custom EntityEffect system
-                    logger.at(Level.FINE).log("Thirst stamina regen modifier: %.2f (implementation TBD)", multiplier);
+                    var staminaStatId = DefaultEntityStatTypes.getStamina();
+                    // Apply a multiplicative modifier to max stamina
+                    // Lower multiplier = lower max stamina = less effective stamina pool
+                    var modifier = new StaticModifier(
+                        Modifier.ModifierTarget.MAX,
+                        StaticModifier.CalculationType.MULTIPLICATIVE,
+                        multiplier
+                    );
+                    statMap.putModifier(staminaStatId, MODIFIER_KEY_THIRST_STAMINA, modifier);
+                    logger.at(Level.FINE).log("Applied thirst stamina debuff: %.2f max multiplier", multiplier);
                 }
             } catch (Exception e) {
-                logger.at(Level.FINE).withCause(e).log("Error applying thirst stamina regen modifier");
+                logger.at(Level.FINE).withCause(e).log("Error applying thirst stamina modifier");
             }
         });
     }
@@ -677,7 +705,7 @@ public class DebuffsSystem {
     }
 
     /**
-     * Remove thirst-based stamina regen modifier.
+     * Remove thirst-based stamina modifier.
      * Uses world.execute() to ensure thread-safe ECS access.
      */
     private void removeThirstStaminaRegenModifier(Ref<EntityStore> ref, Store<EntityStore> store, World world) {
@@ -685,11 +713,12 @@ public class DebuffsSystem {
             try {
                 var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
                 if (statMap != null) {
-                    // TODO: Remove modifier when implementation is complete
-                    logger.at(Level.FINE).log("Removed thirst stamina regen modifier");
+                    var staminaStatId = DefaultEntityStatTypes.getStamina();
+                    statMap.removeModifier(staminaStatId, MODIFIER_KEY_THIRST_STAMINA);
+                    logger.at(Level.FINE).log("Removed thirst stamina debuff");
                 }
             } catch (Exception e) {
-                logger.at(Level.FINE).withCause(e).log("Error removing thirst stamina regen modifier");
+                logger.at(Level.FINE).withCause(e).log("Error removing thirst stamina modifier");
             }
         });
     }
