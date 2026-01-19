@@ -4,6 +4,22 @@ All notable changes to Living Lands for players and server administrators.
 
 ---
 
+## Version 2.2.1-beta - January 2026
+
+### New Features
+
+#### Stamina Debuffs Now Fully Functional
+- **Energy Stamina Penalty** - When tired (Energy < 30), your max stamina is reduced, making actions consume stamina faster
+- **Thirst Stamina Penalty** - When parched (Thirst < 30), your max stamina pool shrinks proportionally
+
+### How It Works
+- At 15 energy: 1.25x stamina consumption
+- At 0 energy: 1.5x stamina consumption (stamina depletes 50% faster)
+- At 15 thirst: 27.5% reduced max stamina
+- At 0 thirst: 55% reduced max stamina
+
+---
+
 ## Version 2.2.0-beta - January 2026
 
 ### Fixed

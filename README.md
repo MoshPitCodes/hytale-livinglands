@@ -125,9 +125,14 @@ When your stats drop **low**, you suffer debuffs that impair your abilities. The
 
 | Condition | Threshold | Effect |
 |-----------|-----------|--------|
-| **Tired** | Energy < 30 | Gradual speed reduction (up to 40% at 0) |
+| **Tired** | Energy < 30 | Gradual speed reduction (up to 40% at 0) + increased stamina consumption |
 | **Exhausted** | Energy = 0 | Stamina drains 5 per second |
 | **Recovery** | Energy ≥ 50 | Stamina drain stops |
+
+**Tired Severity** (proportional to energy level):
+- At 30 energy: No penalty
+- At 15 energy: 20% speed reduction + 1.25x stamina consumption
+- At 0 energy: **40% speed reduction + 1.5x stamina consumption**
 
 ## Player Feedback
 
@@ -462,7 +467,7 @@ The metabolism module is optimized for **O(n) linear scaling** with player count
 # Credits
 
 - **Author**: [MoshPitCodes](https://github.com/MoshPitCodes)
-- **Version**: 2.2.0-beta
+- **Version**: 2.2.1-beta
 - **License**: Apache-2.0
 
 ### Resources

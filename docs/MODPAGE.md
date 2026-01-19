@@ -2,13 +2,13 @@
 
 **Living Lands** transforms Hytale into an immersive survival experience. Manage your character's **hunger**, **thirst**, and **energy** while exploring the world. The mod integrates seamlessly with vanilla items - no new blocks or complicated recipes, just pure survival gameplay.
 
-**Version 2.2** features a **buff/debuff system** that rewards well-maintained stats and penalizes neglect, plus a **modular architecture** - enable only the features you want!
+**Version 2.2.1** features a **buff/debuff system** that rewards well-maintained stats and penalizes neglect, plus a **modular architecture** - enable only the features you want!
 
 ---
 
 ## Features
 
-### Buff System (New in 2.2)
+### Buff System
 
 - **Speed Buff** - Increased movement speed when Energy >= 90%
 - **Defense Buff** - Increased max health when Hunger >= 90%
@@ -16,10 +16,10 @@
 - **Hysteresis** - Buffs activate at 90%, deactivate at 80% to prevent flickering
 - **Native Detection** - Detects Hytale food buffs (Health_Boost, Stamina_Boost, Meat_Buff, FruitVeggie_Buff)
 
-### Debuff System (Enhanced in 2.2)
+### Debuff System
 
 - **Parched State** - Gradual speed/stamina reduction when Thirst < 30 (up to 55% at 0)
-- **Tired State** - Gradual speed reduction when Energy < 30 (up to 40% at 0)
+- **Tired State** - Gradual speed reduction + increased stamina consumption when Energy < 30 (up to 40% speed reduction + 1.5x stamina at 0)
 - **Starvation** - Escalating damage when Hunger = 0
 - **Dehydration** - Damage when Thirst = 0
 - **Exhaustion** - Rapid stamina drain when Energy = 0
@@ -51,7 +51,7 @@
 - Slow depletion (1 point/90 seconds)
 - Sleep in beds to restore 50 energy (respects day/night cycle)
 - Stamina potions restore energy quickly
-- Below 30: Tired status with speed reduction
+- Below 30: Tired status with speed reduction and increased stamina consumption
 - At 0: Exhaustion with rapid stamina drain
 
 ### Native Debuff Integration
