@@ -29,81 +29,160 @@
 <br/>
 <!-- DO NOT TOUCH THIS SECTION#1: END -->
 
-# 🗃️ Overview
+# Overview
 
-**Living Lands** is an immersive RPG survival mod for Hytale that transforms the gameplay experience by introducing realistic survival mechanics. Manage your character's hunger, thirst, and energy while exploring the world. Consume food and drinks to stay alive, and rest to recover your strength.
+**Living Lands** is an immersive RPG survival mod for Hytale that introduces realistic survival mechanics. Players must manage three core stats - **Hunger**, **Thirst**, and **Energy** - while exploring, fighting, and surviving.
 
-The mod features a **modular architecture** allowing server administrators to enable or disable features independently. Each module (Metabolism, Plot Claims, Economy, etc.) can be toggled via configuration, making it easy to customize the experience for your server.
+The mod features a dynamic **buff and debuff system** that rewards well-maintained stats with powerful bonuses while penalizing neglect with harsh consequences. All mechanics integrate seamlessly with vanilla Hytale items and effects.
 
-The mod seamlessly integrates with vanilla Hytale items, adding depth without breaking the core gameplay experience.
-
-<br/>
-
-## ✨ Features
-
-| Feature | Description |
-|---------|-------------|
-| **🍖 Hunger System** | Your character gets hungry over time. Physical activities like sprinting and combat drain hunger faster. Eat food to restore your hunger levels. |
-| **💧 Thirst System** | Stay hydrated! Thirst depletes faster than hunger. Drink potions, water, or milk to quench your thirst. |
-| **⚡ Energy System** | Energy drains slowly throughout the day. Stamina potions can help restore energy quickly. |
-| **🛏️ Bed Rest** | Sleep in a bed to restore energy. Respects the game's sleep schedule - you can only rest during valid sleep hours. |
-| **🍽️ Food Consumption** | All vanilla Hytale foods now restore hunger. Cooked meats restore more than raw foods. Kebabs, pies, and prepared meals provide the best restoration. |
-| **🧪 Potion Effects** | Health, Mana, and Stamina potions restore metabolism stats. Health potions restore hunger and thirst. Mana/Stamina potions restore energy and thirst. |
-| **☠️ Debuff Effects** | Combat debuffs affect your metabolism! Poison, burn, stun, freeze, root, and slow effects drain your stats while active. |
-| **📊 Status Feedback** | Visual status indicators show your current state: Satiated, Hungry, Starving, Hydrated, Dehydrated, Energized, Exhausted. |
+**Key Highlights:**
+- **Three survival stats** that deplete based on activity level
+- **Buffs** when stats are high (90%+) - speed, defense, and stamina bonuses
+- **Debuffs** when stats are low - movement penalties, stamina drain, and damage
+- **Native Hytale integration** - poison, burn, freeze effects drain your metabolism
+- **Modular architecture** - server admins can enable/disable features independently
 
 <br/>
 
-## 📓 Survival Mechanics
+# How It Works
 
-### Hunger
-Your hunger level ranges from 0 to 100. It naturally depletes over time:
-- **Base rate**: 1 point every 60 seconds
-- **Sprinting**: Depletes 2x faster
-- **Swimming**: Depletes 1.5x faster
-- **Combat**: Depletes 1.5x faster
+## The Three Stats
 
-When hunger drops below 20, you enter **Starvation** status with movement penalties and gradual health drain.
+Living Lands tracks three core survival statistics for each player:
 
-### Thirst
-Thirst also ranges from 0 to 100 but depletes faster than hunger:
-- **Base rate**: 1 point every 45 seconds
-- Same activity multipliers as hunger
+| Stat | Icon | Depletion Rate | Primary Restoration |
+|------|------|----------------|---------------------|
+| **Hunger** | 🍖 | 1 point / 60 seconds | Food items |
+| **Thirst** | 💧 | 1 point / 45 seconds | Potions, water, milk |
+| **Energy** | ⚡ | 1 point / 90 seconds | Sleeping, stamina potions |
 
-When thirst drops below 20, you become **Dehydrated** with similar penalties to starvation.
+All stats range from **0 to 100**. Higher is better.
 
-### Energy
-Energy represents your character's overall stamina:
-- **Base rate**: 1 point every 90 seconds (slowest depletion)
-- Stamina potions can restore energy quickly
-- **Sleep in a bed** to restore 50 energy (respects game's sleep schedule)
+## Activity Multipliers
 
-When energy drops below 20, you become **Exhausted**.
+Your activity level affects how fast stats deplete:
 
-### Debuff Effects
-Combat debuffs now impact your metabolism! While affected by these debuffs, your stats will drain:
-
-| Debuff | Hunger | Thirst | Energy | Effect |
-|--------|--------|--------|--------|--------|
-| **Poison** | Moderate | Moderate | Low | Toxins affect all systems |
-| **Burn** | Low | **High** | Moderate | Heat causes severe dehydration |
-| **Stun** | Low | Low | **High** | Panic and struggle drain energy |
-| **Freeze** | Low | Low | **High** | Hypothermia and shivering |
-| **Root** | Low | Low | Moderate | Struggling to break free |
-| **Slow** | Low | Low | Low | Fatigue from impaired movement |
-
-### Sleeping
-Rest in a bed to restore your energy:
-- **Energy restored**: 50 per sleep
-- **Cooldown**: 5 seconds between sleep attempts
-- **Sleep schedule**: Only works during valid sleep hours (follows game's day/night cycle)
-- You'll see a message if you try to sleep outside of sleep hours
+| Activity | Multiplier | Example |
+|----------|------------|---------|
+| **Idle/Walking** | 1.0x | Normal exploration |
+| **Sprinting** | 2.0x | Running consumes stats twice as fast |
+| **Swimming** | 1.5x | Water activities are tiring |
+| **Combat** | 1.5x | Fighting drains you faster (5-second window) |
 
 <br/>
 
-## 🍎 Consumables
+# Buff System
 
-### Foods (Restore Hunger)
+When your stats are **high** (90% or above), you gain powerful buffs that enhance your abilities.
+
+## Stat-Based Buffs
+
+| Stat Threshold | Buff | Effect |
+|----------------|------|--------|
+| Energy ≥ 90 | **Speed Boost** | Increased movement speed |
+| Hunger ≥ 90 | **Defense Boost** | Increased max health |
+| Thirst ≥ 90 | **Stamina Boost** | Increased max stamina |
+
+### Hysteresis (Anti-Flicker)
+
+Buffs use a **hysteresis system** to prevent rapid on/off flickering:
+- **Activation**: Stat must reach **90%** to gain buff
+- **Deactivation**: Stat must drop below **80%** to lose buff
+
+This means once you have a buff, small fluctuations won't constantly toggle it.
+
+### Buff Priority
+
+**Debuffs suppress all buffs.** If you have any active debuff (starving, dehydrated, exhausted, etc.), all stat-based buffs are removed until you recover.
+
+<br/>
+
+# Debuff System
+
+When your stats drop **low**, you suffer debuffs that impair your abilities. The system has multiple severity tiers.
+
+## Hunger Debuffs
+
+| Condition | Threshold | Effect |
+|-----------|-----------|--------|
+| **Starving** | Hunger = 0 | Takes damage every 3 seconds (escalating 1→5 damage) |
+| **Recovery** | Hunger ≥ 30 | Damage stops |
+
+## Thirst Debuffs
+
+| Condition | Threshold | Effect |
+|-----------|-----------|--------|
+| **Parched** | Thirst < 30 | Gradual speed and stamina regen reduction |
+| **Dehydrated** | Thirst = 0 | Takes 1.5 damage every 4 seconds |
+| **Recovery** | Thirst ≥ 30 | Damage and penalties stop |
+
+**Parched Severity** (proportional to thirst level):
+- At 30 thirst: No penalty
+- At 15 thirst: 27.5% speed/stamina reduction
+- At 0 thirst: **55% speed/stamina reduction**
+
+## Energy Debuffs
+
+| Condition | Threshold | Effect |
+|-----------|-----------|--------|
+| **Tired** | Energy < 30 | Gradual speed reduction (up to 40% at 0) |
+| **Exhausted** | Energy = 0 | Stamina drains 5 per second |
+| **Recovery** | Energy ≥ 50 | Stamina drain stops |
+
+## Player Feedback
+
+The mod sends **colored chat messages** when you enter or exit debuff states:
+
+| Message | Color | Meaning |
+|---------|-------|---------|
+| "You are starving! Find food quickly!" | 🔴 Red | Entering debuff |
+| "You are no longer starving." | 🟢 Green | Recovered |
+| "You are getting thirsty..." | 🔴 Red | Entering parched state |
+| "Your thirst is quenched..." | 🟢 Green | Recovered |
+
+<br/>
+
+# Native Hytale Effects
+
+Living Lands integrates with Hytale's native effect system. Combat debuffs and food buffs affect your metabolism.
+
+## Combat Debuffs (Drain Stats)
+
+While affected by native Hytale debuffs, your metabolism drains:
+
+| Debuff Type | Effects | Hunger | Thirst | Energy |
+|-------------|---------|--------|--------|--------|
+| **Poison** | Poison, Poison_T1/T2/T3 | ●●○ | ●●○ | ●○○ |
+| **Burn** | Burn, Lava_Burn, Flame_Staff_Burn | ●○○ | ●●● | ●●○ |
+| **Stun** | Stun, Bomb_Explode_Stun | ●○○ | ●○○ | ●●● |
+| **Freeze** | Freeze | ●○○ | ●○○ | ●●● |
+| **Root** | Root | ●○○ | ●○○ | ●●○ |
+| **Slow** | Slow, Two_Handed_Bow_Ability2_Slow | ●○○ | ●○○ | ●○○ |
+
+*Legend: ●●● = High drain, ●●○ = Moderate, ●○○ = Low*
+
+**Poison tiers** scale drain amounts:
+- T1: 75% drain rate
+- T2: 100% drain rate (standard)
+- T3: 150% drain rate
+
+## Food Buffs (Detected)
+
+The mod detects when you consume food with buff effects:
+
+| Buff Pattern | Type | Detected |
+|--------------|------|----------|
+| `Food_Health_Boost_*` | Defense buff | ✅ |
+| `Food_Stamina_Boost_*` | Stamina buff | ✅ |
+| `Meat_Buff_*` | Strength buff | ✅ |
+| `FruitVeggie_Buff_*` | Vitality buff | ✅ |
+
+<br/>
+
+# Consumables
+
+## Foods (Restore Hunger)
+
 | Tier | Examples | Hunger Restored |
 |------|----------|-----------------|
 | **Low** | Raw meats, Eggs, Vegetables | 8-18 |
@@ -111,53 +190,80 @@ Rest in a bed to restore your energy:
 | **High** | Cooked meats, Kebabs, Salads | 40-50 |
 | **Premium** | Pies, Meat dishes | 55-65 |
 
-### Potions (Restore Multiple Stats)
-| Type | Hunger | Thirst | Energy | Notes |
-|------|--------|--------|--------|-------|
-| **Health Potions** | Slight | High | None | Hydrating healing effect |
-| **Mana Potions** | None | High | Slight | Magical energy restoration |
-| **Stamina Potions** | None | High | Slight | Physical energy restoration |
+## Potions (Multi-Stat Restoration)
+
+| Potion Type | Hunger | Thirst | Energy |
+|-------------|--------|--------|--------|
+| **Health Potions** | +5-10 | +20-40 | - |
+| **Mana Potions** | - | +20-40 | +5-10 |
+| **Stamina Potions** | - | +20-40 | +5-10 |
 
 Potion tiers (Lesser/Small vs Greater/Large) affect restoration amounts.
 
-### Drinks (Restore Thirst)
-| Type | Examples | Thirst Restored |
-|------|----------|-----------------|
-| **Water** | Bucket of water | 60 |
-| **Milk** | Bucket of milk | 50 (+Hunger) |
+## Drinks
 
-### Special Items
-- **Salads**: Restore both hunger and thirst
-- **Milk**: Restores both hunger and thirst
+| Type | Thirst | Hunger | Notes |
+|------|--------|--------|-------|
+| **Water Bucket** | +60 | - | Pure hydration |
+| **Milk Bucket** | +50 | +15 | Dual restoration |
+
+## Special Items
+
+| Item | Hunger | Thirst | Notes |
+|------|--------|--------|-------|
+| **Salads** | +40-50 | +20-30 | Fresh vegetables hydrate |
+| **Milk** | +15 | +50 | Nutritious drink |
 
 <br/>
 
-# 🚀 Quick Start
+# Poison System
 
-## For Players
+Living Lands has its own **consumable poison system** separate from native Hytale poison. Eating poisonous items triggers one of three effects:
 
-### Checking Your Stats
-Use this command to monitor all your survival stats at once:
+| Effect | Duration | Drain Rate | Description |
+|--------|----------|------------|-------------|
+| **Mild Toxin** | ~10 seconds | Fast | Quick burst of metabolism drain |
+| **Slow Poison** | ~60 seconds | Slow | Extended gradual drain |
+| **Purge** | ~30 seconds | Severe then recovery | Major drain followed by faster recovery |
 
-```
-/stats    - View hunger, thirst, and energy levels
-```
+Some items have **RANDOM** poison that picks one of the above effects.
 
-The command displays:
-- **Hunger**: Current level and status (Satiated, Hungry, Starving, etc.)
-- **Thirst**: Current level and status (Hydrated, Thirsty, Dehydrated, etc.)
-- **Energy**: Current level and status (Energized, Tired, Exhausted, etc.)
-- **Warnings**: Critical alerts when any stat is dangerously low
+<br/>
 
-### Staying Alive
-1. **Eat regularly** - Consume food items to restore hunger
-2. **Drink often** - Use potions or find water/milk to stay hydrated
-3. **Watch for warnings** - Red warning messages appear when stats are critically low
-4. **Manage activities** - Sprinting and combat drain stats faster
+# Sleep System
 
-### Status Indicators
+Rest in beds to restore energy:
 
-**Hunger Status:**
+| Setting | Value |
+|---------|-------|
+| **Energy Restored** | +50 per sleep |
+| **Cooldown** | 5 seconds between attempts |
+| **Schedule** | Only during valid sleep hours |
+
+If you try to sleep outside of Hytale's sleep hours, you'll see a message explaining you can't rest yet.
+
+<br/>
+
+# Commands
+
+## Player Commands
+
+| Command | Description |
+|---------|-------------|
+| `/stats` | View your current hunger, thirst, energy, and any active buffs |
+
+The `/stats` command displays:
+- Current values and status labels
+- Color-coded indicators (green = good, red = critical)
+- Active buff list
+- Warning messages for critical stats
+
+<br/>
+
+# Status Indicators
+
+## Hunger Status
+
 | Level | Status | Color |
 |-------|--------|-------|
 | 90-100 | Satiated | 🟢 Green |
@@ -166,9 +272,10 @@ The command displays:
 | 30-49 | Hungry | 🟡 Yellow |
 | 20-29 | Very Hungry | 🟠 Gold |
 | 1-19 | Starving | 🔴 Red |
-| 0 | Critical | 🔴 Red |
+| 0 | Critical | 🔴 Dark Red |
 
-**Thirst Status:**
+## Thirst Status
+
 | Level | Status | Color |
 |-------|--------|-------|
 | 90-100 | Hydrated | 🔵 Aqua |
@@ -177,9 +284,10 @@ The command displays:
 | 30-49 | Thirsty | 🔵 Blue |
 | 20-29 | Very Thirsty | 🟠 Gold |
 | 1-19 | Dehydrated | 🔴 Red |
-| 0 | Critical | 🔴 Red |
+| 0 | Critical | 🔴 Dark Red |
 
-**Energy Status:**
+## Energy Status
+
 | Level | Status | Color |
 |-------|--------|-------|
 | 90-100 | Energized | 🟢 Green |
@@ -188,38 +296,45 @@ The command displays:
 | 30-49 | Fatigued | 🟡 Yellow |
 | 20-29 | Very Tired | 🟠 Gold |
 | 1-19 | Exhausted | 🔴 Red |
-| 0 | Critical | 🔴 Red |
+| 0 | Critical | 🔴 Dark Red |
 
 <br/>
 
-## For Server Admins
+# Server Administration
 
-### Installation
-1. Download the latest `LivingLands-x.x.x.jar` from releases
-2. Place the JAR file in your Hytale server's `Mods/` directory
+## Installation
+
+1. Download the latest `LivingLands-x.x.x.jar` from [Releases](https://github.com/MoshPitCodes/hytale-livinglands/releases)
+2. Place the JAR in your Hytale server's `Mods/` directory
 3. Restart the server
-4. The mod will automatically initialize with default settings
+4. Configure modules in `LivingLands/modules.json`
 
-### Build from Source
+## Build from Source
+
 ```bash
-# Clone the repository
 git clone https://github.com/MoshPitCodes/hytale-livinglands.git
 cd hytale-livinglands
-
-# Build the mod
 ./gradlew build
-
-# Find the JAR in build/libs/
+# JAR located at build/libs/LivingLands-*.jar
 ```
 
-### Requirements
-- **Java**: 25+
-- **Hytale Server**: Latest version
-- **Gradle**: 9.x (included via wrapper)
+## Requirements
 
-### Modular Configuration
+| Requirement | Version |
+|-------------|---------|
+| Java | 25+ |
+| Hytale Server | Latest |
+| Gradle | 9.x (wrapper included) |
 
-Living Lands uses a **modular architecture** where each feature is a separate module that can be enabled or disabled. On first run, the mod creates a `modules.json` file:
+<br/>
+
+# Modular Architecture
+
+Living Lands uses a **modular plugin architecture**. Server administrators can enable or disable features independently.
+
+## Module Configuration
+
+On first run, `LivingLands/modules.json` is created:
 
 ```json
 {
@@ -234,160 +349,113 @@ Living Lands uses a **modular architecture** where each feature is a separate mo
 }
 ```
 
-| Module | Description | Dependencies |
-|--------|-------------|--------------|
-| **metabolism** | Hunger, thirst, energy systems | None |
-| **claims** | Land/plot claiming and protection | None |
-| **economy** | Currency and transaction system | None |
-| **leveling** | XP and level progression | None |
-| **groups** | Clan/party management | None |
-| **traders** | NPC merchants | economy (auto-enabled) |
+## Available Modules
 
-**Note**: When enabling a module with dependencies (like `traders`), the required modules are automatically enabled.
+| Module | Description | Status | Dependencies |
+|--------|-------------|--------|--------------|
+| **metabolism** | Hunger, thirst, energy, buffs, debuffs | ✅ Complete | None |
+| **claims** | Land/plot claiming and protection | 📋 Planned | None |
+| **economy** | Currency and transactions | 📋 Planned | None |
+| **leveling** | XP and progression | 📋 Planned | None |
+| **groups** | Clans/parties | 📋 Planned | None |
+| **traders** | NPC merchants | 📋 Planned | economy |
 
-### Configuration Directory Structure
+**Note**: Enabling a module with dependencies automatically enables required modules.
+
+## Directory Structure
 
 ```
 LivingLands/
-├── modules.json              # Enable/disable modules
+├── modules.json              # Module toggles
 ├── metabolism/
-│   └── config.json           # Metabolism-specific settings
+│   └── config.json           # Metabolism settings
 ├── claims/
-│   └── config.json           # Claims settings (when implemented)
+│   └── config.json           # Claims settings
 ├── economy/
-│   └── config.json           # Economy settings (when implemented)
+│   └── config.json           # Economy settings
 └── playerdata/
-    └── {uuid}.json           # Per-player persistent data
+    └── {uuid}.json           # Per-player data
 ```
-
-Each module has its own configuration file in its dedicated folder, making it easy to manage settings for individual features.
-
-### Metabolism Configuration
-
-The metabolism module uses sensible defaults that work well for most servers:
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| Hunger Depletion | 60s/point | How often hunger decreases |
-| Thirst Depletion | 45s/point | How often thirst decreases |
-| Energy Depletion | 90s/point | How often energy decreases |
-| Critical Threshold | 20 | Level where debuffs begin |
-| Initial Stats | 100 | Starting values for new players |
-
-### Activity Multipliers
-
-Stats deplete faster during activities:
-
-| Activity | Multiplier | Effect |
-|----------|------------|--------|
-| Idle/Walking | 1.0x | Normal rate |
-| Sprinting | 2.0x | Double depletion |
-| Swimming | 1.5x | 50% faster |
-| Combat | 1.5x | 50% faster |
-
-### Server Logs
-
-The mod logs important events:
-- Player metabolism initialization on join
-- Player metabolism cleanup on disconnect
-- Item consumption events with restoration amounts
-- Errors and warnings
-
-### Technical Details
-
-**Consumption Detection**: The mod uses Hytale's `Transaction` API to accurately detect item consumption:
-- `MoveTransaction` (drops, splits, inventory moves) → Ignored
-- `SlotTransaction` with quantity decrease → Detected as consumption
-
-This ensures only actual food/drink consumption triggers stat restoration, not inventory management actions.
 
 <br/>
 
-# 📐 Architecture
-
-Living Lands uses a **modular plugin architecture** that allows server administrators to enable/disable features independently.
+# Architecture Overview
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        Living Lands Plugin                              │
-├────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │                        Module Manager                             │  │
-│  │  • Registration & Discovery    • Dependency Resolution            │  │
-│  │  • Lifecycle Orchestration     • Auto-enable Dependencies         │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-│                                    │                                    │
-│         ┌──────────────────────────┼──────────────────────────┐        │
-│         ▼                          ▼                          ▼        │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────┐   │
-│  │  Metabolism  │  │    Claims    │  │   Economy    │  │ Traders  │   │
-│  │    Module    │  │    Module    │  │   Module     │  │  Module  │   │
-│  ├──────────────┤  ├──────────────┤  ├──────────────┤  ├──────────┤   │
-│  │ ✅ Enabled   │  │ ⬚ Disabled  │  │ ⬚ Disabled  │  │⬚ Disabled│   │
-│  │ Hunger       │  │ Plot Claims  │  │ Currency     │  │ NPC      │   │
-│  │ Thirst       │  │ Protection   │  │ Wallets      │  │ Merchants│   │
-│  │ Energy       │  │ Permissions  │  │ Transactions │  │ Trading  │   │
-│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────┘   │
-│         │                                                     │        │
-│         ▼                                                     ▼        │
-│  ┌──────────────────────────────────────────────────────────────────┐  │
-│  │                      Shared Core Services                         │  │
-│  │  • PlayerRegistry (session management)                            │  │
-│  │  • EventRegistry (listener registration)                          │  │
-│  │  • CommandRegistry (command registration)                         │  │
-│  │  • PlayerDataPersistence (JSON file I/O)                          │  │
-│  └──────────────────────────────────────────────────────────────────┘  │
-│                                                                         │
-└────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                     Living Lands Plugin                          │
+├─────────────────────────────────────────────────────────────────┤
+│  Module Manager                                                  │
+│  • Registration • Dependencies • Lifecycle                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
+│  │ Metabolism  │  │   Claims    │  │   Economy   │  ...         │
+│  │   Module    │  │   Module    │  │   Module    │              │
+│  │  ✅ Active  │  │  ⬚ Planned │  │  ⬚ Planned │              │
+│  └─────────────┘  └─────────────┘  └─────────────┘              │
+│        │                                                         │
+│        ▼                                                         │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │              Metabolism Module Systems                   │    │
+│  ├─────────────────────────────────────────────────────────┤    │
+│  │  • MetabolismSystem - Core stat management               │    │
+│  │  • DebuffsSystem - Low-stat penalties                    │    │
+│  │  • BuffsSystem - High-stat bonuses                       │    │
+│  │  • PoisonEffectsSystem - Consumable poison               │    │
+│  │  • DebuffEffectsSystem - Native Hytale debuffs           │    │
+│  │  • BuffEffectsSystem - Native Hytale food buffs          │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
+├─────────────────────────────────────────────────────────────────┤
+│  Shared Core Services                                            │
+│  • PlayerRegistry • EventRegistry • Persistence                  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### Module Lifecycle
+## System Interactions
 
-Each module follows a consistent lifecycle:
+| System | Purpose | Runs |
+|--------|---------|------|
+| **MetabolismSystem** | Stat depletion, activity detection | Every 1 second |
+| **DebuffsSystem** | Apply penalties for low stats | Per player per tick |
+| **BuffsSystem** | Apply bonuses for high stats | Per player per tick |
+| **PoisonEffectsSystem** | Consumable poison drain | Every 1 second |
+| **DebuffEffectsSystem** | Native debuff drain | Every 1 second |
+| **FoodConsumptionProcessor** | Detect food/potion use | Every 50ms |
 
-1. **Registration** - Module is registered with ModuleManager
-2. **Setup** - Configuration loaded, commands/events registered
-3. **Start** - Background tasks and tick loops activated
-4. **Shutdown** - Data saved, resources released
-
-### Adding New Modules
-
-Developers can create new modules by:
-1. Extending `AbstractModule`
-2. Implementing `onSetup()`, `onStart()`, `onShutdown()`
-3. Registering with `ModuleManager` in the main plugin
+**Priority Rule**: Debuffs suppress buffs. If any debuff is active, all stat-based buffs are removed.
 
 <br/>
 
-# 🛣️ Roadmap
+# Roadmap
 
 | Feature | Status |
 |---------|--------|
-| Hunger System | ✅ Complete |
-| Thirst System | ✅ Complete |
-| Energy System | ✅ Complete |
-| Food Consumption | ✅ Complete |
-| Potion Effects | ✅ Complete |
-| Debuff Effects (Poison, Burn, Stun, etc.) | ✅ Complete |
-| Bed Rest (Energy) | ✅ Complete |
+| Hunger/Thirst/Energy Systems | ✅ Complete |
+| Food & Potion Consumption | ✅ Complete |
+| Native Debuff Integration | ✅ Complete |
+| Bed Sleep System | ✅ Complete |
+| Buff System (High Stats) | ✅ Complete |
+| Enhanced Debuff System | ✅ Complete |
+| Player Feedback Messages | ✅ Complete |
+| Modular Architecture | ✅ Complete |
 | Economy System | 📋 Planned |
 | Trader NPCs | 📋 Planned |
 | Land Claims | 📋 Planned |
 | Admin Commands | 📋 Planned |
-| **Modular Architecture** | ✅ Complete |
 
 <br/>
 
-# 👥 Credits
+# Credits
 
 - **Author**: [MoshPitCodes](https://github.com/MoshPitCodes)
-- **Version**: 2.0.0-beta
+- **Version**: 2.1.0-beta
 - **License**: Apache-2.0
 
 ### Resources
-- [Hytale Official](https://hytale.com): Game information
-- [Hytale Server API](https://github.com/hypixel): Server modding documentation
+- [Hytale Official](https://hytale.com)
+- [Issues & Feedback](https://github.com/MoshPitCodes/hytale-livinglands/issues)
 
 <br/>
 

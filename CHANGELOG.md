@@ -2,6 +2,65 @@
 
 All notable changes to Living Lands will be documented in this file.
 
+## [2.1.0-beta] - 2026-01-19
+
+### Added
+
+#### Buff System (High Metabolism Rewards)
+- **Speed Buff** - Increased movement speed when Energy ≥ 90%
+- **Defense Buff** - Increased max health when Hunger ≥ 90%
+- **Stamina Buff** - Increased max stamina when Thirst ≥ 90%
+- **Hysteresis System** - Buffs activate at 90%, deactivate at 80% to prevent flickering
+- **Buff Priority** - Debuffs suppress all buffs (debuffs take priority)
+- **Buff Detection** - Detects native Hytale food buffs (Health_Boost, Stamina_Boost, Meat_Buff, FruitVeggie_Buff)
+
+#### Enhanced Thirst Debuffs
+- **Parched State** - New debuff tier when Thirst < 30
+- **Gradual Speed Reduction** - Speed decreases proportionally as thirst drops (up to 55% reduction at 0)
+- **Gradual Stamina Regen Reduction** - Stamina regeneration slows proportionally (up to 55% reduction at 0)
+- **Separate from Dehydrated** - Parched applies movement penalties, Dehydrated (Thirst = 0) adds damage
+
+#### Enhanced Energy Debuffs
+- **Tired State** - New debuff tier when Energy < 30 (separate from Exhausted)
+- **Gradual Speed Reduction** - Speed decreases proportionally as energy drops (up to 40% reduction at 0)
+- **Exhausted State** - Stamina drains rapidly when Energy = 0
+
+#### Player Feedback System
+- **Chat Messages** - Players receive colored messages when entering/exiting debuff states
+- **State Entry Messages** - Red messages warn of debuff activation (e.g., "You are starving! Find food quickly!")
+- **State Exit Messages** - Green messages confirm recovery (e.g., "You are no longer starving.")
+- **All States Covered** - Feedback for Starving, Dehydrated, Parched, Tired, and Exhausted states
+
+#### StatsCommand Enhancement
+- **Active Buffs Display** - `/stats` command now shows list of active buffs
+
+### Changed
+
+#### Debuff Severity
+- **Thirst Debuff Severity** - Increased from 15% to 55% maximum speed/stamina reduction
+- **Proportional Scaling** - Debuffs now scale linearly based on stat level below threshold
+
+#### Architecture
+- **BuffsSystem** - New system for managing stat-based buffs
+- **BuffEffectsSystem** - New system for detecting native Hytale food buff effects
+- **NativeBuffDetector** - Detects active buff effects from EffectControllerComponent
+- **BuffType Enum** - SPEED, DEFENSE, STAMINA_REGEN, STRENGTH, VITALITY
+- **BuffConfig** - Configuration for buff activation/deactivation thresholds and multipliers
+
+#### Documentation
+- **README Overhaul** - Complete rewrite with clearer structure and comprehensive documentation
+- **Buff System Documentation** - Detailed explanation of buff mechanics and hysteresis
+- **Debuff System Documentation** - Detailed explanation of debuff tiers and severity scaling
+- **Architecture Diagrams** - Updated to show new buff/debuff systems
+
+### Technical Details
+- New package: `com.livinglands.modules.metabolism.buff`
+- New files: `BuffType.java`, `BuffConfig.java`, `BuffsSystem.java`, `BuffEffectsSystem.java`, `NativeBuffDetector.java`, `ActiveBuffDetails.java`
+- New tracking sets in DebuffsSystem: `parchedPlayers`, `tiredPlayers`
+- Thread-safe player feedback via `sendDebuffMessage()` helper
+
+---
+
 ## [2.0.0-beta] - 2026-01-19
 
 ### Added
