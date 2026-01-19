@@ -77,15 +77,22 @@ public class LoggingXpSystem extends EntityEventSystem<EntityStore, BreakBlockEv
 
             var playerId = playerRef.getUuid();
             String blockId = event.getBlockType().getId();
+            var blockPosition = event.getTargetBlock();
 
             // Only process log/wood blocks
             if (!isLoggingBlock(blockId)) {
                 return;
             }
 
+            // Get world ID for tracking
+            var world = store.getExternalData().getWorld();
+            String worldId = world != null ? world.getName() : "unknown";
+
             // Skip player-placed blocks - only award XP for naturally generated blocks
-            if (PlayerPlacedBlockChecker.isPlayerPlaced(store, event.getTargetBlock())) {
+            if (PlayerPlacedBlockChecker.isPlayerPlaced(store, blockPosition)) {
                 logger.at(Level.FINE).log("Skipping Logging XP for player-placed block %s", blockId);
+                // Clean up tracking when block is broken
+                PlayerPlacedBlockChecker.recordBlockBroken(worldId, blockPosition);
                 return;
             }
 

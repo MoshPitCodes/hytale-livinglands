@@ -12,14 +12,66 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Utility to check if a block was placed by a player.
  * Used by XP systems to prevent XP rewards for breaking player-built structures.
+ *
+ * Uses a hybrid approach:
+ * 1. First checks Hytale's PlacedByInteractionComponent (if available)
+ * 2. Falls back to in-memory tracking of placed blocks
  */
 public final class PlayerPlacedBlockChecker {
 
+    // In-memory tracking of player-placed blocks (world:x:y:z -> placer UUID)
+    // Key format: "worldId:x:y:z"
+    private static final Set<String> placedBlockPositions = ConcurrentHashMap.newKeySet();
+
+    // Maximum tracked blocks per world (to prevent memory issues)
+    private static final int MAX_TRACKED_BLOCKS = 100_000;
+
     private PlayerPlacedBlockChecker() {}
+
+    /**
+     * Record that a block was placed by a player.
+     * Called by PlaceBlockEvent listeners.
+     *
+     * @param worldId The world identifier
+     * @param blockPosition The world position of the block
+     */
+    public static void recordBlockPlaced(@Nonnull String worldId,
+                                          @Nonnull Vector3i blockPosition) {
+        // Cleanup if too many tracked blocks
+        if (placedBlockPositions.size() >= MAX_TRACKED_BLOCKS) {
+            // Clear half of the oldest entries (simple cleanup strategy)
+            int toRemove = MAX_TRACKED_BLOCKS / 2;
+            var iterator = placedBlockPositions.iterator();
+            while (iterator.hasNext() && toRemove > 0) {
+                iterator.next();
+                iterator.remove();
+                toRemove--;
+            }
+        }
+
+        String key = makeKey(worldId, blockPosition);
+        placedBlockPositions.add(key);
+    }
+
+    /**
+     * Record that a block was broken (remove from tracking).
+     * Called by BreakBlockEvent listeners.
+     *
+     * @param worldId The world identifier
+     * @param blockPosition The world position of the block
+     */
+    public static void recordBlockBroken(@Nonnull String worldId,
+                                          @Nonnull Vector3i blockPosition) {
+        String key = makeKey(worldId, blockPosition);
+        placedBlockPositions.remove(key);
+    }
 
     /**
      * Check if a block at the given position was placed by a player.
@@ -54,32 +106,34 @@ public final class PlayerPlacedBlockChecker {
     public static boolean isPlayerPlaced(@Nonnull World world,
                                           @Nonnull Vector3i blockPosition) {
         try {
-            // Calculate chunk index from block position
+            // First check in-memory tracking
+            String worldId = world.getName();
+            String key = makeKey(worldId, blockPosition);
+            if (placedBlockPositions.contains(key)) {
+                return true;
+            }
+
+            // Fall back to checking PlacedByInteractionComponent
             long chunkIndex = ChunkUtil.indexChunkFromBlock(blockPosition.getX(), blockPosition.getZ());
 
-            // Get the chunk (must be loaded since we're responding to a break event)
             WorldChunk chunk = world.getChunkIfLoaded(chunkIndex);
             if (chunk == null) {
                 return false; // Chunk not loaded, assume natural
             }
 
-            // Calculate local coordinates within the chunk
             int localX = ChunkUtil.localCoordinate(blockPosition.getX());
             int localY = blockPosition.getY();
             int localZ = ChunkUtil.localCoordinate(blockPosition.getZ());
 
-            // Get the block component holder at this position
             Holder<ChunkStore> blockHolder = chunk.getBlockComponentHolder(localX, localY, localZ);
             if (blockHolder == null) {
                 return false; // No block components, definitely not player-placed
             }
 
-            // Check if PlacedByInteractionComponent exists
             var placedByComponent = blockHolder.getComponent(
                 PlacedByInteractionComponent.getComponentType()
             );
 
-            // If the component exists and has a UUID, it was player-placed
             return placedByComponent != null && placedByComponent.getWhoPlacedUuid() != null;
 
         } catch (Exception e) {
@@ -96,8 +150,8 @@ public final class PlayerPlacedBlockChecker {
      * @return The UUID of the player who placed the block, or null if naturally generated
      */
     @Nullable
-    public static java.util.UUID getPlacedByPlayer(@Nonnull World world,
-                                                    @Nonnull Vector3i blockPosition) {
+    public static UUID getPlacedByPlayer(@Nonnull World world,
+                                          @Nonnull Vector3i blockPosition) {
         try {
             long chunkIndex = ChunkUtil.indexChunkFromBlock(blockPosition.getX(), blockPosition.getZ());
             WorldChunk chunk = world.getChunkIfLoaded(chunkIndex);
@@ -123,5 +177,23 @@ public final class PlayerPlacedBlockChecker {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /**
+     * Clear all tracked blocks. Called on server shutdown.
+     */
+    public static void clearAll() {
+        placedBlockPositions.clear();
+    }
+
+    /**
+     * Get the number of tracked placed blocks.
+     */
+    public static int getTrackedCount() {
+        return placedBlockPositions.size();
+    }
+
+    private static String makeKey(String worldId, Vector3i pos) {
+        return worldId + ":" + pos.getX() + ":" + pos.getY() + ":" + pos.getZ();
     }
 }

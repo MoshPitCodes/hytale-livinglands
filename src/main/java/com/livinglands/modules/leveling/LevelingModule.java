@@ -112,6 +112,11 @@ public final class LevelingModule extends AbstractModule {
     private void registerXpListeners() {
         var entityStoreRegistry = context.entityStoreRegistry();
 
+        // Block placement tracking system (tracks player-placed blocks)
+        entityStoreRegistry.registerSystem(
+            new com.livinglands.modules.leveling.listeners.BlockPlaceTrackingSystem(logger)
+        );
+
         // Mining XP system (ECS - responds to BreakBlockEvent for ores)
         entityStoreRegistry.registerSystem(
             new com.livinglands.modules.leveling.listeners.MiningXpSystem(system, config, logger)
