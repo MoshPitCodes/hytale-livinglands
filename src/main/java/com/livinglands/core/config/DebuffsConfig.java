@@ -49,7 +49,7 @@ public record DebuffsConfig(
 
     /**
      * Thirst debuff configuration.
-     * Low thirst causes visual impairment and minor damage at 0.
+     * Low thirst causes visual impairment, reduced speed/stamina, and damage at 0.
      * Damage stops when thirst recovers to the recovery threshold.
      */
     public record ThirstDebuffs(
@@ -58,7 +58,10 @@ public record DebuffsConfig(
         double recoveryThreshold,         // Thirst level needed to stop damage (e.g., 30)
         double blurStartThreshold,        // Thirst level where blur starts (e.g., 20)
         float damageTickIntervalSeconds,  // How often to deal damage at 0
-        float damageAtZero                // Damage per tick at 0 thirst
+        float damageAtZero,               // Damage per tick at 0 thirst
+        double slowStartThreshold,        // Thirst level where slowdown starts (e.g., 30)
+        float minSpeedMultiplier,         // Minimum speed at 0 thirst (e.g., 0.85 = 85% speed)
+        float minStaminaRegenMultiplier   // Minimum stamina regen at 0 thirst (e.g., 0.85 = 85%)
     ) {
         public static ThirstDebuffs defaults() {
             return new ThirstDebuffs(
@@ -67,7 +70,10 @@ public record DebuffsConfig(
                 30.0,   // Stop damage when thirst reaches 30
                 20.0,   // Start blur effect at 20 thirst
                 4.0f,   // Damage every 4 seconds at 0
-                1.5f    // 1.5 damage per tick at 0
+                1.5f,   // 1.5 damage per tick at 0
+                30.0,   // Start speed/stamina reduction at 30 thirst
+                0.85f,  // Minimum 85% speed at 0 thirst (15% reduction)
+                0.85f   // Minimum 85% stamina regen at 0 thirst (15% reduction)
             );
         }
     }

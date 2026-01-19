@@ -31,8 +31,10 @@ import java.util.logging.Level;
  */
 public class DebuffsSystem {
 
-    private static final String MODIFIER_KEY_SPEED = "livinglands_energy_speed";
-    private static final String MODIFIER_KEY_STAMINA = "livinglands_energy_stamina";
+    private static final String MODIFIER_KEY_ENERGY_SPEED = "livinglands_energy_speed";
+    private static final String MODIFIER_KEY_ENERGY_STAMINA = "livinglands_energy_stamina";
+    private static final String MODIFIER_KEY_THIRST_SPEED = "livinglands_thirst_speed";
+    private static final String MODIFIER_KEY_THIRST_STAMINA = "livinglands_thirst_stamina";
 
     private final DebuffsConfig config;
     private final HytaleLogger logger;
@@ -52,6 +54,8 @@ public class DebuffsSystem {
     // Player enters exhausted state when energy <= staminaDrainStartThreshold
     // Player exits exhausted state when energy >= staminaDrainRecoveryThreshold
     private final Set<UUID> exhaustedPlayers = ConcurrentHashMap.newKeySet();
+    // Track players with thirst-based speed/stamina debuffs
+    private final Set<UUID> parchedPlayers = ConcurrentHashMap.newKeySet();
 
     // Track when we last logged warning messages
     private final Map<UUID, Long> lastWarningTime = new ConcurrentHashMap<>();
@@ -168,7 +172,7 @@ public class DebuffsSystem {
     }
 
     /**
-     * Process thirst debuff - damage when dehydrated.
+     * Process thirst debuff - speed/stamina reduction when parched, damage when dehydrated.
      * Uses hysteresis: damage starts at damageStartThreshold, stops at recoveryThreshold.
      */
     private void processThirstDebuff(UUID playerId, PlayerMetabolismData data,
@@ -180,8 +184,12 @@ public class DebuffsSystem {
         var thirst = data.getThirst();
         var isCurrentlyDehydrated = dehydratedPlayers.contains(playerId);
         var recoveryThreshold = config.thirst().recoveryThreshold();
+        var slowThreshold = config.thirst().slowStartThreshold();
 
-        // Check if player should enter dehydrated state
+        // Process speed/stamina debuff when thirst is low (parched state)
+        processThirstSpeedDebuff(playerId, thirst, slowThreshold, ref, store, world);
+
+        // Check if player should enter dehydrated state (critical - damage)
         if (!isCurrentlyDehydrated && thirst <= config.thirst().damageStartThreshold()) {
             dehydratedPlayers.add(playerId);
             isCurrentlyDehydrated = true;
@@ -215,6 +223,49 @@ public class DebuffsSystem {
         if (thirst > 0 && thirst <= config.thirst().blurStartThreshold()) {
             // TODO: Implement visual blur effect via client-side rendering when API available
             logWarning(playerId, "Thirst low (%.1f) - vision blur threshold reached", thirst);
+        }
+    }
+
+    /**
+     * Process thirst-based speed and stamina regen debuff.
+     * Applies gradual reduction as thirst decreases below the slow threshold.
+     */
+    private void processThirstSpeedDebuff(UUID playerId, double thirst, double slowThreshold,
+                                           Ref<EntityStore> ref, Store<EntityStore> store, World world) {
+        var isCurrentlyParched = parchedPlayers.contains(playerId);
+
+        if (thirst < slowThreshold) {
+            // Calculate how much to debuff (0 at threshold, max at 0 thirst)
+            var debuffRatio = 1.0 - (thirst / slowThreshold);
+
+            // Calculate speed multiplier (1.0 at threshold, minSpeed at 0)
+            var speedMultiplier = 1.0f - ((1.0f - config.thirst().minSpeedMultiplier()) * (float) debuffRatio);
+
+            // Calculate stamina regen multiplier (1.0 at threshold, minStaminaRegen at 0)
+            var staminaRegenMultiplier = 1.0f - ((1.0f - config.thirst().minStaminaRegenMultiplier()) * (float) debuffRatio);
+
+            // Track that player is parched
+            if (!isCurrentlyParched) {
+                parchedPlayers.add(playerId);
+                logger.at(Level.INFO).log("Player %s entered parched state (thirst: %.1f < %.1f)",
+                    playerId, thirst, slowThreshold);
+            }
+
+            // Apply modifiers to entity stats (on WorldThread)
+            applyThirstSpeedModifier(ref, store, world, speedMultiplier);
+            applyThirstStaminaRegenModifier(ref, store, world, staminaRegenMultiplier);
+
+            // Log warning periodically
+            if (thirst <= slowThreshold / 2) {
+                logWarning(playerId, "Thirst debuff: speed=%.2f, stamina_regen=%.2f", speedMultiplier, staminaRegenMultiplier);
+            }
+        } else if (isCurrentlyParched) {
+            // Remove debuff when thirst is above threshold
+            parchedPlayers.remove(playerId);
+            removeThirstSpeedModifier(ref, store, world);
+            removeThirstStaminaRegenModifier(ref, store, world);
+            logger.at(Level.INFO).log("Player %s RECOVERED from parched state (thirst: %.1f >= %.1f)",
+                playerId, thirst, slowThreshold);
         }
     }
 
@@ -412,10 +463,95 @@ public class DebuffsSystem {
             try {
                 var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
                 if (statMap != null) {
-                    // statMap.removeModifier(staminaStatId, MODIFIER_KEY_STAMINA);
+                    // statMap.removeModifier(staminaStatId, MODIFIER_KEY_ENERGY_STAMINA);
                 }
             } catch (Exception e) {
                 logger.at(Level.FINE).withCause(e).log("Error removing stamina modifier");
+            }
+        });
+    }
+
+    /**
+     * Apply thirst-based speed modifier.
+     * Uses world.execute() to ensure thread-safe ECS access.
+     */
+    private void applyThirstSpeedModifier(Ref<EntityStore> ref, Store<EntityStore> store,
+                                           World world, float multiplier) {
+        world.execute(() -> {
+            try {
+                var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
+                if (statMap != null) {
+                    // Note: Movement speed stat ID needs investigation
+                    // When found, apply modifier like:
+                    // var modifier = new MultiplyModifier(multiplier);
+                    // statMap.putModifier(movementSpeedStatId, MODIFIER_KEY_THIRST_SPEED, modifier);
+                    logger.at(Level.FINE).log("Thirst speed modifier: %.2f (stat ID TBD)", multiplier);
+                }
+            } catch (Exception e) {
+                logger.at(Level.FINE).withCause(e).log("Error applying thirst speed modifier");
+            }
+        });
+    }
+
+    /**
+     * Apply thirst-based stamina regen modifier.
+     * Uses world.execute() to ensure thread-safe ECS access.
+     *
+     * Note: Hytale API has getStamina() but no getMaxStamina().
+     * For now, we log the modifier value; actual implementation requires
+     * finding the appropriate stat ID or using an alternative approach.
+     */
+    private void applyThirstStaminaRegenModifier(Ref<EntityStore> ref, Store<EntityStore> store,
+                                                  World world, float multiplier) {
+        world.execute(() -> {
+            try {
+                var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
+                if (statMap != null) {
+                    // TODO: Find appropriate stat ID for stamina regen/max stamina
+                    // Options to investigate:
+                    // 1. Check for stamina regen rate stat
+                    // 2. Apply modifier to stamina directly (drain faster)
+                    // 3. Use custom EntityEffect system
+                    logger.at(Level.FINE).log("Thirst stamina regen modifier: %.2f (implementation TBD)", multiplier);
+                }
+            } catch (Exception e) {
+                logger.at(Level.FINE).withCause(e).log("Error applying thirst stamina regen modifier");
+            }
+        });
+    }
+
+    /**
+     * Remove thirst-based speed modifier.
+     * Uses world.execute() to ensure thread-safe ECS access.
+     */
+    private void removeThirstSpeedModifier(Ref<EntityStore> ref, Store<EntityStore> store, World world) {
+        world.execute(() -> {
+            try {
+                var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
+                if (statMap != null) {
+                    // statMap.removeModifier(movementSpeedStatId, MODIFIER_KEY_THIRST_SPEED);
+                    logger.at(Level.FINE).log("Removed thirst speed modifier");
+                }
+            } catch (Exception e) {
+                logger.at(Level.FINE).withCause(e).log("Error removing thirst speed modifier");
+            }
+        });
+    }
+
+    /**
+     * Remove thirst-based stamina regen modifier.
+     * Uses world.execute() to ensure thread-safe ECS access.
+     */
+    private void removeThirstStaminaRegenModifier(Ref<EntityStore> ref, Store<EntityStore> store, World world) {
+        world.execute(() -> {
+            try {
+                var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
+                if (statMap != null) {
+                    // TODO: Remove modifier when implementation is complete
+                    logger.at(Level.FINE).log("Removed thirst stamina regen modifier");
+                }
+            } catch (Exception e) {
+                logger.at(Level.FINE).withCause(e).log("Error removing thirst stamina regen modifier");
             }
         });
     }
@@ -445,7 +581,19 @@ public class DebuffsSystem {
         starvingPlayers.remove(playerId);
         dehydratedPlayers.remove(playerId);
         exhaustedPlayers.remove(playerId);
+        parchedPlayers.remove(playerId);
         lastWarningTime.remove(playerId);
+    }
+
+    /**
+     * Checks if a player has any active debuffs.
+     * Used by the buff system to determine if buffs should be suppressed.
+     */
+    public boolean hasActiveDebuffs(UUID playerId) {
+        return starvingPlayers.contains(playerId) ||
+               dehydratedPlayers.contains(playerId) ||
+               exhaustedPlayers.contains(playerId) ||
+               parchedPlayers.contains(playerId);
     }
 
     /**

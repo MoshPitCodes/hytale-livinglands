@@ -3,6 +3,8 @@ package com.livinglands.modules.metabolism;
 import com.hypixel.hytale.logger.HytaleLogger;
 import com.livinglands.core.PlayerRegistry;
 import com.livinglands.core.persistence.PlayerDataPersistence;
+import com.livinglands.modules.metabolism.buff.BuffEffectsSystem;
+import com.livinglands.modules.metabolism.buff.BuffsSystem;
 import com.livinglands.modules.metabolism.config.MetabolismModuleConfig;
 import com.livinglands.modules.metabolism.listeners.FoodConsumptionProcessor;
 import com.livinglands.modules.metabolism.poison.PoisonEffectsSystem;
@@ -66,6 +68,10 @@ public class MetabolismSystem {
     private ScheduledFuture<?> tickTask;
     private ScheduledFuture<?> effectDetectionTask;
     private volatile boolean running = false;
+
+    // Buff systems (optional, initialized by module if enabled)
+    private BuffsSystem buffsSystem;
+    private BuffEffectsSystem buffEffectsSystem;
 
     /**
      * Creates a new metabolism system.
@@ -172,6 +178,11 @@ public class MetabolismSystem {
             // Process native Hytale debuff effects (poison, burn, stun, freeze, root, slow)
             debuffEffectsSystem.processDebuffEffects();
 
+            // Process buff effects (if enabled)
+            if (buffEffectsSystem != null) {
+                buffEffectsSystem.processBuffEffects();
+            }
+
         } catch (Exception e) {
             // Silently handle tick errors to avoid spam
         }
@@ -238,6 +249,11 @@ public class MetabolismSystem {
 
             // Process debuffs based on current stat levels
             debuffsSystem.processDebuffs(data.getPlayerUuid(), data);
+
+            // Process buffs based on current stat levels (if enabled)
+            if (buffsSystem != null) {
+                buffsSystem.processBuffs(data.getPlayerUuid(), data);
+            }
 
         } catch (Exception e) {
             // Silently handle player processing errors
@@ -553,5 +569,29 @@ public class MetabolismSystem {
      */
     public DebuffEffectsSystem getDebuffEffectsSystem() {
         return debuffEffectsSystem;
+    }
+
+    /**
+     * Gets the debuffs system for stat-level debuffs.
+     * Used by the buff system to check if debuffs are active.
+     */
+    public DebuffsSystem getDebuffsSystem() {
+        return debuffsSystem;
+    }
+
+    /**
+     * Sets the buff systems for high-metabolism buffs.
+     * Called by MetabolismModule when buffs are enabled.
+     */
+    public void setBuffSystems(BuffsSystem buffsSystem, BuffEffectsSystem buffEffectsSystem) {
+        this.buffsSystem = buffsSystem;
+        this.buffEffectsSystem = buffEffectsSystem;
+    }
+
+    /**
+     * Gets the buffs system (may be null if buffs are disabled).
+     */
+    public BuffsSystem getBuffsSystem() {
+        return buffsSystem;
     }
 }

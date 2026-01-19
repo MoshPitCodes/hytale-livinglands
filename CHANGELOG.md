@@ -2,6 +2,46 @@
 
 All notable changes to Living Lands will be documented in this file.
 
+## [2.0.0-beta] - 2026-01-19
+
+### Added
+
+#### Modular Plugin Architecture
+- **Module API** - Sealed `Module` interface and `AbstractModule` base class for lifecycle management
+- **ModuleManager** - Handles registration, dependency resolution via topological sort, and orchestration
+- **modules.json Configuration** - Server administrators can toggle features independently
+- **Per-Module Config Directories** - Each module receives dedicated configuration (e.g., `LivingLands/<module>/config.json`)
+- **Module Lifecycle States** - Progression through: DISABLED → SETUP → STARTED → STOPPED → ERROR
+- **Dependency Injection** - Clean dependency injection via `ModuleContext`
+
+#### New Modules
+- **Metabolism Module** - Refactored into a self-contained module with dedicated config
+- **Claims Module** - Placeholder for future land claiming system
+- **Economy Module** - Placeholder for future economy system
+- **Groups Module** - Placeholder for future group/guild system
+- **Leveling Module** - Placeholder for future leveling system
+- **Traders Module** - Placeholder for future NPC trader system
+- **Automatic Dependency Enablement** - Enabling dependent modules auto-enables requirements (e.g., Traders → Economy)
+
+### Changed
+
+#### Architecture
+- **Codebase Restructure** - Entire codebase restructured to support enable/disable of individual features via configuration
+- **Backward Compatibility** - Existing Metabolism functionality preserved
+
+### Fixed
+
+#### Chat Display
+- **Chat Color Format** - Fixed chat message colors by enforcing hex code format (#RRGGBB, rgb(), rgba())
+- **ColorUtil** - Added utility for semantic color name conversion (Hytale's Message API only recognizes hex formats)
+
+### Technical Details
+- 50 files changed with 2,228 additions and 677 deletions
+- New package structure: `com.livinglands.core`, `com.livinglands.modules.*`
+- New config: `modules.json` for module enable/disable toggles
+
+---
+
 ## [1.1.0-beta] - 2026-01-19
 
 ### Added

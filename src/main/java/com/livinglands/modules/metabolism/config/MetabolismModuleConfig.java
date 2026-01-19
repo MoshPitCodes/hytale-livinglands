@@ -7,6 +7,7 @@ import com.livinglands.core.config.DebuffsConfig;
 import com.livinglands.core.config.MetabolismConfig;
 import com.livinglands.core.config.PoisonConfig;
 import com.livinglands.core.config.SleepConfig;
+import com.livinglands.modules.metabolism.buff.BuffConfig;
 
 /**
  * Complete configuration for the Metabolism module.
@@ -32,6 +33,7 @@ public class MetabolismModuleConfig {
     public DebuffsConfig debuffs = DebuffsConfig.defaultConfig();
     public PoisonConfig poison = PoisonConfig.defaults();
     public DebuffConfig nativeDebuffs = DebuffConfig.defaults();
+    public BuffConfig buffs = BuffConfig.defaults();
 
     /**
      * Creates default configuration.
