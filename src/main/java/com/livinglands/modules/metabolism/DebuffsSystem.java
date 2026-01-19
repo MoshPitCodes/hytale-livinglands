@@ -3,6 +3,8 @@ package com.livinglands.modules.metabolism;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.logger.HytaleLogger;
+import com.hypixel.hytale.server.core.Message;
+import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap;
 import com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntityStatTypes;
 import com.hypixel.hytale.server.core.modules.entitystats.modifier.Modifier;
@@ -11,6 +13,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.livinglands.core.PlayerRegistry;
 import com.livinglands.core.PlayerSession;
 import com.livinglands.core.config.DebuffsConfig;
+import com.livinglands.util.ColorUtil;
 
 import javax.annotation.Nonnull;
 import java.util.Map;
@@ -56,6 +59,8 @@ public class DebuffsSystem {
     private final Set<UUID> exhaustedPlayers = ConcurrentHashMap.newKeySet();
     // Track players with thirst-based speed/stamina debuffs
     private final Set<UUID> parchedPlayers = ConcurrentHashMap.newKeySet();
+    // Track players with energy-based tired debuffs
+    private final Set<UUID> tiredPlayers = ConcurrentHashMap.newKeySet();
 
     // Track when we last logged warning messages
     private final Map<UUID, Long> lastWarningTime = new ConcurrentHashMap<>();
@@ -101,10 +106,13 @@ public class DebuffsSystem {
                 return;
             }
 
+            // Get player for feedback messages
+            var player = session.getPlayer();
+
             // Process each debuff type
-            processHungerDebuff(playerId, data, ref, store, world);
-            processThirstDebuff(playerId, data, ref, store, world);
-            processEnergyDebuff(playerId, data, ref, store, world);
+            processHungerDebuff(playerId, data, ref, store, world, player);
+            processThirstDebuff(playerId, data, ref, store, world, player);
+            processEnergyDebuff(playerId, data, ref, store, world, player);
 
         } catch (Exception e) {
             logger.at(Level.WARNING).withCause(e).log(
@@ -118,7 +126,7 @@ public class DebuffsSystem {
      * Uses hysteresis: damage starts at damageStartThreshold, stops at recoveryThreshold.
      */
     private void processHungerDebuff(UUID playerId, PlayerMetabolismData data,
-                                      Ref<EntityStore> ref, Store<EntityStore> store, World world) {
+                                      Ref<EntityStore> ref, Store<EntityStore> store, World world, Player player) {
         if (!config.hunger().enabled()) {
             return;
         }
@@ -132,6 +140,7 @@ public class DebuffsSystem {
             starvingPlayers.add(playerId);
             isCurrentlyStarving = true;
             logger.at(Level.INFO).log("Player %s entered starvation state (hunger: %.1f)", playerId, hunger);
+            sendDebuffMessage(player, "You are starving! Find food quickly!", true);
         }
 
         // Check if player should exit starving state (recovered enough)
@@ -141,6 +150,7 @@ public class DebuffsSystem {
             lastHungerDamageTime.remove(playerId);
             logger.at(Level.INFO).log("Player %s RECOVERED from starvation (hunger: %.1f >= %.1f)",
                 playerId, hunger, recoveryThreshold);
+            sendDebuffMessage(player, "You are no longer starving.", false);
             return;
         }
 
@@ -176,7 +186,7 @@ public class DebuffsSystem {
      * Uses hysteresis: damage starts at damageStartThreshold, stops at recoveryThreshold.
      */
     private void processThirstDebuff(UUID playerId, PlayerMetabolismData data,
-                                      Ref<EntityStore> ref, Store<EntityStore> store, World world) {
+                                      Ref<EntityStore> ref, Store<EntityStore> store, World world, Player player) {
         if (!config.thirst().enabled()) {
             return;
         }
@@ -187,13 +197,14 @@ public class DebuffsSystem {
         var slowThreshold = config.thirst().slowStartThreshold();
 
         // Process speed/stamina debuff when thirst is low (parched state)
-        processThirstSpeedDebuff(playerId, thirst, slowThreshold, ref, store, world);
+        processThirstSpeedDebuff(playerId, thirst, slowThreshold, ref, store, world, player);
 
         // Check if player should enter dehydrated state (critical - damage)
         if (!isCurrentlyDehydrated && thirst <= config.thirst().damageStartThreshold()) {
             dehydratedPlayers.add(playerId);
             isCurrentlyDehydrated = true;
             logger.at(Level.INFO).log("Player %s entered dehydration state (thirst: %.1f)", playerId, thirst);
+            sendDebuffMessage(player, "You are severely dehydrated! Find water immediately!", true);
         }
 
         // Check if player should exit dehydrated state (recovered enough)
@@ -202,6 +213,7 @@ public class DebuffsSystem {
             lastThirstDamageTime.remove(playerId);
             logger.at(Level.INFO).log("Player %s RECOVERED from dehydration (thirst: %.1f >= %.1f)",
                 playerId, thirst, recoveryThreshold);
+            sendDebuffMessage(player, "You are no longer dehydrated.", false);
             return;
         }
 
@@ -231,7 +243,7 @@ public class DebuffsSystem {
      * Applies gradual reduction as thirst decreases below the slow threshold.
      */
     private void processThirstSpeedDebuff(UUID playerId, double thirst, double slowThreshold,
-                                           Ref<EntityStore> ref, Store<EntityStore> store, World world) {
+                                           Ref<EntityStore> ref, Store<EntityStore> store, World world, Player player) {
         var isCurrentlyParched = parchedPlayers.contains(playerId);
 
         if (thirst < slowThreshold) {
@@ -249,6 +261,7 @@ public class DebuffsSystem {
                 parchedPlayers.add(playerId);
                 logger.at(Level.INFO).log("Player %s entered parched state (thirst: %.1f < %.1f)",
                     playerId, thirst, slowThreshold);
+                sendDebuffMessage(player, "You are getting thirsty. Your speed and stamina are reduced.", true);
             }
 
             // Apply modifiers to entity stats (on WorldThread)
@@ -266,6 +279,7 @@ public class DebuffsSystem {
             removeThirstStaminaRegenModifier(ref, store, world);
             logger.at(Level.INFO).log("Player %s RECOVERED from parched state (thirst: %.1f >= %.1f)",
                 playerId, thirst, slowThreshold);
+            sendDebuffMessage(player, "Your thirst is quenched. Speed and stamina restored.", false);
         }
     }
 
@@ -274,13 +288,16 @@ public class DebuffsSystem {
      * Uses hysteresis for stamina drain: starts at staminaDrainStartThreshold, stops at staminaDrainRecoveryThreshold.
      */
     private void processEnergyDebuff(UUID playerId, PlayerMetabolismData data,
-                                      Ref<EntityStore> ref, Store<EntityStore> store, World world) {
+                                      Ref<EntityStore> ref, Store<EntityStore> store, World world, Player player) {
         if (!config.energy().enabled()) {
             return;
         }
 
         var energy = data.getEnergy();
         var slowThreshold = config.energy().slowStartThreshold();
+
+        // Track if player just entered tired state for messaging
+        boolean wasTired = tiredPlayers.contains(playerId);
 
         // Speed/stamina consumption debuff when energy is low
         if (energy < slowThreshold) {
@@ -293,6 +310,12 @@ public class DebuffsSystem {
             // Calculate stamina multiplier (1.0 at threshold, maxStamina at 0)
             var staminaMultiplier = 1.0f + ((config.energy().maxStaminaMultiplier() - 1.0f) * (float) debuffRatio);
 
+            // Track tired state and send message on entry
+            if (!wasTired) {
+                tiredPlayers.add(playerId);
+                sendDebuffMessage(player, "You are getting tired. Your speed is reduced.", true);
+            }
+
             // Apply modifiers to entity stats (on WorldThread)
             applySpeedModifier(ref, store, world, speedMultiplier);
             applyStaminaModifier(ref, store, world, staminaMultiplier);
@@ -303,12 +326,16 @@ public class DebuffsSystem {
             }
         } else {
             // Remove modifiers when energy is above threshold (on WorldThread)
+            if (wasTired) {
+                tiredPlayers.remove(playerId);
+                sendDebuffMessage(player, "You feel rested. Speed restored.", false);
+            }
             removeSpeedModifier(ref, store, world);
             removeStaminaModifier(ref, store, world);
         }
 
         // Stamina drain when energy hits 0 (with hysteresis)
-        processStaminaDrain(playerId, data, ref, store, world);
+        processStaminaDrain(playerId, data, ref, store, world, player);
     }
 
     /**
@@ -316,7 +343,7 @@ public class DebuffsSystem {
      * Uses hysteresis: drain starts at staminaDrainStartThreshold (0), stops at staminaDrainRecoveryThreshold (50).
      */
     private void processStaminaDrain(UUID playerId, PlayerMetabolismData data,
-                                      Ref<EntityStore> ref, Store<EntityStore> store, World world) {
+                                      Ref<EntityStore> ref, Store<EntityStore> store, World world, Player player) {
         var energy = data.getEnergy();
         var isCurrentlyExhausted = exhaustedPlayers.contains(playerId);
         var recoveryThreshold = config.energy().staminaDrainRecoveryThreshold();
@@ -327,6 +354,7 @@ public class DebuffsSystem {
             isCurrentlyExhausted = true;
             logger.at(Level.INFO).log("Player %s entered exhausted state (energy: %.1f) - stamina drain active",
                 playerId, energy);
+            sendDebuffMessage(player, "You are exhausted! Your stamina is draining rapidly. Rest now!", true);
         }
 
         // Check if player should exit exhausted state (energy recovered to threshold)
@@ -335,6 +363,7 @@ public class DebuffsSystem {
             lastStaminaDrainTime.remove(playerId);
             logger.at(Level.INFO).log("Player %s RECOVERED from exhaustion (energy: %.1f >= %.1f)",
                 playerId, energy, recoveryThreshold);
+            sendDebuffMessage(player, "You are no longer exhausted.", false);
             return;
         }
 
@@ -557,6 +586,25 @@ public class DebuffsSystem {
     }
 
     /**
+     * Send a debuff feedback message to the player.
+     *
+     * @param player The player to send the message to
+     * @param message The message text
+     * @param isEntering True if entering debuff state (red), false if exiting (green)
+     */
+    private void sendDebuffMessage(Player player, String message, boolean isEntering) {
+        if (player == null) {
+            return;
+        }
+        try {
+            var color = isEntering ? ColorUtil.getHexColor("red") : ColorUtil.getHexColor("green");
+            player.sendMessage(Message.raw(message).color(color));
+        } catch (Exception e) {
+            logger.at(Level.FINE).withCause(e).log("Error sending debuff message to player");
+        }
+    }
+
+    /**
      * Log a warning message with cooldown (for debugging).
      */
     private void logWarning(UUID playerId, String format, Object... args) {
@@ -582,6 +630,7 @@ public class DebuffsSystem {
         dehydratedPlayers.remove(playerId);
         exhaustedPlayers.remove(playerId);
         parchedPlayers.remove(playerId);
+        tiredPlayers.remove(playerId);
         lastWarningTime.remove(playerId);
     }
 
@@ -593,7 +642,8 @@ public class DebuffsSystem {
         return starvingPlayers.contains(playerId) ||
                dehydratedPlayers.contains(playerId) ||
                exhaustedPlayers.contains(playerId) ||
-               parchedPlayers.contains(playerId);
+               parchedPlayers.contains(playerId) ||
+               tiredPlayers.contains(playerId);
     }
 
     /**
