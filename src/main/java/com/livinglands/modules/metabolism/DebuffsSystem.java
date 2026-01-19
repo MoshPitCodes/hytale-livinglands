@@ -5,6 +5,7 @@ import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.entity.entities.player.movement.MovementManager;
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap;
 import com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntityStatTypes;
 import com.hypixel.hytale.server.core.modules.entitystats.modifier.Modifier;
@@ -65,6 +66,11 @@ public class DebuffsSystem {
     // Track when we last logged warning messages
     private final Map<UUID, Long> lastWarningTime = new ConcurrentHashMap<>();
     private static final long WARNING_COOLDOWN_MS = 10000; // 10 seconds between warnings
+
+    // Track original base speed for each player to restore when debuffs are removed
+    private final Map<UUID, Float> originalBaseSpeeds = new ConcurrentHashMap<>();
+    // Track current speed multiplier per player (combined from all debuffs)
+    private final Map<UUID, Float> currentSpeedMultipliers = new ConcurrentHashMap<>();
 
     /**
      * Creates a new debuffs system.
@@ -265,7 +271,7 @@ public class DebuffsSystem {
             }
 
             // Apply modifiers to entity stats (on WorldThread)
-            applyThirstSpeedModifier(ref, store, world, speedMultiplier);
+            applyThirstSpeedModifier(playerId, ref, store, world, speedMultiplier);
             applyThirstStaminaRegenModifier(ref, store, world, staminaRegenMultiplier);
 
             // Log warning periodically
@@ -275,7 +281,7 @@ public class DebuffsSystem {
         } else if (isCurrentlyParched) {
             // Remove debuff when thirst is above threshold
             parchedPlayers.remove(playerId);
-            removeThirstSpeedModifier(ref, store, world);
+            removeThirstSpeedModifier(playerId, ref, store, world);
             removeThirstStaminaRegenModifier(ref, store, world);
             logger.at(Level.INFO).log("Player %s RECOVERED from parched state (thirst: %.1f >= %.1f)",
                 playerId, thirst, slowThreshold);
@@ -317,7 +323,7 @@ public class DebuffsSystem {
             }
 
             // Apply modifiers to entity stats (on WorldThread)
-            applySpeedModifier(ref, store, world, speedMultiplier);
+            applySpeedModifier(playerId, ref, store, world, speedMultiplier);
             applyStaminaModifier(ref, store, world, staminaMultiplier);
 
             // Log warning at low energy
@@ -330,7 +336,7 @@ public class DebuffsSystem {
                 tiredPlayers.remove(playerId);
                 sendDebuffMessage(player, "You feel rested. Speed restored.", false);
             }
-            removeSpeedModifier(ref, store, world);
+            removeSpeedModifier(playerId, ref, store, world);
             removeStaminaModifier(ref, store, world);
         }
 
@@ -426,22 +432,44 @@ public class DebuffsSystem {
 
     /**
      * Apply speed modifier based on energy level.
+     * Uses MovementManager component to modify player movement speed.
      * Uses world.execute() to ensure thread-safe ECS access.
+     *
+     * @param playerId The player's UUID (for tracking original speed)
+     * @param ref The entity reference
+     * @param store The entity store
+     * @param world The world for thread-safe execution
+     * @param multiplier The speed multiplier (e.g., 0.6 = 60% of normal speed)
      */
-    private void applySpeedModifier(Ref<EntityStore> ref, Store<EntityStore> store,
+    private void applySpeedModifier(UUID playerId, Ref<EntityStore> ref, Store<EntityStore> store,
                                      World world, float multiplier) {
         world.execute(() -> {
             try {
-                var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
-                if (statMap != null) {
-                    // Find the movement speed stat - this may vary by game version
-                    // For now, we'll use a percentage modifier approach
-                    var modifier = new MultiplyModifier(multiplier);
-                    // Note: The exact stat ID for movement speed may need adjustment
-                    // statMap.putModifier(movementSpeedStatId, MODIFIER_KEY_SPEED, modifier);
+                var movementManager = store.getComponent(ref, MovementManager.getComponentType());
+                if (movementManager != null) {
+                    var settings = movementManager.getSettings();
+                    if (settings != null) {
+                        // Store original base speed if not already stored
+                        if (!originalBaseSpeeds.containsKey(playerId)) {
+                            originalBaseSpeeds.put(playerId, settings.baseSpeed);
+                            logger.at(Level.INFO).log("Stored original base speed for player %s: %.2f",
+                                playerId, settings.baseSpeed);
+                        }
+
+                        // Calculate new speed
+                        float originalSpeed = originalBaseSpeeds.get(playerId);
+                        float newSpeed = originalSpeed * multiplier;
+
+                        // Apply the modified speed
+                        settings.baseSpeed = newSpeed;
+                        currentSpeedMultipliers.put(playerId, multiplier);
+
+                        logger.at(Level.INFO).log("Applied energy speed debuff to player %s: %.2f -> %.2f (%.0f%% of normal)",
+                            playerId, originalSpeed, newSpeed, multiplier * 100);
+                    }
                 }
             } catch (Exception e) {
-                logger.at(Level.FINE).withCause(e).log("Error applying speed modifier");
+                logger.at(Level.WARNING).withCause(e).log("Error applying speed modifier for player %s", playerId);
             }
         });
     }
@@ -468,17 +496,34 @@ public class DebuffsSystem {
 
     /**
      * Remove speed modifier when energy recovers.
+     * Restores original base speed from stored value.
      * Uses world.execute() to ensure thread-safe ECS access.
+     *
+     * @param playerId The player's UUID
+     * @param ref The entity reference
+     * @param store The entity store
+     * @param world The world for thread-safe execution
      */
-    private void removeSpeedModifier(Ref<EntityStore> ref, Store<EntityStore> store, World world) {
+    private void removeSpeedModifier(UUID playerId, Ref<EntityStore> ref, Store<EntityStore> store, World world) {
         world.execute(() -> {
             try {
-                var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
-                if (statMap != null) {
-                    // statMap.removeModifier(movementSpeedStatId, MODIFIER_KEY_SPEED);
+                // Only restore if we have stored the original speed and no other debuffs are active
+                if (!parchedPlayers.contains(playerId) && originalBaseSpeeds.containsKey(playerId)) {
+                    var movementManager = store.getComponent(ref, MovementManager.getComponentType());
+                    if (movementManager != null) {
+                        var settings = movementManager.getSettings();
+                        if (settings != null) {
+                            float originalSpeed = originalBaseSpeeds.get(playerId);
+                            settings.baseSpeed = originalSpeed;
+                            currentSpeedMultipliers.remove(playerId);
+                            originalBaseSpeeds.remove(playerId);
+                            logger.at(Level.INFO).log("Restored original speed for player %s: %.2f",
+                                playerId, originalSpeed);
+                        }
+                    }
                 }
             } catch (Exception e) {
-                logger.at(Level.FINE).withCause(e).log("Error removing speed modifier");
+                logger.at(Level.WARNING).withCause(e).log("Error removing speed modifier for player %s", playerId);
             }
         });
     }
@@ -502,22 +547,44 @@ public class DebuffsSystem {
 
     /**
      * Apply thirst-based speed modifier.
+     * Uses MovementManager component to modify player movement speed.
      * Uses world.execute() to ensure thread-safe ECS access.
+     *
+     * @param playerId The player's UUID (for tracking original speed)
+     * @param ref The entity reference
+     * @param store The entity store
+     * @param world The world for thread-safe execution
+     * @param multiplier The speed multiplier (e.g., 0.45 = 45% of normal speed)
      */
-    private void applyThirstSpeedModifier(Ref<EntityStore> ref, Store<EntityStore> store,
+    private void applyThirstSpeedModifier(UUID playerId, Ref<EntityStore> ref, Store<EntityStore> store,
                                            World world, float multiplier) {
         world.execute(() -> {
             try {
-                var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
-                if (statMap != null) {
-                    // Note: Movement speed stat ID needs investigation
-                    // When found, apply modifier like:
-                    // var modifier = new MultiplyModifier(multiplier);
-                    // statMap.putModifier(movementSpeedStatId, MODIFIER_KEY_THIRST_SPEED, modifier);
-                    logger.at(Level.FINE).log("Thirst speed modifier: %.2f (stat ID TBD)", multiplier);
+                var movementManager = store.getComponent(ref, MovementManager.getComponentType());
+                if (movementManager != null) {
+                    var settings = movementManager.getSettings();
+                    if (settings != null) {
+                        // Store original base speed if not already stored
+                        if (!originalBaseSpeeds.containsKey(playerId)) {
+                            originalBaseSpeeds.put(playerId, settings.baseSpeed);
+                            logger.at(Level.INFO).log("Stored original base speed for player %s: %.2f",
+                                playerId, settings.baseSpeed);
+                        }
+
+                        // Calculate new speed
+                        float originalSpeed = originalBaseSpeeds.get(playerId);
+                        float newSpeed = originalSpeed * multiplier;
+
+                        // Apply the modified speed
+                        settings.baseSpeed = newSpeed;
+                        currentSpeedMultipliers.put(playerId, multiplier);
+
+                        logger.at(Level.INFO).log("Applied thirst speed debuff to player %s: %.2f -> %.2f (%.0f%% of normal)",
+                            playerId, originalSpeed, newSpeed, multiplier * 100);
+                    }
                 }
             } catch (Exception e) {
-                logger.at(Level.FINE).withCause(e).log("Error applying thirst speed modifier");
+                logger.at(Level.WARNING).withCause(e).log("Error applying thirst speed modifier for player %s", playerId);
             }
         });
     }
@@ -551,18 +618,34 @@ public class DebuffsSystem {
 
     /**
      * Remove thirst-based speed modifier.
+     * Restores original base speed from stored value.
      * Uses world.execute() to ensure thread-safe ECS access.
+     *
+     * @param playerId The player's UUID
+     * @param ref The entity reference
+     * @param store The entity store
+     * @param world The world for thread-safe execution
      */
-    private void removeThirstSpeedModifier(Ref<EntityStore> ref, Store<EntityStore> store, World world) {
+    private void removeThirstSpeedModifier(UUID playerId, Ref<EntityStore> ref, Store<EntityStore> store, World world) {
         world.execute(() -> {
             try {
-                var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
-                if (statMap != null) {
-                    // statMap.removeModifier(movementSpeedStatId, MODIFIER_KEY_THIRST_SPEED);
-                    logger.at(Level.FINE).log("Removed thirst speed modifier");
+                // Only restore if we have stored the original speed and no other debuffs are active
+                if (!tiredPlayers.contains(playerId) && originalBaseSpeeds.containsKey(playerId)) {
+                    var movementManager = store.getComponent(ref, MovementManager.getComponentType());
+                    if (movementManager != null) {
+                        var settings = movementManager.getSettings();
+                        if (settings != null) {
+                            float originalSpeed = originalBaseSpeeds.get(playerId);
+                            settings.baseSpeed = originalSpeed;
+                            currentSpeedMultipliers.remove(playerId);
+                            originalBaseSpeeds.remove(playerId);
+                            logger.at(Level.INFO).log("Restored original speed for player %s (thirst recovered): %.2f",
+                                playerId, originalSpeed);
+                        }
+                    }
                 }
             } catch (Exception e) {
-                logger.at(Level.FINE).withCause(e).log("Error removing thirst speed modifier");
+                logger.at(Level.WARNING).withCause(e).log("Error removing thirst speed modifier for player %s", playerId);
             }
         });
     }
@@ -632,6 +715,8 @@ public class DebuffsSystem {
         parchedPlayers.remove(playerId);
         tiredPlayers.remove(playerId);
         lastWarningTime.remove(playerId);
+        originalBaseSpeeds.remove(playerId);
+        currentSpeedMultipliers.remove(playerId);
     }
 
     /**

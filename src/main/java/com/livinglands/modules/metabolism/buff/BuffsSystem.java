@@ -5,6 +5,7 @@ import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.server.core.Message;
 import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.entity.entities.player.movement.MovementManager;
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap;
 import com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntityStatTypes;
 import com.hypixel.hytale.server.core.modules.entitystats.modifier.Modifier;
@@ -18,6 +19,7 @@ import com.livinglands.util.ColorUtil;
 
 import javax.annotation.Nonnull;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,6 +52,9 @@ public class BuffsSystem {
     private final Set<UUID> speedBuffedPlayers = ConcurrentHashMap.newKeySet();
     private final Set<UUID> defenseBuffedPlayers = ConcurrentHashMap.newKeySet();
     private final Set<UUID> staminaBuffedPlayers = ConcurrentHashMap.newKeySet();
+
+    // Track original base speed for speed buff restoration
+    private final Map<UUID, Float> originalBaseSpeeds = new ConcurrentHashMap<>();
 
     /**
      * Creates a new buffs system.
@@ -144,14 +149,14 @@ public class BuffsSystem {
         if (!isBuffed && statValue >= config.activationThreshold) {
             // Activate buff
             buffedPlayers.add(playerId);
-            applyStatModifier(buffType, config.multiplier, ref, store, world);
+            applyStatModifier(playerId, buffType, config.multiplier, ref, store, world);
             sendBuffMessage(player, buffType, true);
             logger.at(Level.INFO).log("Player %s gained %s buff (stat: %.1f >= %.1f)",
                 playerId, buffType.getDisplayName(), statValue, config.activationThreshold);
         } else if (isBuffed && statValue < config.deactivationThreshold) {
             // Deactivate buff (hysteresis)
             buffedPlayers.remove(playerId);
-            removeStatModifier(buffType, ref, store, world);
+            removeStatModifier(playerId, buffType, ref, store, world);
             sendBuffMessage(player, buffType, false);
             logger.at(Level.INFO).log("Player %s lost %s buff (stat: %.1f < %.1f)",
                 playerId, buffType.getDisplayName(), statValue, config.deactivationThreshold);
@@ -160,75 +165,120 @@ public class BuffsSystem {
 
     /**
      * Apply a stat modifier for a buff type.
+     *
+     * @param playerId The player's UUID (for speed tracking)
+     * @param buffType The type of buff to apply
+     * @param multiplier The buff multiplier
+     * @param ref The entity reference
+     * @param store The entity store
+     * @param world The world for thread-safe execution
      */
-    private void applyStatModifier(BuffType buffType, float multiplier,
+    private void applyStatModifier(UUID playerId, BuffType buffType, float multiplier,
                                     Ref<EntityStore> ref, Store<EntityStore> store, World world) {
         world.execute(() -> {
             try {
-                var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
-                if (statMap == null) {
-                    return;
-                }
-
                 switch (buffType) {
                     case SPEED -> {
-                        // Note: Movement speed stat needs investigation
-                        // For now, log that the buff would be applied
-                        logger.at(Level.FINE).log("Speed buff would apply: %.2fx (stat ID TBD)", multiplier);
+                        // Apply speed buff via MovementManager
+                        var movementManager = store.getComponent(ref, MovementManager.getComponentType());
+                        if (movementManager != null) {
+                            var settings = movementManager.getSettings();
+                            if (settings != null) {
+                                // Store original base speed if not already stored
+                                if (!originalBaseSpeeds.containsKey(playerId)) {
+                                    originalBaseSpeeds.put(playerId, settings.baseSpeed);
+                                    logger.at(Level.INFO).log("Stored original base speed for player %s (buff): %.2f",
+                                        playerId, settings.baseSpeed);
+                                }
+
+                                // Calculate and apply new speed
+                                float originalSpeed = originalBaseSpeeds.get(playerId);
+                                float newSpeed = originalSpeed * multiplier;
+                                settings.baseSpeed = newSpeed;
+
+                                logger.at(Level.INFO).log("Applied speed buff to player %s: %.2f -> %.2f (%.0f%% of normal)",
+                                    playerId, originalSpeed, newSpeed, multiplier * 100);
+                            }
+                        }
                     }
                     case DEFENSE -> {
                         // Apply max health buff
-                        var healthStatId = DefaultEntityStatTypes.getHealth();
-                        var modifier = new MultiplyModifier(multiplier);
-                        statMap.putModifier(healthStatId, MODIFIER_KEY_HEALTH, modifier);
-                        logger.at(Level.FINE).log("Applied health buff: %.2fx", multiplier);
+                        var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
+                        if (statMap != null) {
+                            var healthStatId = DefaultEntityStatTypes.getHealth();
+                            var modifier = new MultiplyModifier(multiplier);
+                            statMap.putModifier(healthStatId, MODIFIER_KEY_HEALTH, modifier);
+                            logger.at(Level.INFO).log("Applied health buff to player %s: %.2fx", playerId, multiplier);
+                        }
                     }
                     case STAMINA_REGEN -> {
                         // Apply stamina buff
-                        var staminaStatId = DefaultEntityStatTypes.getStamina();
-                        var modifier = new MultiplyModifier(multiplier);
-                        statMap.putModifier(staminaStatId, MODIFIER_KEY_STAMINA, modifier);
-                        logger.at(Level.FINE).log("Applied stamina buff: %.2fx", multiplier);
+                        var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
+                        if (statMap != null) {
+                            var staminaStatId = DefaultEntityStatTypes.getStamina();
+                            var modifier = new MultiplyModifier(multiplier);
+                            statMap.putModifier(staminaStatId, MODIFIER_KEY_STAMINA, modifier);
+                            logger.at(Level.INFO).log("Applied stamina buff to player %s: %.2fx", playerId, multiplier);
+                        }
                     }
                     default -> {}
                 }
             } catch (Exception e) {
-                logger.at(Level.FINE).withCause(e).log("Error applying %s buff modifier", buffType);
+                logger.at(Level.WARNING).withCause(e).log("Error applying %s buff modifier for player %s", buffType, playerId);
             }
         });
     }
 
     /**
      * Remove a stat modifier for a buff type.
+     *
+     * @param playerId The player's UUID (for speed tracking)
+     * @param buffType The type of buff to remove
+     * @param ref The entity reference
+     * @param store The entity store
+     * @param world The world for thread-safe execution
      */
-    private void removeStatModifier(BuffType buffType, Ref<EntityStore> ref,
+    private void removeStatModifier(UUID playerId, BuffType buffType, Ref<EntityStore> ref,
                                      Store<EntityStore> store, World world) {
         world.execute(() -> {
             try {
-                var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
-                if (statMap == null) {
-                    return;
-                }
-
                 switch (buffType) {
                     case SPEED -> {
-                        // statMap.removeModifier(speedStatId, MODIFIER_KEY_SPEED);
-                        logger.at(Level.FINE).log("Speed buff removed (stat ID TBD)");
+                        // Restore original speed via MovementManager
+                        if (originalBaseSpeeds.containsKey(playerId)) {
+                            var movementManager = store.getComponent(ref, MovementManager.getComponentType());
+                            if (movementManager != null) {
+                                var settings = movementManager.getSettings();
+                                if (settings != null) {
+                                    float originalSpeed = originalBaseSpeeds.get(playerId);
+                                    settings.baseSpeed = originalSpeed;
+                                    originalBaseSpeeds.remove(playerId);
+                                    logger.at(Level.INFO).log("Removed speed buff from player %s, restored speed: %.2f",
+                                        playerId, originalSpeed);
+                                }
+                            }
+                        }
                     }
                     case DEFENSE -> {
-                        var healthStatId = DefaultEntityStatTypes.getHealth();
-                        statMap.removeModifier(healthStatId, MODIFIER_KEY_HEALTH);
-                        logger.at(Level.FINE).log("Removed health buff");
+                        var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
+                        if (statMap != null) {
+                            var healthStatId = DefaultEntityStatTypes.getHealth();
+                            statMap.removeModifier(healthStatId, MODIFIER_KEY_HEALTH);
+                            logger.at(Level.INFO).log("Removed health buff from player %s", playerId);
+                        }
                     }
                     case STAMINA_REGEN -> {
-                        var staminaStatId = DefaultEntityStatTypes.getStamina();
-                        statMap.removeModifier(staminaStatId, MODIFIER_KEY_STAMINA);
-                        logger.at(Level.FINE).log("Removed stamina buff");
+                        var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
+                        if (statMap != null) {
+                            var staminaStatId = DefaultEntityStatTypes.getStamina();
+                            statMap.removeModifier(staminaStatId, MODIFIER_KEY_STAMINA);
+                            logger.at(Level.INFO).log("Removed stamina buff from player %s", playerId);
+                        }
                     }
                     default -> {}
                 }
             } catch (Exception e) {
-                logger.at(Level.FINE).withCause(e).log("Error removing %s buff modifier", buffType);
+                logger.at(Level.WARNING).withCause(e).log("Error removing %s buff modifier for player %s", buffType, playerId);
             }
         });
     }
@@ -241,20 +291,20 @@ public class BuffsSystem {
         boolean hadBuffs = false;
 
         if (speedBuffedPlayers.remove(playerId)) {
-            removeStatModifier(BuffType.SPEED, ref, store, world);
+            removeStatModifier(playerId, BuffType.SPEED, ref, store, world);
             hadBuffs = true;
         }
         if (defenseBuffedPlayers.remove(playerId)) {
-            removeStatModifier(BuffType.DEFENSE, ref, store, world);
+            removeStatModifier(playerId, BuffType.DEFENSE, ref, store, world);
             hadBuffs = true;
         }
         if (staminaBuffedPlayers.remove(playerId)) {
-            removeStatModifier(BuffType.STAMINA_REGEN, ref, store, world);
+            removeStatModifier(playerId, BuffType.STAMINA_REGEN, ref, store, world);
             hadBuffs = true;
         }
 
         if (hadBuffs) {
-            logger.at(Level.FINE).log("Removed all buffs from player %s (debuffs active)", playerId);
+            logger.at(Level.INFO).log("Removed all buffs from player %s (debuffs active)", playerId);
             if (player != null) {
                 try {
                     player.sendMessage(
@@ -323,6 +373,7 @@ public class BuffsSystem {
         speedBuffedPlayers.remove(playerId);
         defenseBuffedPlayers.remove(playerId);
         staminaBuffedPlayers.remove(playerId);
+        originalBaseSpeeds.remove(playerId);
     }
 
     /**
