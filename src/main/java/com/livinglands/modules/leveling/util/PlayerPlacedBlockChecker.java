@@ -2,6 +2,7 @@ package com.livinglands.modules.leveling.util;
 
 import com.hypixel.hytale.component.Holder;
 import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.math.util.ChunkUtil;
 import com.hypixel.hytale.math.vector.Vector3i;
 import com.hypixel.hytale.server.core.modules.interaction.components.PlacedByInteractionComponent;
@@ -12,28 +13,62 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.nio.file.Path;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 
 /**
  * Utility to check if a block was placed by a player.
  * Used by XP systems to prevent XP rewards for breaking player-built structures.
  *
  * Uses a hybrid approach:
- * 1. First checks Hytale's PlacedByInteractionComponent (if available)
- * 2. Falls back to in-memory tracking of placed blocks
+ * 1. First checks in-memory tracking of placed blocks (persisted to disk)
+ * 2. Falls back to Hytale's PlacedByInteractionComponent (if available)
+ *
+ * Data is persisted per-world to survive server restarts.
  */
 public final class PlayerPlacedBlockChecker {
 
-    // In-memory tracking of player-placed blocks (world:x:y:z -> placer UUID)
-    // Key format: "worldId:x:y:z"
-    private static final Set<String> placedBlockPositions = ConcurrentHashMap.newKeySet();
+    // In-memory tracking of player-placed blocks per world
+    // Map: worldId -> Set of position keys ("x:y:z")
+    private static final Map<String, Set<String>> worldPlacedBlocks = new ConcurrentHashMap<>();
 
-    // Maximum tracked blocks per world (to prevent memory issues)
-    private static final int MAX_TRACKED_BLOCKS = 100_000;
+    // Persistence handler (initialized by LevelingModule)
+    private static PlacedBlockPersistence persistence;
+    private static HytaleLogger logger;
+
+    // Maximum tracked blocks per world (to prevent excessive memory/storage)
+    private static final int MAX_BLOCKS_PER_WORLD = 500_000;
+
+    // Auto-save interval tracking
+    private static long lastAutoSave = System.currentTimeMillis();
+    private static final long AUTO_SAVE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
     private PlayerPlacedBlockChecker() {}
+
+    /**
+     * Initialize the checker with persistence support.
+     * Called by LevelingModule during setup.
+     *
+     * @param moduleDirectory The leveling module's data directory
+     * @param hytaleLogger Logger for status messages
+     */
+    public static void initialize(@Nonnull Path moduleDirectory, @Nonnull HytaleLogger hytaleLogger) {
+        logger = hytaleLogger;
+        persistence = new PlacedBlockPersistence(moduleDirectory, logger);
+
+        // Load persisted data
+        var loadedData = persistence.loadAll();
+        worldPlacedBlocks.clear();
+        worldPlacedBlocks.putAll(loadedData);
+
+        int totalBlocks = worldPlacedBlocks.values().stream().mapToInt(Set::size).sum();
+        logger.at(Level.INFO).log("PlayerPlacedBlockChecker initialized with %d tracked blocks across %d worlds",
+            totalBlocks, worldPlacedBlocks.size());
+    }
 
     /**
      * Record that a block was placed by a player.
@@ -44,20 +79,24 @@ public final class PlayerPlacedBlockChecker {
      */
     public static void recordBlockPlaced(@Nonnull String worldId,
                                           @Nonnull Vector3i blockPosition) {
-        // Cleanup if too many tracked blocks
-        if (placedBlockPositions.size() >= MAX_TRACKED_BLOCKS) {
-            // Clear half of the oldest entries (simple cleanup strategy)
-            int toRemove = MAX_TRACKED_BLOCKS / 2;
-            var iterator = placedBlockPositions.iterator();
-            while (iterator.hasNext() && toRemove > 0) {
-                iterator.next();
-                iterator.remove();
-                toRemove--;
-            }
+        var worldSet = worldPlacedBlocks.computeIfAbsent(worldId,
+            k -> ConcurrentHashMap.newKeySet());
+
+        // Check if we need to trim this world's data
+        if (worldSet.size() >= MAX_BLOCKS_PER_WORLD) {
+            trimWorldData(worldId, worldSet);
         }
 
-        String key = makeKey(worldId, blockPosition);
-        placedBlockPositions.add(key);
+        String key = makePositionKey(blockPosition);
+        worldSet.add(key);
+
+        // Mark world as dirty for persistence
+        if (persistence != null) {
+            persistence.markDirty(worldId);
+        }
+
+        // Check for auto-save
+        checkAutoSave();
     }
 
     /**
@@ -69,8 +108,16 @@ public final class PlayerPlacedBlockChecker {
      */
     public static void recordBlockBroken(@Nonnull String worldId,
                                           @Nonnull Vector3i blockPosition) {
-        String key = makeKey(worldId, blockPosition);
-        placedBlockPositions.remove(key);
+        var worldSet = worldPlacedBlocks.get(worldId);
+        if (worldSet != null) {
+            String key = makePositionKey(blockPosition);
+            if (worldSet.remove(key)) {
+                // Mark world as dirty for persistence
+                if (persistence != null) {
+                    persistence.markDirty(worldId);
+                }
+            }
+        }
     }
 
     /**
@@ -108,9 +155,12 @@ public final class PlayerPlacedBlockChecker {
         try {
             // First check in-memory tracking
             String worldId = world.getName();
-            String key = makeKey(worldId, blockPosition);
-            if (placedBlockPositions.contains(key)) {
-                return true;
+            var worldSet = worldPlacedBlocks.get(worldId);
+            if (worldSet != null) {
+                String key = makePositionKey(blockPosition);
+                if (worldSet.contains(key)) {
+                    return true;
+                }
             }
 
             // Fall back to checking PlacedByInteractionComponent
@@ -180,20 +230,95 @@ public final class PlayerPlacedBlockChecker {
     }
 
     /**
-     * Clear all tracked blocks. Called on server shutdown.
+     * Save all tracked data to disk.
+     * Called on server shutdown and periodically.
      */
-    public static void clearAll() {
-        placedBlockPositions.clear();
+    public static void saveAll() {
+        if (persistence != null) {
+            persistence.saveAll(worldPlacedBlocks);
+            lastAutoSave = System.currentTimeMillis();
+        }
     }
 
     /**
-     * Get the number of tracked placed blocks.
+     * Save only worlds with changes.
      */
-    public static int getTrackedCount() {
-        return placedBlockPositions.size();
+    public static void saveDirty() {
+        if (persistence != null && persistence.hasDirtyData()) {
+            persistence.saveAllDirty(worldPlacedBlocks);
+            lastAutoSave = System.currentTimeMillis();
+        }
     }
 
-    private static String makeKey(String worldId, Vector3i pos) {
-        return worldId + ":" + pos.getX() + ":" + pos.getY() + ":" + pos.getZ();
+    /**
+     * Clear all tracked blocks. Called on server shutdown after saving.
+     */
+    public static void clearAll() {
+        worldPlacedBlocks.clear();
+    }
+
+    /**
+     * Get the total number of tracked placed blocks across all worlds.
+     */
+    public static int getTrackedCount() {
+        return worldPlacedBlocks.values().stream().mapToInt(Set::size).sum();
+    }
+
+    /**
+     * Get the number of tracked placed blocks for a specific world.
+     */
+    public static int getTrackedCount(@Nonnull String worldId) {
+        var worldSet = worldPlacedBlocks.get(worldId);
+        return worldSet != null ? worldSet.size() : 0;
+    }
+
+    /**
+     * Get the number of tracked worlds.
+     */
+    public static int getTrackedWorldCount() {
+        return worldPlacedBlocks.size();
+    }
+
+    /**
+     * Create a position key from block coordinates.
+     */
+    private static String makePositionKey(Vector3i pos) {
+        return pos.getX() + ":" + pos.getY() + ":" + pos.getZ();
+    }
+
+    /**
+     * Trim world data when it exceeds the maximum.
+     * Removes approximately 10% of entries (oldest based on set iteration order).
+     */
+    private static void trimWorldData(String worldId, Set<String> worldSet) {
+        int toRemove = worldSet.size() / 10; // Remove 10%
+        if (toRemove < 1000) {
+            toRemove = 1000; // Minimum removal
+        }
+
+        var iterator = worldSet.iterator();
+        int removed = 0;
+        while (iterator.hasNext() && removed < toRemove) {
+            iterator.next();
+            iterator.remove();
+            removed++;
+        }
+
+        if (logger != null) {
+            logger.at(Level.WARNING).log(
+                "Trimmed %d placed block entries from world %s (was at limit %d)",
+                removed, worldId, MAX_BLOCKS_PER_WORLD
+            );
+        }
+    }
+
+    /**
+     * Check if we should auto-save dirty data.
+     */
+    private static void checkAutoSave() {
+        long now = System.currentTimeMillis();
+        if (now - lastAutoSave >= AUTO_SAVE_INTERVAL_MS) {
+            saveDirty();
+        }
     }
 }

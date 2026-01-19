@@ -7,6 +7,7 @@ import com.livinglands.modules.leveling.config.LevelingModuleConfig;
 import com.livinglands.modules.leveling.profession.XpCalculator;
 import com.livinglands.modules.leveling.ui.SkillGuiElement;
 import com.livinglands.modules.leveling.ui.SkillsPanelElement;
+import com.livinglands.modules.leveling.util.PlayerPlacedBlockChecker;
 import com.livinglands.modules.metabolism.MetabolismModule;
 
 import java.util.Set;
@@ -54,6 +55,9 @@ public final class LevelingModule extends AbstractModule {
 
         // Initialize persistence
         persistence = new LevelingDataPersistence(configDirectory, logger, xpCalculator);
+
+        // Initialize player-placed block tracking with persistence
+        PlayerPlacedBlockChecker.initialize(configDirectory, logger);
 
         // Initialize the leveling system
         system = new LevelingSystem(config, logger, context.playerRegistry(), persistence);
@@ -231,6 +235,11 @@ public final class LevelingModule extends AbstractModule {
 
     @Override
     protected void onShutdown() {
+        // Save placed block tracking data
+        logger.at(Level.INFO).log("[%s] Saving placed block tracking data...", name);
+        PlayerPlacedBlockChecker.saveAll();
+        PlayerPlacedBlockChecker.clearAll();
+
         // Stop the system and save all data
         if (system != null) {
             system.stop();
