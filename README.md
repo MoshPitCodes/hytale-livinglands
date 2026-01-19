@@ -422,9 +422,21 @@ LivingLands/
 | **BuffsSystem** | Apply bonuses for high stats | Per player per tick |
 | **PoisonEffectsSystem** | Consumable poison drain | Every 1 second |
 | **DebuffEffectsSystem** | Native debuff drain | Every 1 second |
-| **FoodConsumptionProcessor** | Detect food/potion use | Every 50ms |
+| **FoodConsumptionProcessor** | Detect food/potion use | Batched, 10 players/50ms |
 
 **Priority Rule**: Debuffs suppress buffs. If any debuff is active, all stat-based buffs are removed.
+
+## Performance
+
+The metabolism module is optimized for **O(n) linear scaling** with player count:
+
+| Component | Complexity | Notes |
+|-----------|------------|-------|
+| Main tick loop | O(n) | Processes all players once per second |
+| Per-player processing | O(1) | Constant time hash lookups |
+| Effect detection | O(batch) | Batched processing (10 players/tick) |
+
+**Batched Effect Detection**: Food consumption detection processes players in batches of 10 every 50ms, reducing CPU overhead on high-population servers while maintaining responsive detection.
 
 <br/>
 
@@ -450,7 +462,7 @@ LivingLands/
 # Credits
 
 - **Author**: [MoshPitCodes](https://github.com/MoshPitCodes)
-- **Version**: 2.1.0-beta
+- **Version**: 2.2.0-beta
 - **License**: Apache-2.0
 
 ### Resources

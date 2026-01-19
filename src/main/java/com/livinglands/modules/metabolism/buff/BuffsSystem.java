@@ -9,6 +9,8 @@ import com.hypixel.hytale.server.core.entity.entities.player.movement.MovementMa
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap;
 import com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntityStatTypes;
 import com.hypixel.hytale.server.core.modules.entitystats.modifier.Modifier;
+import com.hypixel.hytale.server.core.modules.entitystats.modifier.StaticModifier;
+import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.livinglands.core.PlayerRegistry;
@@ -196,27 +198,41 @@ public class BuffsSystem {
                                 float newSpeed = originalSpeed * multiplier;
                                 settings.baseSpeed = newSpeed;
 
+                                // Sync the movement settings to the client
+                                var playerRef = store.getComponent(ref, PlayerRef.getComponentType());
+                                if (playerRef != null) {
+                                    movementManager.update(playerRef.getPacketHandler());
+                                }
+
                                 logger.at(Level.INFO).log("Applied speed buff to player %s: %.2f -> %.2f (%.0f%% of normal)",
                                     playerId, originalSpeed, newSpeed, multiplier * 100);
                             }
                         }
                     }
                     case DEFENSE -> {
-                        // Apply max health buff
+                        // Apply max health buff using StaticModifier with MULTIPLICATIVE calculation
                         var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
                         if (statMap != null) {
                             var healthStatId = DefaultEntityStatTypes.getHealth();
-                            var modifier = new MultiplyModifier(multiplier);
+                            var modifier = new StaticModifier(
+                                Modifier.ModifierTarget.MAX,
+                                StaticModifier.CalculationType.MULTIPLICATIVE,
+                                multiplier
+                            );
                             statMap.putModifier(healthStatId, MODIFIER_KEY_HEALTH, modifier);
                             logger.at(Level.INFO).log("Applied health buff to player %s: %.2fx", playerId, multiplier);
                         }
                     }
                     case STAMINA_REGEN -> {
-                        // Apply stamina buff
+                        // Apply stamina buff using StaticModifier with MULTIPLICATIVE calculation
                         var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
                         if (statMap != null) {
                             var staminaStatId = DefaultEntityStatTypes.getStamina();
-                            var modifier = new MultiplyModifier(multiplier);
+                            var modifier = new StaticModifier(
+                                Modifier.ModifierTarget.MAX,
+                                StaticModifier.CalculationType.MULTIPLICATIVE,
+                                multiplier
+                            );
                             statMap.putModifier(staminaStatId, MODIFIER_KEY_STAMINA, modifier);
                             logger.at(Level.INFO).log("Applied stamina buff to player %s: %.2fx", playerId, multiplier);
                         }
@@ -253,6 +269,13 @@ public class BuffsSystem {
                                     float originalSpeed = originalBaseSpeeds.get(playerId);
                                     settings.baseSpeed = originalSpeed;
                                     originalBaseSpeeds.remove(playerId);
+
+                                    // Sync the movement settings to the client
+                                    var playerRef = store.getComponent(ref, PlayerRef.getComponentType());
+                                    if (playerRef != null) {
+                                        movementManager.update(playerRef.getPacketHandler());
+                                    }
+
                                     logger.at(Level.INFO).log("Removed speed buff from player %s, restored speed: %.2f",
                                         playerId, originalSpeed);
                                 }
@@ -374,21 +397,5 @@ public class BuffsSystem {
         defenseBuffedPlayers.remove(playerId);
         staminaBuffedPlayers.remove(playerId);
         originalBaseSpeeds.remove(playerId);
-    }
-
-    /**
-     * Simple multiply modifier for stat values.
-     */
-    private static class MultiplyModifier extends Modifier {
-        private final float multiplier;
-
-        public MultiplyModifier(float multiplier) {
-            this.multiplier = multiplier;
-        }
-
-        @Override
-        public float apply(float value) {
-            return value * multiplier;
-        }
     }
 }

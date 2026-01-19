@@ -8,7 +8,7 @@ import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.entity.entities.player.movement.MovementManager;
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap;
 import com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntityStatTypes;
-import com.hypixel.hytale.server.core.modules.entitystats.modifier.Modifier;
+import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.livinglands.core.PlayerRegistry;
@@ -464,6 +464,12 @@ public class DebuffsSystem {
                         settings.baseSpeed = newSpeed;
                         currentSpeedMultipliers.put(playerId, multiplier);
 
+                        // Sync the movement settings to the client
+                        var playerRef = store.getComponent(ref, PlayerRef.getComponentType());
+                        if (playerRef != null) {
+                            movementManager.update(playerRef.getPacketHandler());
+                        }
+
                         logger.at(Level.INFO).log("Applied energy speed debuff to player %s: %.2f -> %.2f (%.0f%% of normal)",
                             playerId, originalSpeed, newSpeed, multiplier * 100);
                     }
@@ -517,6 +523,13 @@ public class DebuffsSystem {
                             settings.baseSpeed = originalSpeed;
                             currentSpeedMultipliers.remove(playerId);
                             originalBaseSpeeds.remove(playerId);
+
+                            // Sync the movement settings to the client
+                            var playerRef = store.getComponent(ref, PlayerRef.getComponentType());
+                            if (playerRef != null) {
+                                movementManager.update(playerRef.getPacketHandler());
+                            }
+
                             logger.at(Level.INFO).log("Restored original speed for player %s: %.2f",
                                 playerId, originalSpeed);
                         }
@@ -579,6 +592,12 @@ public class DebuffsSystem {
                         settings.baseSpeed = newSpeed;
                         currentSpeedMultipliers.put(playerId, multiplier);
 
+                        // Sync the movement settings to the client
+                        var playerRef = store.getComponent(ref, PlayerRef.getComponentType());
+                        if (playerRef != null) {
+                            movementManager.update(playerRef.getPacketHandler());
+                        }
+
                         logger.at(Level.INFO).log("Applied thirst speed debuff to player %s: %.2f -> %.2f (%.0f%% of normal)",
                             playerId, originalSpeed, newSpeed, multiplier * 100);
                     }
@@ -639,6 +658,13 @@ public class DebuffsSystem {
                             settings.baseSpeed = originalSpeed;
                             currentSpeedMultipliers.remove(playerId);
                             originalBaseSpeeds.remove(playerId);
+
+                            // Sync the movement settings to the client
+                            var playerRef = store.getComponent(ref, PlayerRef.getComponentType());
+                            if (playerRef != null) {
+                                movementManager.update(playerRef.getPacketHandler());
+                            }
+
                             logger.at(Level.INFO).log("Restored original speed for player %s (thirst recovered): %.2f",
                                 playerId, originalSpeed);
                         }
@@ -731,19 +757,4 @@ public class DebuffsSystem {
                tiredPlayers.contains(playerId);
     }
 
-    /**
-     * Simple multiply modifier for stat values.
-     */
-    private static class MultiplyModifier extends Modifier {
-        private final float multiplier;
-
-        public MultiplyModifier(float multiplier) {
-            this.multiplier = multiplier;
-        }
-
-        @Override
-        public float apply(float value) {
-            return value * multiplier;
-        }
-    }
 }

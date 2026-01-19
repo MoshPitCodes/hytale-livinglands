@@ -2,6 +2,38 @@
 
 All notable changes to Living Lands will be documented in this file.
 
+## [2.2.0-beta] - 2026-01-19
+
+### Fixed
+
+#### Speed Modification Client Sync
+- **Movement Settings Sync** - Speed buffs/debuffs now properly sync to the client via `MovementManager.update(PacketHandler)`
+- **Debuff Speed Penalties** - Players now actually feel speed reductions from thirst/energy debuffs
+- **Buff Speed Bonuses** - Speed buff from high energy now works correctly in-game
+- **Thirst Speed Debuff** - Parched state speed reduction now visible to players
+- **Energy Speed Debuff** - Tired state speed reduction now visible to players
+
+#### Stat Modifier Compatibility
+- **StaticModifier Usage** - Replaced custom `MultiplyModifier` class with Hytale's built-in `StaticModifier`
+- **Server Crash Fix** - Fixed codec serialization error that crashed server on player save
+- **Client Compatibility** - Fixed "Only static modifiers supported on the client currently" error
+
+### Changed
+
+#### Performance Optimization
+- **Batched Effect Detection** - Food consumption detection now processes players in batches of 10 per 50ms tick
+- **O(n) Scaling** - Reduced per-tick overhead from O(n) to O(batch_size) for effect detection
+- **High Player Count Support** - Improved performance for servers with 100+ players
+
+### Technical Details
+- Added `PlayerRef` import for accessing `PacketHandler` to sync movement settings
+- Added `movementManager.update(playerRef.getPacketHandler())` calls after all speed modifications
+- Added `EFFECT_DETECTION_BATCH_SIZE = 10` constant for configurable batch processing
+- Added `effectDetectionBatchIndex` for round-robin batch iteration
+- Removed unused `MultiplyModifier` inner class from `DebuffsSystem`
+
+---
+
 ## [2.1.0-beta] - 2026-01-19
 
 ### Added
