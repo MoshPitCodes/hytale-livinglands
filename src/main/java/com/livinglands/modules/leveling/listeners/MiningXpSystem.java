@@ -79,17 +79,19 @@ public class MiningXpSystem extends EntityEventSystem<EntityStore, BreakBlockEve
             var world = store.getExternalData().getWorld();
             String worldId = world != null ? world.getName() : "unknown";
 
-            // Skip player-placed blocks - only award XP for naturally generated blocks
-            if (PlayerPlacedBlockChecker.isPlayerPlaced(store, blockPosition)) {
-                logger.at(Level.FINE).log("Skipping Mining XP for player-placed block %s", blockId);
-                // Clean up tracking when block is broken
-                PlayerPlacedBlockChecker.recordBlockBroken(worldId, blockPosition);
-                return;
-            }
-
-            // Calculate XP based on block type
+            // Calculate XP based on block type first (skip non-XP blocks early)
             int xp = calculateXp(blockId);
             if (xp <= 0) {
+                return; // Not a block that awards XP
+            }
+
+            // Skip player-placed blocks - only award XP for naturally generated blocks
+            boolean isPlayerPlaced = PlayerPlacedBlockChecker.isPlayerPlaced(store, blockPosition);
+            if (isPlayerPlaced) {
+                logger.at(Level.INFO).log("Skipping Mining XP for player-placed block %s at %s",
+                    blockId, blockPosition);
+                // Clean up tracking when block is broken
+                PlayerPlacedBlockChecker.recordBlockBroken(worldId, blockPosition);
                 return;
             }
 
