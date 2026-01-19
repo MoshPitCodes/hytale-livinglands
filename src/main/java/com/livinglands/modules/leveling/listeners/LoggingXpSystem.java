@@ -79,6 +79,11 @@ public class LoggingXpSystem extends EntityEventSystem<EntityStore, BreakBlockEv
             String blockId = event.getBlockType().getId();
             var blockPosition = event.getTargetBlock();
 
+            // Skip "Empty" block events - these fire when placing blocks (air being removed)
+            if ("Empty".equals(blockId)) {
+                return;
+            }
+
             // Only process log/wood blocks
             if (!isLoggingBlock(blockId)) {
                 return;

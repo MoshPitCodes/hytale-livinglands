@@ -40,7 +40,10 @@ public class MiningXpSystem extends EntityEventSystem<EntityStore, BreakBlockEve
 
     private static final Set<String> STONE_BLOCKS = Set.of(
         "hytale:stone", "hytale:cobblestone", "hytale:granite",
-        "hytale:diorite", "hytale:andesite", "hytale:sandstone"
+        "hytale:diorite", "hytale:andesite", "hytale:sandstone",
+        // Hytale uses different naming conventions
+        "Rock_Stone", "Rock_Cobblestone", "Rock_Granite",
+        "Rock_Diorite", "Rock_Andesite", "Rock_Sandstone"
     );
 
     public MiningXpSystem(@Nonnull LevelingSystem system,
@@ -79,10 +82,18 @@ public class MiningXpSystem extends EntityEventSystem<EntityStore, BreakBlockEve
             var world = store.getExternalData().getWorld();
             String worldId = world != null ? world.getName() : "unknown";
 
-            // Log every break event for debugging
-            logger.at(Level.INFO).log("BreakBlockEvent: block=%s at %s", blockId, blockPosition);
+            // Skip "Empty" block events - these fire when placing blocks (air being removed)
+            if ("Empty".equals(blockId)) {
+                return;
+            }
 
-            // Skip player-placed blocks FIRST - before XP calculation
+            // Calculate XP based on block type first
+            int xp = calculateXp(blockId);
+            if (xp <= 0) {
+                return; // Not a block that awards XP
+            }
+
+            // Skip player-placed blocks - only award XP for naturally generated blocks
             boolean isPlayerPlaced = PlayerPlacedBlockChecker.isPlayerPlaced(store, blockPosition);
             if (isPlayerPlaced) {
                 logger.at(Level.INFO).log("Skipping Mining XP for player-placed block %s at %s",
@@ -92,17 +103,11 @@ public class MiningXpSystem extends EntityEventSystem<EntityStore, BreakBlockEve
                 return;
             }
 
-            // Calculate XP based on block type
-            int xp = calculateXp(blockId);
-            if (xp <= 0) {
-                return; // Not a block that awards XP
-            }
-
             // Award XP
             system.awardXp(playerId, ProfessionType.MINING, xp);
 
-            logger.at(Level.INFO).log("Awarded %d Mining XP to player %s for breaking %s at %s",
-                xp, playerId, blockId, blockPosition);
+            logger.at(Level.FINE).log("Awarded %d Mining XP to player %s for breaking %s",
+                xp, playerId, blockId);
 
         } catch (Exception e) {
             logger.at(Level.WARNING).withCause(e).log("Error processing mining XP");
