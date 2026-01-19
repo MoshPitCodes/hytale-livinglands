@@ -12,6 +12,7 @@ import com.livinglands.modules.metabolism.EnergyStat;
 import com.livinglands.modules.metabolism.HungerStat;
 import com.livinglands.modules.metabolism.MetabolismSystem;
 import com.livinglands.modules.metabolism.ThirstStat;
+import com.livinglands.util.ColorUtil;
 
 import javax.annotation.Nonnull;
 
@@ -50,19 +51,19 @@ public class StatsCommand extends AbstractPlayerCommand {
             // Header
             ctx.sendMessage(
                 Message.raw("===== Survival Stats =====")
-                    .color("aqua")
+                    .color(ColorUtil.getHexColor("aqua"))
                     .bold(true)
             );
 
             // Hunger line
             ctx.sendMessage(
                 Message.raw("Hunger: ")
-                    .color("gray")
+                    .color(ColorUtil.getHexColor("gray"))
                     .insert(
                         Message.raw(String.format("%.0f", hunger))
                             .color(HungerStat.getColorCode(hunger))
                     )
-                    .insert(Message.raw(" - ").color("dark_gray"))
+                    .insert(Message.raw(" - ").color(ColorUtil.getHexColor("dark_gray")))
                     .insert(
                         Message.raw(HungerStat.getDisplayString(hunger))
                             .color(HungerStat.getColorCode(hunger))
@@ -72,12 +73,12 @@ public class StatsCommand extends AbstractPlayerCommand {
             // Thirst line
             ctx.sendMessage(
                 Message.raw("Thirst: ")
-                    .color("gray")
+                    .color(ColorUtil.getHexColor("gray"))
                     .insert(
                         Message.raw(String.format("%.0f", thirst))
                             .color(ThirstStat.getColorCode(thirst))
                     )
-                    .insert(Message.raw(" - ").color("dark_gray"))
+                    .insert(Message.raw(" - ").color(ColorUtil.getHexColor("dark_gray")))
                     .insert(
                         Message.raw(ThirstStat.getDisplayString(thirst))
                             .color(ThirstStat.getColorCode(thirst))
@@ -87,12 +88,12 @@ public class StatsCommand extends AbstractPlayerCommand {
             // Energy line
             ctx.sendMessage(
                 Message.raw("Energy: ")
-                    .color("gray")
+                    .color(ColorUtil.getHexColor("gray"))
                     .insert(
                         Message.raw(String.format("%.0f", energy))
                             .color(EnergyStat.getColorCode(energy))
                     )
-                    .insert(Message.raw(" - ").color("dark_gray"))
+                    .insert(Message.raw(" - ").color(ColorUtil.getHexColor("dark_gray")))
                     .insert(
                         Message.raw(EnergyStat.getDisplayString(energy))
                             .color(EnergyStat.getColorCode(energy))
@@ -105,7 +106,7 @@ public class StatsCommand extends AbstractPlayerCommand {
             if (HungerStat.isStarving(hunger)) {
                 ctx.sendMessage(
                     Message.raw("You are starving!")
-                        .color("red")
+                        .color(ColorUtil.getHexColor("red"))
                         .bold(true)
                 );
                 hasWarning = true;
@@ -114,7 +115,7 @@ public class StatsCommand extends AbstractPlayerCommand {
             if (ThirstStat.isDehydrated(thirst)) {
                 ctx.sendMessage(
                     Message.raw("You are dehydrated!")
-                        .color("red")
+                        .color(ColorUtil.getHexColor("red"))
                         .bold(true)
                 );
                 hasWarning = true;
@@ -123,7 +124,7 @@ public class StatsCommand extends AbstractPlayerCommand {
             if (EnergyStat.isExhausted(energy)) {
                 ctx.sendMessage(
                     Message.raw("You are exhausted!")
-                        .color("red")
+                        .color(ColorUtil.getHexColor("red"))
                         .bold(true)
                 );
                 hasWarning = true;
@@ -132,7 +133,7 @@ public class StatsCommand extends AbstractPlayerCommand {
         } catch (Exception e) {
             ctx.sendMessage(
                 Message.raw("Error retrieving stats!")
-                    .color("red")
+                    .color(ColorUtil.getHexColor("red"))
             );
         }
     }

@@ -1,5 +1,7 @@
 package com.livinglands.modules.metabolism;
 
+import com.livinglands.util.ColorUtil;
+
 /**
  * Thirst stat for Living Lands metabolism system.
  *
@@ -92,12 +94,13 @@ public final class ThirstStat {
     }
 
     /**
-     * Gets the color code for thirst level display.
+     * Gets the color code (hex format) for thirst level display.
+     * Returns a hexadecimal color code compatible with Hytale's Message API.
      */
     public static String getColorCode(double value) {
-        if (value >= 70) return "aqua";
-        if (value >= 40) return "blue";
-        if (value >= 20) return "gold";
-        return "red";
+        if (value >= 70) return ColorUtil.getHexColor("aqua");
+        if (value >= 40) return ColorUtil.getHexColor("blue");
+        if (value >= 20) return ColorUtil.getHexColor("gold");
+        return ColorUtil.getHexColor("red");
     }
 }

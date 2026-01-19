@@ -14,6 +14,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.livinglands.core.config.SleepConfig;
 import com.livinglands.modules.metabolism.MetabolismModule;
 import com.livinglands.modules.metabolism.MetabolismSystem;
+import com.livinglands.util.ColorUtil;
 
 import javax.annotation.Nonnull;
 import java.util.Map;
@@ -291,7 +292,7 @@ public class BedInteractionListener {
                 try {
                     player.sendMessage(
                         Message.raw(String.format("You must wait %d seconds before resting again.", remaining))
-                            .color("yellow")
+                            .color(ColorUtil.getHexColor("yellow"))
                     );
                 } catch (Exception ignored) {}
             }
@@ -312,7 +313,7 @@ public class BedInteractionListener {
                 try {
                     player.sendMessage(
                         Message.raw(String.format("You feel rested. Energy +%.0f", energyRestored))
-                            .color("green")
+                            .color(ColorUtil.getHexColor("green"))
                     );
                 } catch (Exception ignored) {}
             }
@@ -326,7 +327,7 @@ public class BedInteractionListener {
                 try {
                     player.sendMessage(
                         Message.raw("You are already fully rested.")
-                            .color("gray")
+                            .color(ColorUtil.getHexColor("gray"))
                     );
                 } catch (Exception ignored) {}
             }

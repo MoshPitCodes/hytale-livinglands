@@ -1,5 +1,7 @@
 package com.livinglands.modules.metabolism;
 
+import com.livinglands.util.ColorUtil;
+
 /**
  * Hunger stat for Living Lands metabolism system.
  *
@@ -92,12 +94,13 @@ public final class HungerStat {
     }
 
     /**
-     * Gets the color code for hunger level display.
+     * Gets the color code (hex format) for hunger level display.
+     * Returns a hexadecimal color code compatible with Hytale's Message API.
      */
     public static String getColorCode(double value) {
-        if (value >= 70) return "green";
-        if (value >= 40) return "yellow";
-        if (value >= 20) return "gold";
-        return "red";
+        if (value >= 70) return ColorUtil.getHexColor("green");
+        if (value >= 40) return ColorUtil.getHexColor("yellow");
+        if (value >= 20) return ColorUtil.getHexColor("gold");
+        return ColorUtil.getHexColor("red");
     }
 }

@@ -1,5 +1,7 @@
 package com.livinglands.modules.metabolism;
 
+import com.livinglands.util.ColorUtil;
+
 /**
  * Energy/Tiredness stat for Living Lands metabolism system.
  *
@@ -103,18 +105,19 @@ public final class EnergyStat {
     }
 
     /**
-     * Gets the color code for energy level display.
+     * Gets the color code (hex format) for energy level display.
+     * Returns a hexadecimal color code compatible with Hytale's Message API.
      * Uses if-else chain (no preview features).
      */
     public static String getColorCode(double value) {
         if (value >= 70) {
-            return "green";
+            return ColorUtil.getHexColor("green");
         } else if (value >= 40) {
-            return "yellow";
+            return ColorUtil.getHexColor("yellow");
         } else if (value >= 20) {
-            return "gold";
+            return ColorUtil.getHexColor("gold");
         } else {
-            return "red";
+            return ColorUtil.getHexColor("red");
         }
     }
 }

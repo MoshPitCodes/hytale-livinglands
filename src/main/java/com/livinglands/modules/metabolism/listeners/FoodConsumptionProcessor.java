@@ -8,6 +8,7 @@ import com.livinglands.modules.metabolism.MetabolismSystem;
 import com.livinglands.modules.metabolism.consumables.FoodEffectDetector;
 import com.livinglands.modules.metabolism.consumables.FoodEffectDetector.DetectedFoodConsumption;
 import com.livinglands.modules.metabolism.consumables.FoodEffectDetector.FoodType;
+import com.livinglands.util.ColorUtil;
 
 import javax.annotation.Nonnull;
 import java.util.UUID;
@@ -221,7 +222,7 @@ public class FoodConsumptionProcessor {
 
         if (!msg.isEmpty()) {
             try {
-                player.sendMessage(Message.raw(msg.toString()).color("green"));
+                player.sendMessage(Message.raw(msg.toString()).color(ColorUtil.getHexColor("green")));
             } catch (Exception e) {
                 // Silently ignore messaging errors
             }
