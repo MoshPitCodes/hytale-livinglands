@@ -14,15 +14,12 @@ import com.livinglands.modules.metabolism.MetabolismSystem;
 import com.livinglands.modules.metabolism.config.MetabolismModuleConfig;
 
 import javax.annotation.Nonnull;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 /**
  * ECS System for detecting player death events.
  * Listens to KillFeedEvent.DecedentMessage which fires when an entity dies.
- * When a player dies, tracks their UUID for metabolism reset on respawn.
+ * When a player dies, immediately resets their metabolism to initial values.
  */
 public class PlayerDeathSystem extends EntityEventSystem<EntityStore, KillFeedEvent.DecedentMessage> {
 
@@ -30,9 +27,6 @@ public class PlayerDeathSystem extends EntityEventSystem<EntityStore, KillFeedEv
     private final MetabolismModuleConfig config;
     private final HytaleLogger logger;
     private final ComponentType<EntityStore, PlayerRef> playerRefType;
-
-    // Track players who have died and need stats reset on respawn
-    private static final Set<UUID> deadPlayers = ConcurrentHashMap.newKeySet();
 
     public PlayerDeathSystem(@Nonnull MetabolismSystem metabolismSystem,
                               @Nonnull MetabolismModuleConfig config,
@@ -64,76 +58,36 @@ public class PlayerDeathSystem extends EntityEventSystem<EntityStore, KillFeedEv
 
             var playerId = playerRef.getUuid();
 
-            // Track this player for metabolism reset on respawn
-            deadPlayers.add(playerId);
-
+            // Reset metabolism immediately on death
+            // This ensures stats are fresh when the player respawns
             var dataOpt = metabolismSystem.getPlayerData(playerId);
             if (dataOpt.isPresent()) {
                 var data = dataOpt.get();
+                var metabolism = config.metabolism;
+
                 logger.at(Level.INFO).log(
-                    "Player %s died - tracking for metabolism reset on respawn (hunger=%.0f, thirst=%.0f, energy=%.0f)",
+                    "Player %s died (hunger=%.0f, thirst=%.0f, energy=%.0f) - resetting metabolism",
                     playerId, data.getHunger(), data.getThirst(), data.getEnergy()
                 );
+
+                // Reset to initial values
+                data.reset(
+                    System.currentTimeMillis(),
+                    metabolism.initialHunger,
+                    metabolism.initialThirst,
+                    metabolism.initialEnergy
+                );
+
+                logger.at(Level.INFO).log(
+                    "Reset metabolism for player %s on death (hunger=%.0f, thirst=%.0f, energy=%.0f)",
+                    playerId, metabolism.initialHunger, metabolism.initialThirst, metabolism.initialEnergy
+                );
             } else {
-                logger.at(Level.INFO).log("Player %s died - tracking for metabolism reset on respawn", playerId);
+                logger.at(Level.INFO).log("Player %s died - no metabolism data found", playerId);
             }
 
         } catch (Exception e) {
             logger.at(Level.WARNING).withCause(e).log("Error processing player death event");
-        }
-    }
-
-    /**
-     * Check if a player has died and needs metabolism reset.
-     * Called when player respawns/rejoins the world.
-     *
-     * @param playerId The player's UUID
-     * @return true if the player died and needs reset
-     */
-    public static boolean checkAndClearDeathFlag(UUID playerId) {
-        return deadPlayers.remove(playerId);
-    }
-
-    /**
-     * Check if a player has died (without clearing the flag).
-     *
-     * @param playerId The player's UUID
-     * @return true if the player died
-     */
-    public static boolean hasDied(UUID playerId) {
-        return deadPlayers.contains(playerId);
-    }
-
-    /**
-     * Clear death tracking for a player.
-     *
-     * @param playerId The player's UUID
-     */
-    public static void clearDeathFlag(UUID playerId) {
-        deadPlayers.remove(playerId);
-    }
-
-    /**
-     * Reset metabolism stats for a player after respawn.
-     *
-     * @param playerId The player's UUID
-     */
-    public void resetPlayerMetabolism(UUID playerId) {
-        var metabolism = config.metabolism;
-        var dataOpt = metabolismSystem.getPlayerData(playerId);
-
-        if (dataOpt.isPresent()) {
-            var data = dataOpt.get();
-            data.reset(
-                System.currentTimeMillis(),
-                metabolism.initialHunger,
-                metabolism.initialThirst,
-                metabolism.initialEnergy
-            );
-            logger.at(Level.INFO).log(
-                "Reset metabolism for player %s after respawn (hunger=%.0f, thirst=%.0f, energy=%.0f)",
-                playerId, metabolism.initialHunger, metabolism.initialThirst, metabolism.initialEnergy
-            );
         }
     }
 }
