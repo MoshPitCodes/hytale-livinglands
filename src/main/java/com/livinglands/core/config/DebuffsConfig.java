@@ -72,8 +72,8 @@ public record DebuffsConfig(
                 4.0f,   // Damage every 4 seconds at 0
                 1.5f,   // 1.5 damage per tick at 0
                 30.0,   // Start speed/stamina reduction at 30 thirst
-                0.85f,  // Minimum 85% speed at 0 thirst (15% reduction)
-                0.85f   // Minimum 85% stamina regen at 0 thirst (15% reduction)
+                0.45f,  // Minimum 45% speed at 0 thirst (55% reduction)
+                0.45f   // Minimum 45% stamina regen at 0 thirst (55% reduction)
             );
         }
     }

@@ -210,8 +210,8 @@ public final class ConfigLoader {
             public float damageTickIntervalSeconds = 4.0f;
             public float damageAtZero = 1.5f;
             public double slowStartThreshold = 30.0;
-            public float minSpeedMultiplier = 0.85f;
-            public float minStaminaRegenMultiplier = 0.85f;
+            public float minSpeedMultiplier = 0.45f;
+            public float minStaminaRegenMultiplier = 0.45f;
         }
 
         public static class EnergyDebuffsJson {
