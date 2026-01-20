@@ -1,21 +1,25 @@
 package com.livinglands.modules.leveling.profession;
 
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
 /**
  * Data class representing a player's progress in a single profession.
  * Stores the current level, XP, and XP required for the next level.
+ * Thread-safe for concurrent access.
  */
 public class ProfessionData {
-    private int level;
-    private long currentXp;
-    private long xpToNextLevel;
+    private final AtomicInteger level;
+    private final AtomicLong currentXp;
+    private long xpToNextLevel; // Only modified in synchronized levelUp()
 
     public ProfessionData() {
         this(1, 0, 100);
     }
 
     public ProfessionData(int level, long currentXp, long xpToNextLevel) {
-        this.level = level;
-        this.currentXp = currentXp;
+        this.level = new AtomicInteger(level);
+        this.currentXp = new AtomicLong(currentXp);
         this.xpToNextLevel = xpToNextLevel;
     }
 
@@ -27,69 +31,73 @@ public class ProfessionData {
     }
 
     public int getLevel() {
-        return level;
+        return level.get();
     }
 
     public void setLevel(int level) {
-        this.level = level;
+        this.level.set(level);
     }
 
     public long getCurrentXp() {
-        return currentXp;
+        return currentXp.get();
     }
 
     public void setCurrentXp(long currentXp) {
-        this.currentXp = currentXp;
+        this.currentXp.set(currentXp);
     }
 
-    public long getXpToNextLevel() {
+    public synchronized long getXpToNextLevel() {
         return xpToNextLevel;
     }
 
-    public void setXpToNextLevel(long xpToNextLevel) {
+    public synchronized void setXpToNextLevel(long xpToNextLevel) {
         this.xpToNextLevel = xpToNextLevel;
     }
 
     /**
      * Add XP to this profession. Does not handle level-up logic.
+     * Thread-safe atomic operation.
      *
      * @param xp The XP to add
      */
     public void addXp(long xp) {
-        this.currentXp += xp;
+        this.currentXp.addAndGet(xp);
     }
 
     /**
      * Get the progress percentage towards the next level.
+     * Thread-safe snapshot of current progress.
      *
      * @return Progress from 0.0 to 1.0
      */
-    public float getProgressPercent() {
+    public synchronized float getProgressPercent() {
         if (xpToNextLevel <= 0) return 1.0f;
-        return Math.min(1.0f, (float) currentXp / xpToNextLevel);
+        return Math.min(1.0f, (float) currentXp.get() / xpToNextLevel);
     }
 
     /**
      * Check if this profession has enough XP to level up.
+     * Thread-safe snapshot check.
      */
-    public boolean canLevelUp() {
-        return currentXp >= xpToNextLevel;
+    public synchronized boolean canLevelUp() {
+        return currentXp.get() >= xpToNextLevel;
     }
 
     /**
      * Perform a level up, consuming XP and incrementing level.
+     * Synchronized to ensure atomic multi-field update.
      *
      * @param newXpToNextLevel The XP required for the next level after this one
      */
-    public void levelUp(long newXpToNextLevel) {
-        currentXp -= xpToNextLevel;
-        level++;
+    public synchronized void levelUp(long newXpToNextLevel) {
+        currentXp.addAndGet(-xpToNextLevel);
+        level.incrementAndGet();
         xpToNextLevel = newXpToNextLevel;
     }
 
     @Override
-    public String toString() {
+    public synchronized String toString() {
         return String.format("ProfessionData{level=%d, xp=%d/%d (%.1f%%)}",
-            level, currentXp, xpToNextLevel, getProgressPercent() * 100);
+            level.get(), currentXp.get(), xpToNextLevel, getProgressPercent() * 100);
     }
 }

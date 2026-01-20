@@ -311,6 +311,8 @@ public class FoodEffectDetector {
      * Gets the effect ID string from an effect index (legacy method).
      * @deprecated Use getEffectIdFromEffect instead for better dynamic effect support
      */
+    @Deprecated
+    @SuppressWarnings("DeprecatedIsStillUsed")
     private String getEffectId(int effectIndex) {
         try {
             var assetMap = EntityEffect.getAssetMap();

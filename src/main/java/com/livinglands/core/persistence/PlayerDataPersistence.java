@@ -39,7 +39,7 @@ public class PlayerDataPersistence {
         // Ensure data directory exists
         try {
             Files.createDirectories(dataDirectory);
-            logger.at(Level.INFO).log("Player data directory: %s", dataDirectory);
+            logger.at(Level.FINE).log("Player data directory: %s", dataDirectory);
         } catch (IOException e) {
             logger.at(Level.WARNING).withCause(e).log("Failed to create player data directory");
         }
@@ -91,7 +91,7 @@ public class PlayerDataPersistence {
             var json = Files.readString(filePath);
             var jsonData = GSON.fromJson(json, PlayerDataJson.class);
             var data = jsonData.toPlayerMetabolismData(playerId);
-            logger.at(Level.INFO).log("Loaded player data: %s (hunger=%.0f, thirst=%.0f, energy=%.0f)",
+            logger.at(Level.FINE).log("Loaded player data: %s (hunger=%.0f, thirst=%.0f, energy=%.0f)",
                 playerId, data.getHunger(), data.getThirst(), data.getEnergy());
             return data;
         } catch (Exception e) {

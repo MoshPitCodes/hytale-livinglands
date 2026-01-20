@@ -16,10 +16,10 @@ public final class PlayerMetabolismData {
 
     private final UUID playerUuid;
 
-    // Current stat values
-    private double hunger;
-    private double thirst;
-    private double energy;
+    // Current stat values (volatile for visibility across threads)
+    private volatile double hunger;
+    private volatile double thirst;
+    private volatile double energy;
 
     // Last time stats were depleted (server time in ms)
     private long lastHungerDepletion;
@@ -42,6 +42,10 @@ public final class PlayerMetabolismData {
     private double totalHungerRestored = 0.0;
     private double totalThirstRestored = 0.0;
     private double totalEnergyRestored = 0.0;
+
+    // Depletion pause flags (for ability effects)
+    private boolean hungerDepletionPaused = false;
+    private boolean staminaDepletionPaused = false;
 
     /**
      * Creates new metabolism data for a player.
@@ -92,17 +96,23 @@ public final class PlayerMetabolismData {
     public double getTotalHungerRestored() { return totalHungerRestored; }
     public double getTotalThirstRestored() { return totalThirstRestored; }
     public double getTotalEnergyRestored() { return totalEnergyRestored; }
+    public boolean isHungerDepletionPaused() { return hungerDepletionPaused; }
+    public boolean isStaminaDepletionPaused() { return staminaDepletionPaused; }
 
-    // Setters with validation
-    public void setHunger(double value) {
+    // Depletion pause setters
+    public void setHungerDepletionPaused(boolean paused) { this.hungerDepletionPaused = paused; }
+    public void setStaminaDepletionPaused(boolean paused) { this.staminaDepletionPaused = paused; }
+
+    // Setters with validation (synchronized for thread safety)
+    public synchronized void setHunger(double value) {
         this.hunger = HungerStat.clamp(value);
     }
 
-    public void setThirst(double value) {
+    public synchronized void setThirst(double value) {
         this.thirst = ThirstStat.clamp(value);
     }
 
-    public void setEnergy(double value) {
+    public synchronized void setEnergy(double value) {
         this.energy = EnergyStat.clamp(value);
     }
 
@@ -133,11 +143,12 @@ public final class PlayerMetabolismData {
     /**
      * Restores hunger by the specified amount.
      * The value is clamped to the maximum (100).
+     * Thread-safe: synchronized to ensure atomicity of compound operation.
      *
      * @param amount Amount of hunger to restore
      * @return The actual amount restored (may be less if already near max)
      */
-    public double restoreHunger(double amount) {
+    public synchronized double restoreHunger(double amount) {
         double oldHunger = this.hunger;
         this.hunger = HungerStat.clamp(this.hunger + amount);
         double restored = this.hunger - oldHunger;
@@ -148,11 +159,12 @@ public final class PlayerMetabolismData {
     /**
      * Restores thirst by the specified amount.
      * The value is clamped to the maximum (100).
+     * Thread-safe: synchronized to ensure atomicity of compound operation.
      *
      * @param amount Amount of thirst to restore
      * @return The actual amount restored (may be less if already near max)
      */
-    public double restoreThirst(double amount) {
+    public synchronized double restoreThirst(double amount) {
         double oldThirst = this.thirst;
         this.thirst = ThirstStat.clamp(this.thirst + amount);
         double restored = this.thirst - oldThirst;
@@ -163,11 +175,12 @@ public final class PlayerMetabolismData {
     /**
      * Restores energy by the specified amount.
      * The value is clamped to the maximum (100).
+     * Thread-safe: synchronized to ensure atomicity of compound operation.
      *
      * @param amount Amount of energy to restore
      * @return The actual amount restored (may be less if already near max)
      */
-    public double restoreEnergy(double amount) {
+    public synchronized double restoreEnergy(double amount) {
         double oldEnergy = this.energy;
         this.energy = EnergyStat.clamp(this.energy + amount);
         double restored = this.energy - oldEnergy;
@@ -236,24 +249,26 @@ public final class PlayerMetabolismData {
 
     /**
      * Resets all tracking data (used on player respawn).
+     * Thread-safe: synchronized to ensure atomicity of reset operation.
      *
      * @param currentTime Current server time in milliseconds
      * @param initialHunger Initial hunger value after reset
      * @param initialThirst Initial thirst value after reset
      */
-    public void reset(long currentTime, double initialHunger, double initialThirst) {
+    public synchronized void reset(long currentTime, double initialHunger, double initialThirst) {
         reset(currentTime, initialHunger, initialThirst, EnergyStat.DEFAULT_VALUE);
     }
 
     /**
      * Resets all tracking data including energy (used on player respawn).
+     * Thread-safe: synchronized to ensure atomicity of reset operation.
      *
      * @param currentTime Current server time in milliseconds
      * @param initialHunger Initial hunger value after reset
      * @param initialThirst Initial thirst value after reset
      * @param initialEnergy Initial energy value after reset
      */
-    public void reset(long currentTime, double initialHunger, double initialThirst, double initialEnergy) {
+    public synchronized void reset(long currentTime, double initialHunger, double initialThirst, double initialEnergy) {
         this.hunger = HungerStat.clamp(initialHunger);
         this.thirst = ThirstStat.clamp(initialThirst);
         this.energy = EnergyStat.clamp(initialEnergy);

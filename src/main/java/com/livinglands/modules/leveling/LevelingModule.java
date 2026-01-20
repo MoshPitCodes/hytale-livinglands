@@ -1,8 +1,15 @@
 package com.livinglands.modules.leveling;
 
+import com.hypixel.hytale.server.core.Message;
 import com.livinglands.api.AbstractModule;
+import com.livinglands.core.CoreModule;
+import com.livinglands.core.events.PlayerDeathBroadcaster;
 import com.livinglands.core.hud.HudModule;
+import com.livinglands.core.notifications.NotificationModule;
+import com.livinglands.core.util.SpeedManager;
 import com.livinglands.modules.leveling.ability.AbilitySystem;
+import com.livinglands.modules.leveling.ability.PermanentBuffManager;
+import com.livinglands.modules.leveling.ability.TimedBuffManager;
 import com.livinglands.modules.leveling.config.LevelingModuleConfig;
 import com.livinglands.modules.leveling.profession.XpCalculator;
 import com.livinglands.modules.leveling.ui.SkillGuiElement;
@@ -11,6 +18,8 @@ import com.livinglands.modules.leveling.util.PlayerPlacedBlockChecker;
 import com.livinglands.modules.metabolism.MetabolismModule;
 
 import java.util.Set;
+import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 
 /**
@@ -34,11 +43,14 @@ public final class LevelingModule extends AbstractModule {
     private LevelingDataPersistence persistence;
     private XpCalculator xpCalculator;
     private AbilitySystem abilitySystem;
+    private TimedBuffManager timedBuffManager;
+    private PermanentBuffManager permanentBuffManager;
     private SkillGuiElement skillGuiElement;
     private SkillsPanelElement panelElement;
+    private Consumer<UUID> deathListener;
 
     public LevelingModule() {
-        super(ID, NAME, VERSION, Set.of(HudModule.ID)); // Depends on HUD module
+        super(ID, NAME, VERSION, Set.of(CoreModule.ID, HudModule.ID)); // Depends on Core and HUD modules
     }
 
     @Override
@@ -47,7 +59,7 @@ public final class LevelingModule extends AbstractModule {
         config = loadConfig("config.json", LevelingModuleConfig.class,
             LevelingModuleConfig::defaults);
 
-        logger.at(Level.INFO).log("[%s] Loaded config: maxLevel=%d, baseXp=%d, exponent=%.2f",
+        logger.at(Level.FINE).log("[%s] Loaded config: maxLevel=%d, baseXp=%d, exponent=%.2f",
             name, config.maxLevel, config.baseXp, config.xpExponent);
 
         // Initialize XP calculator
@@ -63,10 +75,37 @@ public final class LevelingModule extends AbstractModule {
         system = new LevelingSystem(config, logger, context.playerRegistry(), persistence);
 
         // Initialize the ability system
-        abilitySystem = new AbilitySystem(system, config, logger);
+        abilitySystem = new AbilitySystem(system, config, context.playerRegistry(), logger);
+
+        // Initialize timed buff manager
+        timedBuffManager = new TimedBuffManager(context.playerRegistry(), logger);
+        abilitySystem.setTimedBuffManager(timedBuffManager);
+
+        // Initialize permanent buff manager
+        permanentBuffManager = new PermanentBuffManager(context.playerRegistry(), system, config, logger);
+        abilitySystem.setPermanentBuffManager(permanentBuffManager);
+
+        // Wire ability system back to leveling system for XP boosts
+        system.setAbilitySystem(abilitySystem);
+
+        // Get utilities from CoreModule
+        context.moduleManager().getModule(CoreModule.ID, CoreModule.class)
+            .ifPresent(core -> {
+                // SpeedManager for ability speed effects
+                SpeedManager speedManager = core.getSpeedManager();
+                timedBuffManager.setSpeedManager(speedManager);
+                permanentBuffManager.setSpeedManager(speedManager);
+                logger.at(Level.FINE).log("[%s] SpeedManager obtained from CoreModule", name);
+
+                // Register death listener for XP penalty
+                PlayerDeathBroadcaster deathBroadcaster = core.getDeathBroadcaster();
+                deathListener = this::onPlayerDeath;
+                deathBroadcaster.addListener(deathListener);
+                logger.at(Level.FINE).log("[%s] Death penalty listener registered with CoreModule", name);
+            });
 
         // Register HUD elements with HudModule
-        logger.at(Level.INFO).log("[%s] Registering HUD elements...", name);
+        logger.at(Level.FINE).log("[%s] Registering HUD elements...", name);
         var hudModuleOpt = context.moduleManager().getModule(HudModule.ID, HudModule.class);
         if (hudModuleOpt.isPresent()) {
             var hudModule = hudModuleOpt.get();
@@ -84,15 +123,27 @@ public final class LevelingModule extends AbstractModule {
             // Integrate with unified panel for /ll main command
             hudModule.setLevelingSystem(system);
             hudModule.setAbilitySystem(abilitySystem);
+            hudModule.setTimedBuffManager(timedBuffManager);
         } else {
             logger.at(Level.WARNING).log("[%s] HUD module not found, HUD elements not registered", name);
         }
 
-        // Try to integrate with metabolism module (optional)
+        // Try to integrate with metabolism module (optional, for metabolism-affecting abilities)
         context.moduleManager().getModule("metabolism", MetabolismModule.class)
             .ifPresent(metabolism -> {
                 system.setMetabolismModule(metabolism);
-                logger.at(Level.INFO).log("[%s] Metabolism integration enabled", name);
+                // Wire metabolism system to ability managers for metabolism effects
+                var metabolismSystem = metabolism.getSystem();
+                timedBuffManager.setMetabolismSystem(metabolismSystem);
+                abilitySystem.setMetabolismSystem(metabolismSystem);
+                logger.at(Level.FINE).log("[%s] Metabolism integration enabled", name);
+            });
+
+        // Try to integrate with notification module (optional, for ability unlock notifications)
+        context.moduleManager().getModule(NotificationModule.ID, NotificationModule.class)
+            .ifPresent(notifications -> {
+                abilitySystem.setNotificationModule(notifications);
+                logger.at(Level.FINE).log("[%s] Notification integration enabled", name);
             });
 
         // Register player lifecycle listener
@@ -110,11 +161,12 @@ public final class LevelingModule extends AbstractModule {
         // Register commands
         registerCommands();
 
-        logger.at(Level.INFO).log("[%s] Module setup complete", name);
+        logger.at(Level.FINE).log("[%s] Module setup complete", name);
     }
 
     private void registerXpListeners() {
         var entityStoreRegistry = context.entityStoreRegistry();
+        var playerRegistry = context.playerRegistry();
 
         // Block placement tracking system (tracks player-placed blocks)
         entityStoreRegistry.registerSystem(
@@ -142,21 +194,23 @@ public final class LevelingModule extends AbstractModule {
         );
 
         // Combat XP system (ECS - responds to KillFeedEvent)
-        entityStoreRegistry.registerSystem(
-            new com.livinglands.modules.leveling.listeners.CombatXpSystem(system, config, logger)
+        // Create CombatAbilityHandler first so we can wire it to CombatXpSystem
+        var combatAbilityHandler = new com.livinglands.modules.leveling.ability.handlers.CombatAbilityHandler(
+            abilitySystem, playerRegistry, logger
         );
+        var combatXpSystem = new com.livinglands.modules.leveling.listeners.CombatXpSystem(system, config, logger);
+        combatXpSystem.setAbilityHandler(combatAbilityHandler);
+        entityStoreRegistry.registerSystem(combatXpSystem);
 
-        logger.at(Level.INFO).log("[%s] Registered all profession XP systems (ECS)", name);
+        logger.at(Level.FINE).log("[%s] Registered all profession XP systems (ECS)", name);
     }
 
     private void registerAbilityHandlers() {
         var eventRegistry = context.eventRegistry();
         var playerRegistry = context.playerRegistry();
 
-        // Combat abilities (Critical Strike, Lifesteal)
-        new com.livinglands.modules.leveling.ability.handlers.CombatAbilityHandler(
-            abilitySystem, playerRegistry, logger
-        ).register(eventRegistry);
+        // Combat abilities are handled by CombatXpSystem (wired in registerXpListeners)
+        // This avoids duplicate handler creation
 
         // Mining abilities (Double Ore, Lucky Strike)
         new com.livinglands.modules.leveling.ability.handlers.MiningAbilityHandler(
@@ -178,7 +232,7 @@ public final class LevelingModule extends AbstractModule {
             abilitySystem, playerRegistry, logger
         ).register(eventRegistry);
 
-        logger.at(Level.INFO).log("[%s] Registered all profession ability handlers", name);
+        logger.at(Level.FINE).log("[%s] Registered all profession ability handlers", name);
     }
 
     private void registerCommands() {
@@ -189,7 +243,7 @@ public final class LevelingModule extends AbstractModule {
             new com.livinglands.modules.leveling.commands.SetLevelCommand(system)
         );
 
-        logger.at(Level.INFO).log("[%s] Registered commands: /setlevel", name);
+        logger.at(Level.FINE).log("[%s] Registered commands: /setlevel", name);
     }
 
     @Override
@@ -197,10 +251,15 @@ public final class LevelingModule extends AbstractModule {
         // Start the leveling system background tasks
         system.start();
 
+        // Start the timed buff manager tick loop
+        if (timedBuffManager != null) {
+            timedBuffManager.start();
+        }
+
         // Set up UI callbacks
         setupUiCallbacks();
 
-        logger.at(Level.INFO).log("[%s] Module started", name);
+        logger.at(Level.FINE).log("[%s] Module started", name);
     }
 
     private void setupUiCallbacks() {
@@ -226,21 +285,82 @@ public final class LevelingModule extends AbstractModule {
             logger.at(Level.FINE).log("Player %s gained %d %s XP",
                 playerId, event.xpGained(), event.profession().getDisplayName());
         });
+
+        // Death penalty notification callback - send chat messages
+        system.setDeathPenaltyCallback((playerId, event) -> {
+            var sessionOpt = context.playerRegistry().getSession(playerId);
+            sessionOpt.ifPresent(session -> {
+                var player = session.getPlayer();
+                if (player == null) return;
+
+                // Send header message
+                player.sendMessage(Message.raw("[Death Penalty] You lost XP in the following professions:").color("#F85149"));
+
+                // Send details for each affected profession
+                for (var penalty : event.penalties()) {
+                    String msg = String.format("  - %s (Lv.%d): -%d XP (%.0f%% -> %.0f%%)",
+                        penalty.profession().getDisplayName(),
+                        penalty.level(),
+                        penalty.xpLost(),
+                        calculateProgressPercent(penalty.xpBefore(), penalty.profession(), penalty.level()),
+                        calculateProgressPercent(penalty.xpAfter(), penalty.profession(), penalty.level())
+                    );
+                    player.sendMessage(Message.raw(msg).color("#FF9999"));
+                }
+            });
+        });
+    }
+
+    /**
+     * Calculate progress percentage towards next level.
+     */
+    private float calculateProgressPercent(long currentXp, com.livinglands.modules.leveling.profession.ProfessionType profession, int level) {
+        long xpToNextLevel = xpCalculator.getXpToNextLevel(level);
+        if (xpToNextLevel <= 0) return 100f;
+        return (currentXp * 100f) / xpToNextLevel;
+    }
+
+    /**
+     * Handle player death - apply XP penalty and save immediately.
+     */
+    private void onPlayerDeath(UUID playerId) {
+        logger.at(Level.FINE).log("[%s] Player %s died - applying death penalty", name, playerId);
+
+        // Apply the death penalty
+        system.applyDeathPenalty(playerId);
+
+        // Force immediate save to persist the XP loss
+        var dataOpt = system.getPlayerData(playerId);
+        dataOpt.ifPresent(data -> {
+            persistence.save(data);
+            logger.at(Level.FINE).log("[%s] Saved leveling data for player %s after death penalty", name, playerId);
+        });
     }
 
     @Override
     protected void onShutdown() {
+        // Remove death listener
+        if (deathListener != null) {
+            context.moduleManager().getModule(CoreModule.ID, CoreModule.class)
+                .ifPresent(core -> core.getDeathBroadcaster().removeListener(deathListener));
+        }
+
         // Save placed block tracking data
-        logger.at(Level.INFO).log("[%s] Saving placed block tracking data...", name);
+        logger.at(Level.FINE).log("[%s] Saving placed block tracking data...", name);
         PlayerPlacedBlockChecker.saveAll();
         PlayerPlacedBlockChecker.clearAll();
+
+        // Stop the timed buff manager
+        if (timedBuffManager != null) {
+            timedBuffManager.shutdown();
+        }
 
         // Stop the system and save all data
         if (system != null) {
             system.stop();
         }
 
-        logger.at(Level.INFO).log("[%s] Module shutdown complete", name);
+        logger.at(Level.FINE).log("[%s] Module shutdown complete", name);
     }
 
     /**

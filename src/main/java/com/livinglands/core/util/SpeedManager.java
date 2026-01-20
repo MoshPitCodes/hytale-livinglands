@@ -1,4 +1,4 @@
-package com.livinglands.modules.metabolism;
+package com.livinglands.core.util;
 
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
@@ -22,6 +22,10 @@ import java.util.logging.Level;
  *
  * Now all speed modifiers are tracked here and combined into a single multiplier
  * that is applied once per tick.
+ *
+ * Located in CoreModule for shared access by:
+ * - MetabolismModule (buffs/debuffs)
+ * - LevelingModule (ability speed buffs)
  */
 public class SpeedManager {
 
@@ -35,12 +39,20 @@ public class SpeedManager {
     private final Map<UUID, Float> thirstDebuffMultipliers = new ConcurrentHashMap<>();
     private final Map<UUID, Float> buffMultipliers = new ConcurrentHashMap<>();
 
+    // Track ability-based speed multipliers (from leveling abilities)
+    private final Map<UUID, Float> abilitySpeedMultipliers = new ConcurrentHashMap<>();
+
+    // Track permanent speed multipliers (from Tier 3 abilities)
+    private final Map<UUID, Float> permanentSpeedMultipliers = new ConcurrentHashMap<>();
+
     // Track last applied combined multiplier to avoid redundant updates
     private final Map<UUID, Float> lastAppliedMultipliers = new ConcurrentHashMap<>();
 
     public SpeedManager(@Nonnull HytaleLogger logger) {
         this.logger = logger;
     }
+
+    // ========== Debuff Multipliers (from Metabolism) ==========
 
     /**
      * Sets the energy debuff speed multiplier for a player.
@@ -71,28 +83,6 @@ public class SpeedManager {
     }
 
     /**
-     * Sets the buff speed multiplier for a player.
-     *
-     * @param playerId The player's UUID
-     * @param multiplier The multiplier (1.0 = no change, 1.2 = 120% speed)
-     */
-    public void setBuffMultiplier(UUID playerId, float multiplier) {
-        if (multiplier <= 1.0f) {
-            buffMultipliers.remove(playerId);
-        } else {
-            buffMultipliers.put(playerId, multiplier);
-        }
-    }
-
-    /**
-     * Clears all speed modifiers for a player.
-     * Called when buffs are suppressed by debuffs.
-     */
-    public void clearBuffMultiplier(UUID playerId) {
-        buffMultipliers.remove(playerId);
-    }
-
-    /**
      * Clears the energy debuff multiplier for a player.
      */
     public void clearEnergyDebuffMultiplier(UUID playerId) {
@@ -106,9 +96,131 @@ public class SpeedManager {
         thirstDebuffMultipliers.remove(playerId);
     }
 
+    // ========== Buff Multipliers (from Metabolism) ==========
+
+    /**
+     * Sets the buff speed multiplier for a player (metabolism buffs like "Energized").
+     *
+     * @param playerId The player's UUID
+     * @param multiplier The multiplier (1.0 = no change, 1.2 = 120% speed)
+     */
+    public void setBuffMultiplier(UUID playerId, float multiplier) {
+        if (multiplier <= 1.0f) {
+            buffMultipliers.remove(playerId);
+        } else {
+            buffMultipliers.put(playerId, multiplier);
+        }
+    }
+
+    /**
+     * Gets the current buff multiplier for a player.
+     *
+     * @param playerId The player's UUID
+     * @return The current buff multiplier (0.0 if none set)
+     */
+    public float getBuffMultiplier(UUID playerId) {
+        Float multiplier = buffMultipliers.get(playerId);
+        return multiplier != null ? multiplier : 0.0f;
+    }
+
+    /**
+     * Atomically adds a buff multiplier to the player's existing buff multiplier.
+     * This prevents race conditions when multiple buffs are being applied simultaneously.
+     *
+     * @param playerId The player's UUID
+     * @param additionalMultiplier The multiplier to add (e.g., 0.2 for +20% speed)
+     * @return The new combined buff multiplier
+     */
+    public float addBuffMultiplier(UUID playerId, float additionalMultiplier) {
+        return buffMultipliers.compute(playerId, (key, currentValue) -> {
+            float current = (currentValue != null) ? currentValue : 1.0f;
+            float newValue = current + additionalMultiplier;
+            // If the new value is <= 1.0, return null to remove the entry
+            return (newValue <= 1.0f) ? null : newValue;
+        });
+    }
+
+    /**
+     * Clears the metabolism buff multiplier for a player.
+     */
+    public void clearBuffMultiplier(UUID playerId) {
+        buffMultipliers.remove(playerId);
+    }
+
+    // ========== Ability Multipliers (from Leveling) ==========
+
+    /**
+     * Sets a temporary ability speed multiplier (e.g., Adrenaline Rush).
+     *
+     * @param playerId The player's UUID
+     * @param multiplier The multiplier (e.g., 1.2 for +20% speed)
+     */
+    public void setAbilitySpeedMultiplier(UUID playerId, float multiplier) {
+        if (multiplier <= 1.0f) {
+            abilitySpeedMultipliers.remove(playerId);
+        } else {
+            abilitySpeedMultipliers.put(playerId, multiplier);
+        }
+    }
+
+    /**
+     * Gets the current ability speed multiplier for a player.
+     *
+     * @param playerId The player's UUID
+     * @return The current ability multiplier (1.0 if none set)
+     */
+    public float getAbilitySpeedMultiplier(UUID playerId) {
+        Float multiplier = abilitySpeedMultipliers.get(playerId);
+        return multiplier != null ? multiplier : 1.0f;
+    }
+
+    /**
+     * Clears the ability speed multiplier for a player.
+     */
+    public void clearAbilitySpeedMultiplier(UUID playerId) {
+        abilitySpeedMultipliers.remove(playerId);
+    }
+
+    // ========== Permanent Multipliers (from Tier 3 Abilities) ==========
+
+    /**
+     * Sets a permanent speed multiplier (e.g., Nature's Endurance +10%).
+     * These persist until the player logs out or loses the ability.
+     *
+     * @param playerId The player's UUID
+     * @param multiplier The multiplier (e.g., 1.1 for +10% speed)
+     */
+    public void setPermanentSpeedMultiplier(UUID playerId, float multiplier) {
+        if (multiplier <= 1.0f) {
+            permanentSpeedMultipliers.remove(playerId);
+        } else {
+            permanentSpeedMultipliers.put(playerId, multiplier);
+        }
+    }
+
+    /**
+     * Gets the permanent speed multiplier for a player.
+     *
+     * @param playerId The player's UUID
+     * @return The permanent multiplier (1.0 if none set)
+     */
+    public float getPermanentSpeedMultiplier(UUID playerId) {
+        Float multiplier = permanentSpeedMultipliers.get(playerId);
+        return multiplier != null ? multiplier : 1.0f;
+    }
+
+    /**
+     * Clears the permanent speed multiplier for a player.
+     */
+    public void clearPermanentSpeedMultiplier(UUID playerId) {
+        permanentSpeedMultipliers.remove(playerId);
+    }
+
+    // ========== Combined Calculations ==========
+
     /**
      * Calculates the combined speed multiplier for a player.
-     * Debuffs and buffs are multiplicative.
+     * Order: (debuffs) * (permanent buffs) * (temporary buffs/abilities)
      *
      * @param playerId The player's UUID
      * @return The combined multiplier
@@ -116,7 +228,7 @@ public class SpeedManager {
     public float getCombinedMultiplier(UUID playerId) {
         float multiplier = 1.0f;
 
-        // Apply debuffs (reduce speed)
+        // Apply debuffs first (reduce speed)
         Float energyMult = energyDebuffMultipliers.get(playerId);
         if (energyMult != null) {
             multiplier *= energyMult;
@@ -127,10 +239,25 @@ public class SpeedManager {
             multiplier *= thirstMult;
         }
 
-        // Apply buffs (increase speed) - only if no debuffs are reducing speed
-        Float buffMult = buffMultipliers.get(playerId);
-        if (buffMult != null && multiplier >= 1.0f) {
-            multiplier *= buffMult;
+        // Apply permanent speed buffs (Tier 3 abilities - always active)
+        Float permanentMult = permanentSpeedMultipliers.get(playerId);
+        if (permanentMult != null) {
+            multiplier *= permanentMult;
+        }
+
+        // Apply temporary buffs only if not heavily debuffed
+        if (multiplier >= 0.5f) {  // Only apply buffs if not too slow
+            // Metabolism buff (Energized)
+            Float buffMult = buffMultipliers.get(playerId);
+            if (buffMult != null) {
+                multiplier *= buffMult;
+            }
+
+            // Ability buff (Adrenaline Rush)
+            Float abilityMult = abilitySpeedMultipliers.get(playerId);
+            if (abilityMult != null) {
+                multiplier *= abilityMult;
+            }
         }
 
         return multiplier;
@@ -142,8 +269,12 @@ public class SpeedManager {
     public boolean hasActiveModifiers(UUID playerId) {
         return energyDebuffMultipliers.containsKey(playerId) ||
                thirstDebuffMultipliers.containsKey(playerId) ||
-               buffMultipliers.containsKey(playerId);
+               buffMultipliers.containsKey(playerId) ||
+               abilitySpeedMultipliers.containsKey(playerId) ||
+               permanentSpeedMultipliers.containsKey(playerId);
     }
+
+    // ========== Application Methods ==========
 
     /**
      * Applies the combined speed modifier to the player.
@@ -158,8 +289,9 @@ public class SpeedManager {
         float combinedMultiplier = getCombinedMultiplier(playerId);
 
         // Check if multiplier changed significantly (avoid spamming updates)
-        Float lastApplied = lastAppliedMultipliers.get(playerId);
-        if (lastApplied != null && Math.abs(lastApplied - combinedMultiplier) < 0.01f) {
+        // Use getOrDefault for atomic read - accepts minor redundancy to avoid race conditions
+        float lastApplied = lastAppliedMultipliers.getOrDefault(playerId, -1.0f);
+        if (lastApplied >= 0.0f && Math.abs(lastApplied - combinedMultiplier) < 0.01f) {
             return; // No significant change, skip update
         }
 
@@ -176,13 +308,15 @@ public class SpeedManager {
                 }
 
                 // Store original base speed if not already stored
-                if (!originalBaseSpeeds.containsKey(playerId)) {
-                    originalBaseSpeeds.put(playerId, settings.baseSpeed);
+                // Use putIfAbsent for atomic check-and-set, then get for guaranteed non-null value
+                Float storedSpeed = originalBaseSpeeds.putIfAbsent(playerId, settings.baseSpeed);
+                if (storedSpeed == null) {
                     logger.at(Level.FINE).log("SpeedManager: Stored original base speed for player %s: %.2f",
                         playerId, settings.baseSpeed);
+                    storedSpeed = settings.baseSpeed;
                 }
 
-                float originalSpeed = originalBaseSpeeds.get(playerId);
+                float originalSpeed = storedSpeed;
                 float newSpeed = originalSpeed * combinedMultiplier;
 
                 // Apply the modified speed
@@ -217,7 +351,9 @@ public class SpeedManager {
             return; // Still have modifiers, don't restore
         }
 
-        if (!originalBaseSpeeds.containsKey(playerId)) {
+        // Use single atomic get operation to avoid race condition
+        Float originalSpeed = originalBaseSpeeds.get(playerId);
+        if (originalSpeed == null) {
             return; // No original speed stored
         }
 
@@ -232,8 +368,6 @@ public class SpeedManager {
                 if (settings == null) {
                     return;
                 }
-
-                float originalSpeed = originalBaseSpeeds.get(playerId);
                 settings.baseSpeed = originalSpeed;
 
                 // Clean up tracking
@@ -263,6 +397,8 @@ public class SpeedManager {
         energyDebuffMultipliers.remove(playerId);
         thirstDebuffMultipliers.remove(playerId);
         buffMultipliers.remove(playerId);
+        abilitySpeedMultipliers.remove(playerId);
+        permanentSpeedMultipliers.remove(playerId);
         lastAppliedMultipliers.remove(playerId);
     }
 }

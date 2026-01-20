@@ -9,6 +9,7 @@ import com.livinglands.modules.metabolism.config.MetabolismModuleConfig;
 import com.livinglands.modules.metabolism.listeners.FoodConsumptionProcessor;
 import com.livinglands.modules.metabolism.poison.PoisonEffectsSystem;
 import com.livinglands.modules.metabolism.debuff.DebuffEffectsSystem;
+import com.livinglands.core.util.SpeedManager;
 
 import java.nio.file.Path;
 
@@ -92,16 +93,20 @@ public class MetabolismSystem {
      * @param logger The logger for debug output
      * @param playerRegistry The central player registry
      * @param pluginDirectory The plugin's data directory for persistence
+     * @param speedManager The centralized speed manager from CoreModule (nullable for standalone use)
      */
     public MetabolismSystem(@Nonnull MetabolismModuleConfig config, @Nonnull HytaleLogger logger,
-                            @Nonnull PlayerRegistry playerRegistry, @Nonnull Path pluginDirectory) {
+                            @Nonnull PlayerRegistry playerRegistry, @Nonnull Path pluginDirectory,
+                            SpeedManager speedManager) {
         this.config = config;
         this.logger = logger;
         this.playerRegistry = playerRegistry;
         this.playerData = new ConcurrentHashMap<>();
-        this.speedManager = new SpeedManager(logger);
+        this.speedManager = speedManager;  // Use shared SpeedManager from CoreModule
         this.debuffsSystem = new DebuffsSystem(config.debuffs, logger, playerRegistry);
-        this.debuffsSystem.setSpeedManager(speedManager); // Wire centralized speed management
+        if (speedManager != null) {
+            this.debuffsSystem.setSpeedManager(speedManager); // Wire centralized speed management
+        }
         this.poisonEffectsSystem = new PoisonEffectsSystem(config.poison, logger);
         this.poisonEffectsSystem.setMetabolismSystem(this, playerRegistry); // Wire back-reference for stat manipulation
         this.debuffEffectsSystem = new DebuffEffectsSystem(config.nativeDebuffs, logger);
@@ -336,6 +341,12 @@ public class MetabolismSystem {
      * Depletes hunger based on time and activity.
      */
     private void depleteHunger(PlayerMetabolismData data, long currentTime) {
+        // Skip depletion if paused by ability
+        if (data.isHungerDepletionPaused()) {
+            data.setLastHungerDepletion(currentTime); // Reset timer while paused
+            return;
+        }
+
         var metabolism = config.metabolism;
         var depletionRateSeconds = metabolism.hungerDepletionRate;
         var activityMultiplier = data.getCurrentActivityMultiplier();
@@ -382,6 +393,12 @@ public class MetabolismSystem {
      * Depletes energy based on time and activity.
      */
     private void depleteEnergy(PlayerMetabolismData data, long currentTime) {
+        // Skip depletion if paused by ability (stamina pause = energy pause)
+        if (data.isStaminaDepletionPaused()) {
+            data.setLastEnergyDepletion(currentTime); // Reset timer while paused
+            return;
+        }
+
         var metabolism = config.metabolism;
         var depletionRateSeconds = metabolism.energyDepletionRate;
         var activityMultiplier = data.getCurrentActivityMultiplier();
@@ -675,5 +692,41 @@ public class MetabolismSystem {
      */
     public BuffsSystem getBuffsSystem() {
         return buffsSystem;
+    }
+
+    /**
+     * Pauses or unpauses hunger depletion for a player.
+     * Used by ability system for timed buffs.
+     *
+     * @param playerUuid The player's UUID
+     * @param paused Whether to pause (true) or unpause (false)
+     */
+    public void pauseHungerDepletion(UUID playerUuid, boolean paused) {
+        var data = playerData.get(playerUuid);
+        if (data != null) {
+            data.setHungerDepletionPaused(paused);
+        }
+    }
+
+    /**
+     * Pauses or unpauses stamina (energy) depletion for a player.
+     * Used by ability system for timed buffs.
+     *
+     * @param playerUuid The player's UUID
+     * @param paused Whether to pause (true) or unpause (false)
+     */
+    public void pauseStaminaDepletion(UUID playerUuid, boolean paused) {
+        var data = playerData.get(playerUuid);
+        if (data != null) {
+            data.setStaminaDepletionPaused(paused);
+        }
+    }
+
+    /**
+     * Gets the centralized speed manager.
+     * Used by ability systems to apply speed buffs.
+     */
+    public SpeedManager getSpeedManager() {
+        return speedManager;
     }
 }

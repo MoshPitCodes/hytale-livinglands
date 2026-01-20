@@ -60,7 +60,7 @@ public class BlockPlaceTrackingSystem extends EntityEventSystem<EntityStore, Pla
             // Record this block as player-placed
             PlayerPlacedBlockChecker.recordBlockPlaced(worldId, blockPosition);
 
-            logger.at(Level.INFO).log("Tracked player-placed block at %s in world %s (total tracked: %d)",
+            logger.at(Level.FINE).log("Tracked player-placed block at %s in world %s (total tracked: %d)",
                 blockPosition, worldId, PlayerPlacedBlockChecker.getTrackedCount());
 
         } catch (Exception e) {

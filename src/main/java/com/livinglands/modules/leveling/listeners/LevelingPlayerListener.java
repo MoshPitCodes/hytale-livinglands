@@ -32,7 +32,7 @@ public class LevelingPlayerListener {
         eventRegistry.register(PlayerConnectEvent.class, this::onPlayerConnect);
         eventRegistry.register(PlayerDisconnectEvent.class, this::onPlayerDisconnect);
 
-        logger.at(Level.INFO).log("Leveling player lifecycle listener registered");
+        logger.at(Level.FINE).log("Leveling player lifecycle listener registered");
     }
 
     private void onPlayerConnect(@Nonnull PlayerConnectEvent event) {

@@ -1,9 +1,16 @@
+import java.util.Properties
+
 plugins {
     java
 }
 
+// Load version from single source of truth
+val versionProps = Properties().apply {
+    file("version.properties").reader().use { load(it) }
+}
+
 group = "com.livinglands"
-version = "2.3.4-beta"
+version = versionProps.getProperty("mod.version") ?: "unknown"
 
 repositories {
     mavenCentral()
@@ -40,6 +47,11 @@ tasks {
     compileJava {
         options.encoding = "UTF-8"
         options.release.set(25)
+    }
+
+    // Copy version.properties to resources so it's bundled in the JAR
+    processResources {
+        from("version.properties")
     }
 
     jar {

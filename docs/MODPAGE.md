@@ -2,7 +2,7 @@
 
 **Living Lands** transforms Hytale into an immersive survival experience. Manage your character's **hunger**, **thirst**, and **energy** while exploring the world. The mod integrates seamlessly with vanilla items - no new blocks or complicated recipes, just pure survival gameplay.
 
-**Version 2.3.4** features an **enhanced HUD** with semi-transparent backdrops, real-time buff/debuff indicators, a **buff/debuff system** that rewards well-maintained stats and penalizes neglect, **comprehensive consumable detection** for all vanilla items, plus a **modular architecture** - enable only the features you want!
+**Version 2.4.0** features a **completely redesigned passive abilities system** with harder-to-obtain, more impactful abilities (3 per profession at levels 15/35/60), a **death penalty** that reduces XP in random professions, **active ability buffs in the HUD** with countdown timers, plus comprehensive **thread safety improvements** across the codebase.
 
 ---
 
@@ -76,28 +76,55 @@
 
 ### Leveling System
 
-Five professions with XP and passive abilities:
+Five professions with XP and 3 passive abilities each (15 total):
 
-| Profession | XP Source | Abilities |
-|------------|-----------|-----------|
-| **Combat** | Killing mobs | Critical Strike, Lifesteal |
-| **Mining** | Breaking ores | Double Ore, Lucky Strike |
-| **Logging** | Chopping trees | Efficient Chopping, Bark Collector |
-| **Building** | Placing blocks | Material Saver |
-| **Gathering** | Harvesting | Double Harvest, Rare Find |
+| Profession | XP Source | Abilities (Lv.15 / Lv.35 / Lv.60) |
+|------------|-----------|-----------------------------------|
+| **Combat** | Killing mobs | Adrenaline Rush, Warrior's Resilience, Battle Hardened |
+| **Mining** | Breaking ores | Prospector's Eye, Efficient Extraction, Iron Constitution |
+| **Logging** | Chopping trees | Lumberjack's Vigor, Forest's Blessing, Nature's Endurance |
+| **Building** | Placing blocks | Architect's Focus, Steady Hands, Master Builder |
+| **Gathering** | Harvesting | Forager's Intuition, Nature's Gift, Survivalist |
 
 ### Passive Abilities
 
-Unlockable abilities with trigger chances:
-- **Critical Strike** - 1.5x damage on hit
-- **Lifesteal** - Heal 10% of damage dealt
-- **Double Ore** - Double ore drops
-- **Lucky Strike** - Find rare gems
-- **Efficient Chopping** - Instant tree felling
-- **Bark Collector** - Bonus wood materials
-- **Material Saver** - Don't consume blocks
-- **Double Harvest** - Double gathered resources
-- **Rare Find** - Find rare items
+Each profession has 3 abilities across 3 tiers:
+
+**Tier 1 (Lv.15)** - XP Boosters and Timed Buffs:
+| Ability | Profession | Chance | Effect |
+|---------|------------|--------|--------|
+| **Adrenaline Rush** | Combat | 8-35% | +20% speed for 10s after kill |
+| **Prospector's Eye** | Mining | 10-40% | +50% mining XP |
+| **Lumberjack's Vigor** | Logging | 10-40% | +50% logging XP |
+| **Architect's Focus** | Building | 10-40% | +100% building XP (double) |
+| **Forager's Intuition** | Gathering | 10-40% | +50% gathering XP |
+
+**Tier 2 (Lv.35)** - Resource Management:
+| Ability | Profession | Chance | Effect |
+|---------|------------|--------|--------|
+| **Warrior's Resilience** | Combat | 6-25% | Restore 15% max health after kill |
+| **Efficient Extraction** | Mining | 8-30% | Pause hunger for 30s |
+| **Forest's Blessing** | Logging | 8-30% | Restore 5 energy |
+| **Steady Hands** | Building | 8-30% | Pause stamina for 30s |
+| **Nature's Gift** | Gathering | 6-25% | Restore 3 hunger and 3 thirst |
+
+**Tier 3 (Lv.60)** - Permanent Passives (Always Active):
+| Ability | Profession | Effect |
+|---------|------------|--------|
+| **Battle Hardened** | Combat | +10% max health |
+| **Iron Constitution** | Mining | +15% max stamina |
+| **Nature's Endurance** | Logging | +10% movement speed |
+| **Master Builder** | Building | +10% max stamina |
+| **Survivalist** | Gathering | -15% hunger/thirst depletion |
+
+Trigger chances increase as you level up beyond the unlock level.
+
+### Death Penalty
+
+When you die:
+- **85% XP Loss** in 2 randomly selected professions
+- **Level Protection** - You can never lose a level from death (minimum XP = 0 for current level)
+- **Chat Feedback** - Shows which professions were affected and how much XP was lost
 
 ---
 

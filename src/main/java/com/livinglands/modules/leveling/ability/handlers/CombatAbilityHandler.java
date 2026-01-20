@@ -12,10 +12,14 @@ import java.util.logging.Level;
 
 /**
  * Handler for combat-related passive abilities.
- * Handles Critical Strike and Lifesteal abilities.
  *
- * Note: Direct damage events are not currently available in the Hytale API.
- * This handler provides methods that can be called when damage events become available.
+ * New Abilities:
+ * - Adrenaline Rush (Tier 1, Lv.15): +20% speed for 10s after kill
+ * - Warrior's Resilience (Tier 2, Lv.35): Restore 15% max health after kill
+ * - Battle Hardened (Tier 3, Lv.60): Permanent +10% max health (handled by PermanentBuffManager)
+ *
+ * Note: Kill events are handled by CombatXpSystem (ECS).
+ * This handler provides methods that can be called by CombatXpSystem when kills occur.
  */
 public class CombatAbilityHandler {
 
@@ -32,44 +36,29 @@ public class CombatAbilityHandler {
     }
 
     public void register(@Nonnull EventRegistry eventRegistry) {
-        // Note: Damage events are not available in the current Hytale API.
-        // This handler provides trigger methods for when events are available.
-        logger.at(Level.INFO).log("Combat ability handler registered (damage events pending)");
+        // Kill events are handled by CombatXpSystem (ECS) which calls onKill()
+        logger.at(Level.FINE).log("Combat ability handler registered");
     }
 
     /**
-     * Check and apply Critical Strike when damage is dealt.
-     * Returns the modified damage amount.
+     * Called by CombatXpSystem when a player kills an entity.
+     * Checks and applies combat abilities.
      *
-     * @param playerId The attacking player
-     * @param baseDamage The base damage amount
-     * @return Modified damage (1.5x if crit triggers, else unchanged)
+     * @param playerId The killing player's UUID
      */
-    public float checkCriticalStrike(@Nonnull UUID playerId, float baseDamage) {
-        if (abilitySystem.shouldTrigger(playerId, AbilityType.CRITICAL_STRIKE)) {
-            float modifiedDamage = abilitySystem.applyCriticalStrike(baseDamage);
-            abilitySystem.logAbilityTrigger(playerId, AbilityType.CRITICAL_STRIKE,
-                String.format("%.1f -> %.1f damage", baseDamage, modifiedDamage));
-            return modifiedDamage;
+    public void onKill(@Nonnull UUID playerId) {
+        // Check Tier 1: Adrenaline Rush (+20% speed for 10s)
+        if (abilitySystem.shouldTrigger(playerId, AbilityType.ADRENALINE_RUSH)) {
+            abilitySystem.applyAdrenalineRush(playerId);
+            abilitySystem.logAbilityTrigger(playerId, AbilityType.ADRENALINE_RUSH, "Speed boost activated");
         }
-        return baseDamage;
-    }
 
-    /**
-     * Check and apply Lifesteal when damage is dealt.
-     * Returns the healing amount.
-     *
-     * @param playerId The attacking player
-     * @param damageDealt The damage dealt
-     * @return Healing amount (10% of damage if triggers, else 0)
-     */
-    public float checkLifesteal(@Nonnull UUID playerId, float damageDealt) {
-        if (abilitySystem.shouldTrigger(playerId, AbilityType.LIFESTEAL)) {
-            float healAmount = abilitySystem.calculateLifesteal(damageDealt);
-            abilitySystem.logAbilityTrigger(playerId, AbilityType.LIFESTEAL,
-                String.format("Healed %.1f HP from %.1f damage", healAmount, damageDealt));
-            return healAmount;
+        // Check Tier 2: Warrior's Resilience (health restore)
+        if (abilitySystem.shouldTrigger(playerId, AbilityType.WARRIORS_RESILIENCE)) {
+            abilitySystem.applyTier2Effect(playerId, AbilityType.WARRIORS_RESILIENCE);
+            abilitySystem.logAbilityTrigger(playerId, AbilityType.WARRIORS_RESILIENCE, "Health restored");
         }
-        return 0f;
+
+        // Note: Tier 3 (Battle Hardened) is handled by PermanentBuffManager on login
     }
 }

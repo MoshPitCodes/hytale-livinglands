@@ -130,7 +130,7 @@ public class FoodConsumptionProcessor {
         if (actualHunger > 0 || actualThirst > 0 || actualEnergy > 0) {
             sendFeedback(player, actualHunger, actualThirst, actualEnergy);
 
-            logger.at(Level.INFO).log(
+            logger.at(Level.FINE).log(
                 "Player %s consumed food (%s, tier %d): hunger +%.1f, thirst +%.1f, energy +%.1f",
                 playerId, consumption.effectId(), tier, actualHunger, actualThirst, actualEnergy
             );

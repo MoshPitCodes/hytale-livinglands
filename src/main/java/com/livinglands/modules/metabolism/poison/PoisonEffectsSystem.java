@@ -129,7 +129,7 @@ public class PoisonEffectsSystem {
         // Replace any existing poison effect
         activePoisonStates.put(playerId, new ActivePoisonState(resolvedType, duration));
 
-        logger.at(Level.INFO).log("Applied %s poison to player %s (duration: %.1fs)",
+        logger.at(Level.FINE).log("Applied %s poison to player %s (duration: %.1fs)",
             resolvedType, playerId, duration);
     }
 
@@ -324,7 +324,7 @@ public class PoisonEffectsSystem {
                 if (state.ticksApplied >= drainTicks) {
                     state.inRecoveryPhase = true;
                     state.lastTickTime = currentTime;
-                    logger.at(Level.INFO).log("Player %s entering purge recovery phase", playerId);
+                    logger.at(Level.FINE).log("Player %s entering purge recovery phase", playerId);
                 }
             }
         }
@@ -401,7 +401,7 @@ public class PoisonEffectsSystem {
     public void removePoison(@Nonnull UUID playerId) {
         var removed = activePoisonStates.remove(playerId);
         if (removed != null) {
-            logger.at(Level.INFO).log("Removed consumable poison effect from player %s", playerId);
+            logger.at(Level.FINE).log("Removed consumable poison effect from player %s", playerId);
         }
     }
 

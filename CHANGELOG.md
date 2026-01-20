@@ -2,6 +2,83 @@
 
 All notable changes to Living Lands will be documented in this file.
 
+## [2.4.0-beta] - 2026-01-20
+
+### Added
+
+#### Passive Abilities Redesign
+Complete redesign of the passive abilities system with harder-to-obtain, more impactful abilities:
+
+**New Ability Structure (3 per Profession)**:
+| Profession | Tier 1 (Lv.15) | Tier 2 (Lv.35) | Tier 3 (Lv.60) |
+|------------|----------------|----------------|----------------|
+| **Combat** | Adrenaline Rush (+20% speed on kill) | Warrior's Resilience (15% health restore) | Battle Hardened (+10% max health) |
+| **Mining** | Prospector's Eye (+50% XP) | Efficient Extraction (no hunger drain 30s) | Iron Constitution (+15% max stamina) |
+| **Logging** | Lumberjack's Vigor (+50% XP) | Forest's Blessing (+5 energy) | Nature's Endurance (+10% speed) |
+| **Building** | Architect's Focus (+100% XP) | Steady Hands (no stamina drain 30s) | Master Builder (+10% max stamina) |
+| **Gathering** | Forager's Intuition (+50% XP) | Nature's Gift (+3 hunger/thirst) | Survivalist (-15% metabolism drain) |
+
+- **Higher Unlock Levels** - Abilities now unlock at 15, 35, 60 instead of 1, 5, 10, 15
+- **Tier 3 Permanent Passives** - Level 60 abilities are always-active stat bonuses
+- **Timed Buff Management** - Tier 2 abilities apply temporary buffs with countdown timers
+- **Audio/Visual Feedback** - Abilities trigger chat messages AND sound effects
+
+#### Active Ability Buffs in HUD
+- **Cyan Buff Indicators** - Active ability buffs (from passive abilities) now display in the HUD
+- **Countdown Timers** - Shows remaining duration for timed ability buffs
+- **Up to 3 Ability Buffs** - Three slots for ability-triggered buffs alongside metabolism buffs/debuffs
+
+#### Death Penalty System
+- **XP Loss on Death** - Dying reduces XP by 85% in 2 random professions
+- **Level Protection** - Death penalty never causes level-down (minimum XP = 0 for current level)
+- **Immediate Persistence** - XP loss is saved immediately after death
+- **Chat Feedback** - Colored messages show which professions lost XP and how much
+
+#### Centralized Death Detection
+- **PlayerDeathBroadcaster** - Shared utility in CoreModule for death events
+- **Consumer-Based Listeners** - Modules can subscribe to death events via `addListener(Consumer<UUID>)`
+- **Used By** - Both Metabolism (stat reset) and Leveling (death penalty) modules
+
+#### Automated Version Management
+- **Single Source of Truth** - Version now defined in `version.properties`
+- **Gradle Integration** - `build.gradle.kts` reads version from properties file
+- **Runtime Access** - `ModVersion.get()` provides version string at runtime
+- **No More Drift** - JAR filename and in-game display always match
+
+### Changed
+
+#### Thread Safety Improvements
+Comprehensive thread safety audit and fixes across the codebase:
+
+- **ProfessionData** - XP and level now use `AtomicLong`/`AtomicInteger` for thread-safe operations
+- **PlayerMetabolismData** - All stat access methods now `synchronized`
+- **LevelingSystem** - `awardXp()` and `applyDeathPenalty()` use synchronized blocks
+- **HudModule** - Atomic initialization pattern prevents duplicate player HUD setup
+- **SpeedManager** - New `addBuffMultiplier()` method for atomic buff stacking
+- **TimedBuffManager** - Atomic speed operations and improved shutdown handling
+- **CombatXpSystem** - Better deduplication using target entity ref hash
+- **PlayerSession** - Fixed ECS ready race condition with proper state tracking
+
+#### Random Number Generation
+- **ThreadLocalRandom** - Replaced shared `Random` instances with `ThreadLocalRandom.current()` for concurrent access
+
+### Fixed
+
+- **Speed Buff Race Condition** - Fixed race between ability buffs and metabolism speed modifications
+- **Combat XP Deduplication** - Fixed potential double XP from same kill event
+- **HUD Initialization** - Fixed rare duplicate HUD initialization for same player
+- **Version Mismatch** - Fixed in-game version showing old value (was hardcoded, now dynamic)
+
+### Technical Details
+- New `PlayerDeathBroadcaster` ECS system in `com.livinglands.core`
+- New `ModVersion` utility class for runtime version access
+- New `version.properties` file as single source of truth
+- `TimedBuffManager.getActiveBuffsForDisplay()` for HUD integration
+- `AbilityBuff1-3` slots added to `LivingLandsHud.ui` with cyan color (#00CED1)
+- 57 files changed with 2,645 additions and 1,022 deletions
+
+---
+
 ## [2.3.4-beta] - 2026-01-20
 
 ### Changed

@@ -66,7 +66,7 @@ public final class PlayerPlacedBlockChecker {
         worldPlacedBlocks.putAll(loadedData);
 
         int totalBlocks = worldPlacedBlocks.values().stream().mapToInt(Set::size).sum();
-        logger.at(Level.INFO).log("PlayerPlacedBlockChecker initialized with %d tracked blocks across %d worlds",
+        logger.at(Level.FINE).log("PlayerPlacedBlockChecker initialized with %d tracked blocks across %d worlds",
             totalBlocks, worldPlacedBlocks.size());
     }
 

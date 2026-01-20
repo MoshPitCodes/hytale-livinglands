@@ -41,7 +41,7 @@ public class MiningXpListener {
         // - Extract block type and player from event
         // - Check if it's an ore and award XP
 
-        logger.at(Level.INFO).log("Mining XP listener registered (ECS integration pending)");
+        logger.at(Level.FINE).log("Mining XP listener registered (ECS integration pending)");
     }
 
     /**

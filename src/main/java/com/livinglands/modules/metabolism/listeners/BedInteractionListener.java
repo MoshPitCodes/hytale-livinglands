@@ -63,7 +63,7 @@ public class BedInteractionListener {
         this.sleepConfig = module.getConfig().sleep;
 
         eventRegistry.registerGlobal(UseBlockEvent.Post.class, this::onEntityUseBlock);
-        logger.at(Level.INFO).log(
+        logger.at(Level.FINE).log(
             "[Metabolism] Registered bed interaction listener (energy: %.0f, cooldown: %dms)",
             sleepConfig.energyRestoreAmount(),
             sleepConfig.cooldownMs()
@@ -322,7 +322,7 @@ public class BedInteractionListener {
                 }
             }
 
-            logger.at(Level.INFO).log(
+            logger.at(Level.FINE).log(
                 "Player %s rested in %s: energy +%.1f",
                 playerId, blockType, energyRestored
             );

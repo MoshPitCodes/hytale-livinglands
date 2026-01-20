@@ -266,29 +266,67 @@ Living Lands includes a complete profession leveling system with passive abiliti
 
 ## Five Professions
 
-| Profession | XP Source | Passive Abilities |
-|------------|-----------|-------------------|
-| **Combat** | Killing mobs | Critical Strike, Lifesteal |
-| **Mining** | Breaking ores | Double Ore, Lucky Strike |
-| **Logging** | Chopping trees | Efficient Chopping, Bark Collector |
-| **Building** | Placing blocks | Material Saver |
-| **Gathering** | Harvesting plants | Double Harvest, Rare Find |
+| Profession | XP Source | Passive Abilities (3 per profession) |
+|------------|-----------|--------------------------------------|
+| **Combat** | Killing mobs | Adrenaline Rush, Warrior's Resilience, Battle Hardened |
+| **Mining** | Breaking ores | Prospector's Eye, Efficient Extraction, Iron Constitution |
+| **Logging** | Chopping trees | Lumberjack's Vigor, Forest's Blessing, Nature's Endurance |
+| **Building** | Placing blocks | Architect's Focus, Steady Hands, Master Builder |
+| **Gathering** | Harvesting plants | Forager's Intuition, Nature's Gift, Survivalist |
 
 ## Passive Abilities
 
-Passive abilities unlock at certain profession levels and have a chance to trigger:
+Each profession has **3 abilities** that unlock at specific levels:
 
-| Ability | Profession | Effect |
-|---------|------------|--------|
-| **Critical Strike** | Combat | 1.5x damage on hit |
-| **Lifesteal** | Combat | Restore 10% of damage dealt as health |
-| **Double Ore** | Mining | Double ore drops |
-| **Lucky Strike** | Mining | Chance to find rare gems |
-| **Efficient Chopping** | Logging | Instantly break entire tree |
-| **Bark Collector** | Logging | Bonus bark/planks when logging |
-| **Material Saver** | Building | Don't consume block when placing |
-| **Double Harvest** | Gathering | Double gathered resources |
-| **Rare Find** | Gathering | Find rare items while gathering |
+| Tier | Unlock Level | Type | Description |
+|------|--------------|------|-------------|
+| **Tier 1** | Level 15 | XP Boost / Timed Buff | Chance-based abilities that boost XP or provide temporary effects |
+| **Tier 2** | Level 35 | Resource Management | Chance-based abilities for stat restoration or depletion pause |
+| **Tier 3** | Level 60 | Permanent Passive | Always-active stat bonuses once unlocked |
+
+### Combat Abilities
+| Ability | Unlock | Base Chance | Effect |
+|---------|--------|-------------|--------|
+| **Adrenaline Rush** | Lv.15 | 8% → 35% | +20% movement speed for 10s after a kill |
+| **Warrior's Resilience** | Lv.35 | 6% → 25% | Restore 15% max health after a kill |
+| **Battle Hardened** | Lv.60 | Always Active | Permanent +10% max health |
+
+### Mining Abilities
+| Ability | Unlock | Base Chance | Effect |
+|---------|--------|-------------|--------|
+| **Prospector's Eye** | Lv.15 | 10% → 40% | +50% mining XP |
+| **Efficient Extraction** | Lv.35 | 8% → 30% | Pause hunger depletion for 30s |
+| **Iron Constitution** | Lv.60 | Always Active | Permanent +15% max stamina |
+
+### Logging Abilities
+| Ability | Unlock | Base Chance | Effect |
+|---------|--------|-------------|--------|
+| **Lumberjack's Vigor** | Lv.15 | 10% → 40% | +50% logging XP |
+| **Forest's Blessing** | Lv.35 | 8% → 30% | Restore 5 energy when chopping |
+| **Nature's Endurance** | Lv.60 | Always Active | Permanent +10% movement speed |
+
+### Building Abilities
+| Ability | Unlock | Base Chance | Effect |
+|---------|--------|-------------|--------|
+| **Architect's Focus** | Lv.15 | 10% → 40% | +100% building XP (double) |
+| **Steady Hands** | Lv.35 | 8% → 30% | Pause stamina depletion for 30s |
+| **Master Builder** | Lv.60 | Always Active | Permanent +10% max stamina |
+
+### Gathering Abilities
+| Ability | Unlock | Base Chance | Effect |
+|---------|--------|-------------|--------|
+| **Forager's Intuition** | Lv.15 | 10% → 40% | +50% gathering XP |
+| **Nature's Gift** | Lv.35 | 6% → 25% | Restore 3 hunger and 3 thirst |
+| **Survivalist** | Lv.60 | Always Active | Permanent -15% hunger/thirst depletion rate |
+
+### Chance Scaling
+
+Tier 1 and Tier 2 abilities have trigger chances that scale with your level:
+- Chance starts at **base chance** when unlocked
+- Increases by **+0.3-0.5%** per level above unlock
+- Caps at **max chance** (shown as → value above)
+
+Tier 3 abilities are **always active** once you reach level 60 in that profession.
 
 ## Metabolism Integration
 

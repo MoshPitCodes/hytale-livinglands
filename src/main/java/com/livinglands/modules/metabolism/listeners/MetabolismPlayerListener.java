@@ -68,7 +68,7 @@ public class MetabolismPlayerListener {
         // NOTE: Game mode change detection is done by polling in MetabolismSystem
         // The ChangeGameModeEvent is an ECS event and requires different registration
 
-        logger.at(Level.INFO).log("[Metabolism] Registered player event listeners");
+        logger.at(Level.FINE).log("[Metabolism] Registered player event listeners");
     }
 
     /**
@@ -105,7 +105,7 @@ public class MetabolismPlayerListener {
      *
      * @param event The player ready event
      */
-    @SuppressWarnings("deprecation") // getPlayerRef() is deprecated but no alternative exists yet
+    @SuppressWarnings("removal") // Player.getPlayerRef() is deprecated for removal but no alternative exists yet
     private void onPlayerReady(@Nonnull PlayerReadyEvent event) {
         try {
             // PlayerReadyEvent.getPlayerRef() returns Ref<EntityStore> (from PlayerEvent parent)

@@ -65,6 +65,9 @@ public class PlayerSession {
      * Sets the ECS references for this player.
      * Called when PlayerReadyEvent fires and we have valid ECS access.
      *
+     * Thread-safety: Sets references first, then the ready flag last to ensure
+     * proper memory visibility via volatile write semantics.
+     *
      * @param entityRef The player's entity reference
      * @param store The entity store
      * @param world The world the player is in
@@ -76,19 +79,31 @@ public class PlayerSession {
                                   @Nullable World world,
                                   @Nullable PlayerRef playerRef,
                                   @Nullable Player player) {
+        // Set references first
         this.entityRef = entityRef;
         this.store = store;
         this.world = world;
         this.playerRef = playerRef;
         this.player = player;
+
+        // Set ready flag LAST - volatile write creates happens-before relationship
+        // This ensures all reference writes are visible before ecsReady becomes true
         this.ecsReady = (entityRef != null && entityRef.isValid() && store != null && world != null);
     }
 
     /**
      * Checks if ECS references are available and valid.
+     *
+     * Thread-safety: Only checks the volatile boolean flag. The flag is set based on
+     * validation at the time of initialization. Callers should still perform null checks
+     * on retrieved references as they may become invalid after this check returns.
+     *
+     * Note: This method deliberately does NOT re-check entityRef.isValid() to avoid
+     * race conditions where the flag is true but the ref becomes invalid between check and use.
+     * The volatile read provides visibility of all writes that happened before the flag was set.
      */
     public boolean isEcsReady() {
-        return ecsReady && entityRef != null && entityRef.isValid();
+        return ecsReady;
     }
 
     /**
@@ -166,22 +181,43 @@ public class PlayerSession {
      * Executes an action on the WorldThread if ECS is ready.
      * This is the preferred way to perform ECS operations.
      *
-     * @param action The action to execute on the WorldThread
+     * IMPORTANT: This method dispatches the action asynchronously and returns immediately.
+     * The action will be executed on the WorldThread at some point in the future.
+     * There is NO guarantee about when or if the action completes successfully.
+     *
+     * Thread-safety: The action is queued on the WorldThread. If the world becomes
+     * invalid between dispatch and execution, the action may fail or be dropped.
+     * Actions should handle null references and invalid state gracefully.
+     *
+     * @param action The action to execute on the WorldThread (executed asynchronously)
      * @return true if the action was dispatched, false if ECS not ready
      */
     public boolean executeOnWorld(@Nonnull Runnable action) {
         if (!isEcsReady()) {
             return false;
         }
-        world.execute(action);
+        World worldSnapshot = this.world;
+        if (worldSnapshot == null) {
+            return false;
+        }
+        worldSnapshot.execute(action);
         return true;
     }
 
     /**
      * Invalidates the session. Called on disconnect.
+     *
+     * Thread-safety: Sets the ready flag to false FIRST before nulling references.
+     * The volatile write to ecsReady creates a happens-before relationship, ensuring
+     * that subsequent reads of ecsReady will see all the null assignments.
+     *
+     * This prevents other threads from seeing ecsReady=true with null references.
      */
     public void invalidate() {
+        // Set ready flag to false FIRST - volatile write creates happens-before relationship
         this.ecsReady = false;
+
+        // Now null out all references - these writes happen-before subsequent reads of ecsReady
         this.entityRef = null;
         this.store = null;
         this.world = null;

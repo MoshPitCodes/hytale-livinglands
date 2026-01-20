@@ -85,7 +85,7 @@ public final class ModuleManager {
         }
 
         modules.put(module.getId(), module);
-        logger.at(Level.INFO).log("Registered module: %s v%s", module.getName(), module.getVersion());
+        logger.at(Level.FINE).log("Registered module: %s v%s", module.getName(), module.getVersion());
     }
 
     /**
@@ -101,9 +101,9 @@ public final class ModuleManager {
             throw new IllegalStateException("Registries must be set before setupAll()");
         }
 
-        logger.at(Level.INFO).log("========================================");
-        logger.at(Level.INFO).log("Setting up modules...");
-        logger.at(Level.INFO).log("========================================");
+        logger.at(Level.FINE).log("========================================");
+        logger.at(Level.FINE).log("Setting up modules...");
+        logger.at(Level.FINE).log("========================================");
 
         // Auto-enable dependencies
         for (var module : modules.values()) {
@@ -146,7 +146,7 @@ public final class ModuleManager {
                             "Failed to setup module '%s'", module.getId());
                 }
             } else {
-                logger.at(Level.INFO).log("Module '%s' is disabled", module.getId());
+                logger.at(Level.FINE).log("Module '%s' is disabled", module.getId());
             }
         }
 
@@ -157,9 +157,9 @@ public final class ModuleManager {
      * Starts all modules that were successfully set up.
      */
     public void startAll() {
-        logger.at(Level.INFO).log("========================================");
-        logger.at(Level.INFO).log("Starting modules...");
-        logger.at(Level.INFO).log("========================================");
+        logger.at(Level.FINE).log("========================================");
+        logger.at(Level.FINE).log("Starting modules...");
+        logger.at(Level.FINE).log("========================================");
 
         for (var module : modules.values()) {
             if (module.getState() == ModuleState.SETUP) {
@@ -177,9 +177,9 @@ public final class ModuleManager {
      * Shuts down all modules in reverse dependency order.
      */
     public void shutdownAll() {
-        logger.at(Level.INFO).log("========================================");
-        logger.at(Level.INFO).log("Shutting down modules...");
-        logger.at(Level.INFO).log("========================================");
+        logger.at(Level.FINE).log("========================================");
+        logger.at(Level.FINE).log("Shutting down modules...");
+        logger.at(Level.FINE).log("========================================");
 
         // Shutdown in reverse order
         var orderedModules = new ArrayList<>(resolveDependencyOrder());
@@ -250,7 +250,7 @@ public final class ModuleManager {
             if (!modulesConfig.isEnabled(depId)) {
                 var depModule = modules.get(depId);
                 if (depModule != null) {
-                    logger.at(Level.INFO).log(
+                    logger.at(Level.FINE).log(
                             "Auto-enabling dependency '%s' for module '%s'",
                             depId, module.getId());
                     modulesConfig.setEnabled(depId, true);
@@ -319,8 +319,8 @@ public final class ModuleManager {
      * Logs a summary of module states.
      */
     private void logModuleSummary() {
-        logger.at(Level.INFO).log("========================================");
-        logger.at(Level.INFO).log("Module Status:");
+        logger.at(Level.FINE).log("========================================");
+        logger.at(Level.FINE).log("Module Status:");
         for (var module : modules.values()) {
             var status = switch (module.getState()) {
                 case DISABLED -> "DISABLED";
@@ -329,8 +329,8 @@ public final class ModuleManager {
                 case STOPPED -> "STOPPED";
                 case ERROR -> "ERROR";
             };
-            logger.at(Level.INFO).log("  - %s: %s", module.getName(), status);
+            logger.at(Level.FINE).log("  - %s: %s", module.getName(), status);
         }
-        logger.at(Level.INFO).log("========================================");
+        logger.at(Level.FINE).log("========================================");
     }
 }

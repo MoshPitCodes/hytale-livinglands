@@ -57,7 +57,7 @@ public final class ConfigHelper {
                 return load(configPath, type, logger);
             } else {
                 if (logger != null) {
-                    logger.at(Level.INFO).log("Config not found, creating default: %s", configPath);
+                    logger.at(Level.FINE).log("Config not found, creating default: %s", configPath);
                 }
                 var defaultConfig = defaultSupplier.get();
                 save(configPath, defaultConfig, logger);

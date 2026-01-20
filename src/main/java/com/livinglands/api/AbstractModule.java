@@ -121,13 +121,13 @@ public abstract non-sealed class AbstractModule implements Module {
             // Ensure config directory exists
             Files.createDirectories(configDirectory);
 
-            logger.at(Level.INFO).log("[%s] Setting up module v%s...", name, version);
+            logger.at(Level.FINE).log("[%s] Setting up module v%s...", name, version);
 
             // Call subclass setup
             onSetup();
 
             state = ModuleState.SETUP;
-            logger.at(Level.INFO).log("[%s] Setup complete", name);
+            logger.at(Level.FINE).log("[%s] Setup complete", name);
 
         } catch (Exception e) {
             state = ModuleState.ERROR;
@@ -148,13 +148,13 @@ public abstract non-sealed class AbstractModule implements Module {
         }
 
         try {
-            logger.at(Level.INFO).log("[%s] Starting...", name);
+            logger.at(Level.FINE).log("[%s] Starting...", name);
 
             // Call subclass start
             onStart();
 
             state = ModuleState.STARTED;
-            logger.at(Level.INFO).log("[%s] Started successfully", name);
+            logger.at(Level.FINE).log("[%s] Started successfully", name);
 
         } catch (Exception e) {
             state = ModuleState.ERROR;
@@ -170,13 +170,13 @@ public abstract non-sealed class AbstractModule implements Module {
         }
 
         try {
-            logger.at(Level.INFO).log("[%s] Shutting down...", name);
+            logger.at(Level.FINE).log("[%s] Shutting down...", name);
 
             // Call subclass shutdown
             onShutdown();
 
             state = ModuleState.STOPPED;
-            logger.at(Level.INFO).log("[%s] Shutdown complete", name);
+            logger.at(Level.FINE).log("[%s] Shutdown complete", name);
 
         } catch (Exception e) {
             state = ModuleState.ERROR;
@@ -244,12 +244,12 @@ public abstract non-sealed class AbstractModule implements Module {
             if (Files.exists(configPath)) {
                 var json = Files.readString(configPath);
                 var config = GSON.fromJson(json, type);
-                logger.at(Level.INFO).log("[%s] Loaded config from %s", name, configPath);
+                logger.at(Level.FINE).log("[%s] Loaded config from %s", name, configPath);
                 return config;
             } else {
                 var defaultConfig = defaultSupplier.get();
                 saveConfig(filename, defaultConfig);
-                logger.at(Level.INFO).log("[%s] Created default config at %s", name, configPath);
+                logger.at(Level.FINE).log("[%s] Created default config at %s", name, configPath);
                 return defaultConfig;
             }
         } catch (IOException e) {
