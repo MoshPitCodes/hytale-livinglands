@@ -171,16 +171,27 @@ While affected by native Hytale debuffs, your metabolism drains:
 - T2: 100% drain rate (standard)
 - T3: 150% drain rate
 
-## Food Buffs (Detected)
+## Consumable Detection
 
-The mod detects when you consume food with buff effects:
+The mod detects when you consume food, potions, and drinks by monitoring effect application:
 
-| Buff Pattern | Type | Detected |
-|--------------|------|----------|
+| Effect Pattern | Type | Detected |
+|----------------|------|----------|
+| `Food_Instant_Heal_*` | Instant health food | ✅ |
+| `Food_Health_Restore_*` | Water/drinks | ✅ |
+| `Food_Stamina_Restore_*` | Stamina drinks | ✅ |
 | `Food_Health_Boost_*` | Defense buff | ✅ |
 | `Food_Stamina_Boost_*` | Stamina buff | ✅ |
-| `Meat_Buff_*` | Strength buff | ✅ |
-| `FruitVeggie_Buff_*` | Vitality buff | ✅ |
+| `Food_Health_Regen_*` | Health regen food | ✅ |
+| `Food_Stamina_Regen_*` | Stamina regen food | ✅ |
+| `Meat_Buff_*` | Cooked meat | ✅ |
+| `FruitVeggie_Buff_*` | Fruits/vegetables | ✅ |
+| `HealthRegen_Buff_*` | Health regen buff | ✅ |
+| `Potion_Health_*` | Health potions | ✅ |
+| `Potion_Stamina_*` | Stamina potions | ✅ |
+| `Potion_Signature_*` | Mana potions | ✅ |
+| `Potion_Morph_*` | Morph potions | ✅ |
+| `Antidote` | Milk bucket | ✅ |
 
 <br/>
 
@@ -300,11 +311,11 @@ The `/ll main` panel shows:
 
 | Command | Description |
 |---------|-------------|
-| `/stats` | View your current hunger, thirst, energy, and any active buffs |
+| `/ll stats` | View your current hunger, thirst, energy, and any active buffs |
 | `/ll main` | Toggle the Living Lands panel (shows metabolism, professions, effects, abilities) |
 | `/skillgui` | Toggle XP gain notifications |
 
-The `/stats` command displays:
+The `/ll stats` command displays:
 - Current values and status labels
 - Color-coded indicators (green = good, red = critical)
 - Active buff list
@@ -518,7 +529,7 @@ The metabolism module is optimized for **O(n) linear scaling** with player count
 # Credits
 
 - **Author**: [MoshPitCodes](https://github.com/MoshPitCodes)
-- **Version**: 2.3.2-beta
+- **Version**: 2.3.3-beta
 - **License**: Apache-2.0
 
 ### Resources

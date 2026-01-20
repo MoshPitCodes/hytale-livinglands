@@ -400,30 +400,62 @@ public class FoodEffectDetector {
 Hytale generates dynamic effect IDs. Pattern matching required:
 
 ```java
-// Health potion patterns
-"Potion_Health_Small_*"
-"Potion_Health_Large_*"
-"Potion_Regen_Health_*"
+// Food effect patterns
+"Food_Instant_Heal_*"      // Instant health food (T1/T2/T3/Bread)
+"Food_Health_Restore_*"    // Water drinks (Tiny/Small/Medium/Large)
+"Food_Stamina_Restore_*"   // Stamina drinks
+"Food_Health_Boost_*"      // Max health buff
+"Food_Stamina_Boost_*"     // Max stamina buff
+"Food_Health_Regen_*"      // Health regen food
+"Food_Stamina_Regen_*"     // Stamina regen food
+"Meat_Buff_*"              // Cooked meat (T1/T2/T3)
+"FruitVeggie_Buff_*"       // Fruits/vegetables
+"HealthRegen_Buff_*"       // Health regen buff
+"Antidote"                 // Milk bucket
 
-// Food buff patterns (for native buff detection)
-"Food_Health_Boost_*"
-"Food_Stamina_Boost_*"
-"Meat_Buff_*"
-"FruitVeggie_Buff_*"
+// Potion effect patterns
+"Potion_Health_*"          // Health potions (Instant/Regen, Lesser/Greater)
+"Potion_Stamina_*"         // Stamina potions
+"Potion_Signature_*"       // Mana/Signature potions
+"Potion_Mana_*"            // Mana potions (alternative naming)
+"Potion_Morph_*"           // Morph potions (Dog, Frog, Mosshorn, Mouse, Pigeon)
+"Potion_Regen_*"           // Generic regen potions
+```
+
+### Effect ID Retrieval
+
+Effect IDs are retrieved using multiple strategies to handle dynamic effects:
+
+```java
+private String getEffectIdFromEffect(Object effect) {
+    // Strategy 1: Try getType().getId() pattern (works for most effects)
+    // Strategy 2: Try direct getId() method
+    // Strategy 3: Fall back to asset map lookup by index
+}
 ```
 
 ### Deduplication
 
-Potions can apply multiple effects. Deduplication prevents double restoration:
+Index-based deduplication prevents double detection while allowing rapid consecutive consumption:
 
 ```java
-private static final long CONSUMABLE_COOLDOWN_MS = 500;
+// Track processed effect indexes per player
+private final Map<UUID, Set<Integer>> processedEffectIndexes = new ConcurrentHashMap<>();
 
-if (currentTime - lastConsumableTime < CONSUMABLE_COOLDOWN_MS) {
-    return; // Skip, likely same item
+// Cleanup interval allows same effect index to be re-detected
+private static final long CLEANUP_INTERVAL_MS = 200;
+
+// Skip if already processed this effect index recently
+if (processed.contains(effectIndex)) {
+    continue;
 }
-recentConsumables.put(playerId, currentTime);
+processed.add(effectIndex);
 ```
+
+This approach:
+1. Prevents duplicate detection if effect persists across ticks
+2. Allows different consumables (different effect indexes) to be detected immediately
+3. Cleans up processed indexes every 200ms for repeated consumption of same item type
 
 ### High-Frequency Detection
 
@@ -699,3 +731,4 @@ public record DebuffsConfig(
 | 2.3.0-beta | Enhanced HUD, passive abilities panel, leveling integration |
 | 2.3.1-beta | Death detection fix, mining/logging XP exploit fix, block persistence |
 | 2.3.2-beta | Speed flickering fix via centralized SpeedManager |
+| 2.3.3-beta | Comprehensive consumable detection, reflection-based effect ID retrieval |
