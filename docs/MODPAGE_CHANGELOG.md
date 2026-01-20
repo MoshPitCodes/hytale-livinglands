@@ -4,6 +4,26 @@ All notable changes to Living Lands for players and server administrators.
 
 ---
 
+## Version 2.4.1-beta - January 2026
+
+### Bug Fixes
+
+#### Stats Display Correctly on Login
+- Fixed an issue where health and stamina could show incorrect values after logging in
+- Old buff bonuses from previous sessions no longer persist incorrectly
+- Stats now properly reflect your actual ability unlocks and metabolism state
+
+#### All Tier 2 Abilities Now Working
+- **Warrior's Resilience** (Combat Lv.35) - Now properly heals you after kills
+- **Survivalist** (Gathering Lv.60) - Hunger and thirst now drain 15% slower as intended
+- All profession activities now correctly trigger their Tier 2 abilities
+
+### Technical Improvements
+- Improved stat modifier cleanup on player login
+- Better synchronization between mod data and game saves
+
+---
+
 ## Version 2.4.0-beta - January 2026
 
 ### New Features

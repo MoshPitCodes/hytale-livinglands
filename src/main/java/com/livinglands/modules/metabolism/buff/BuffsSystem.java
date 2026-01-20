@@ -372,4 +372,61 @@ public class BuffsSystem {
         staminaBuffedPlayers.remove(playerId);
         // Note: SpeedManager cleanup is handled separately
     }
+
+    /**
+     * Clean up any stale buff modifiers that Hytale may have persisted from a previous session.
+     * Called on player login/ready before the first metabolism tick runs.
+     *
+     * This ensures players start with clean stats and buffs are re-applied based on
+     * actual current metabolism levels, not persisted modifiers from old sessions.
+     *
+     * @param playerId The player's UUID
+     */
+    public void cleanupStaleModifiers(UUID playerId) {
+        if (!config.enabled) {
+            return;
+        }
+
+        var sessionOpt = playerRegistry.getSession(playerId);
+        if (sessionOpt.isEmpty() || !sessionOpt.get().isEcsReady()) {
+            return;
+        }
+
+        var session = sessionOpt.get();
+        var ref = session.getEntityRef();
+        var store = session.getStore();
+        var world = session.getWorld();
+
+        if (ref == null || store == null || world == null) {
+            return;
+        }
+
+        // Remove any persisted buff modifiers - they'll be re-applied by processBuffs()
+        // based on actual current metabolism levels
+        world.execute(() -> {
+            try {
+                var statMap = store.getComponent(ref, EntityStatMap.getComponentType());
+                if (statMap == null) return;
+
+                // Remove health buff modifier if it exists
+                var healthStatId = DefaultEntityStatTypes.getHealth();
+                statMap.removeModifier(healthStatId, MODIFIER_KEY_HEALTH);
+
+                // Remove stamina buff modifier if it exists
+                var staminaStatId = DefaultEntityStatTypes.getStamina();
+                statMap.removeModifier(staminaStatId, MODIFIER_KEY_STAMINA);
+
+                logger.at(Level.FINE).log("Cleaned up stale metabolism buff modifiers for %s", playerId);
+            } catch (Exception e) {
+                logger.at(Level.WARNING).withCause(e).log(
+                    "Failed to clean up stale buff modifiers for %s", playerId
+                );
+            }
+        });
+
+        // Clear tracking state - buffs will be re-evaluated on next tick
+        speedBuffedPlayers.remove(playerId);
+        defenseBuffedPlayers.remove(playerId);
+        staminaBuffedPlayers.remove(playerId);
+    }
 }

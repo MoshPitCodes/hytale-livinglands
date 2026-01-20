@@ -125,6 +125,15 @@ public class MetabolismPlayerListener {
             // Set ECS references in central PlayerRegistry (including Player for game mode polling)
             playerRegistry.setEcsReferences(playerId, entityRef, store, null, playerRef, player);
 
+            // Clean up any stale buff modifiers that Hytale may have persisted from previous sessions
+            // This must happen after ECS refs are set but before HUD init and first metabolism tick
+            if (metabolismSystem != null) {
+                var buffsSystem = metabolismSystem.getBuffsSystem();
+                if (buffsSystem != null) {
+                    buffsSystem.cleanupStaleModifiers(playerId);
+                }
+            }
+
             // Initialize HUD for this player (HudModule handles single combined HUD)
             if (hudModule != null) {
                 hudModule.initializePlayer(playerId);

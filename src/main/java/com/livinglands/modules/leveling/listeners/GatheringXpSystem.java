@@ -11,10 +11,12 @@ import com.hypixel.hytale.server.core.event.events.ecs.InteractivelyPickupItemEv
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.livinglands.modules.leveling.LevelingSystem;
+import com.livinglands.modules.leveling.ability.handlers.GatheringAbilityHandler;
 import com.livinglands.modules.leveling.config.LevelingModuleConfig;
 import com.livinglands.modules.leveling.profession.ProfessionType;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,6 +33,9 @@ public class GatheringXpSystem extends EntityEventSystem<EntityStore, Interactiv
     private final HytaleLogger logger;
     private final ComponentType<EntityStore, PlayerRef> playerRefType;
 
+    @Nullable
+    private GatheringAbilityHandler abilityHandler;
+
     // Cooldown tracking to prevent XP spam
     private final Map<UUID, Long> lastXpAwardTime = new ConcurrentHashMap<>();
     private static final long XP_COOLDOWN_MS = 500; // 500ms cooldown between XP awards
@@ -43,6 +48,13 @@ public class GatheringXpSystem extends EntityEventSystem<EntityStore, Interactiv
         this.config = config;
         this.logger = logger;
         this.playerRefType = PlayerRef.getComponentType();
+    }
+
+    /**
+     * Sets the gathering ability handler for triggering gathering abilities on item pickup.
+     */
+    public void setAbilityHandler(@Nullable GatheringAbilityHandler abilityHandler) {
+        this.abilityHandler = abilityHandler;
     }
 
     @Override
@@ -87,6 +99,11 @@ public class GatheringXpSystem extends EntityEventSystem<EntityStore, Interactiv
 
             logger.at(Level.FINE).log("Awarded %d Gathering XP to player %s for picking up %s",
                 xp, playerId, itemId);
+
+            // Trigger gathering abilities (Nature's Gift)
+            if (abilityHandler != null) {
+                abilityHandler.onItemGathered(playerId);
+            }
 
         } catch (Exception e) {
             logger.at(Level.WARNING).withCause(e).log("Error processing gathering XP");

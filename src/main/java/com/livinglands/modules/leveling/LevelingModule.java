@@ -136,7 +136,9 @@ public final class LevelingModule extends AbstractModule {
                 var metabolismSystem = metabolism.getSystem();
                 timedBuffManager.setMetabolismSystem(metabolismSystem);
                 abilitySystem.setMetabolismSystem(metabolismSystem);
-                logger.at(Level.FINE).log("[%s] Metabolism integration enabled", name);
+                // Wire permanent buff manager to metabolism system for Survivalist ability
+                metabolismSystem.setPermanentBuffManager(permanentBuffManager);
+                logger.at(Level.FINE).log("[%s] Metabolism integration enabled (including Survivalist ability)", name);
             });
 
         // Try to integrate with notification module (optional, for ability unlock notifications)
@@ -174,24 +176,40 @@ public final class LevelingModule extends AbstractModule {
         );
 
         // Mining XP system (ECS - responds to BreakBlockEvent for ores)
-        entityStoreRegistry.registerSystem(
-            new com.livinglands.modules.leveling.listeners.MiningXpSystem(system, config, logger)
+        // Wire with MiningAbilityHandler for Tier 2 abilities
+        var miningAbilityHandler = new com.livinglands.modules.leveling.ability.handlers.MiningAbilityHandler(
+            abilitySystem, playerRegistry, logger
         );
+        var miningXpSystem = new com.livinglands.modules.leveling.listeners.MiningXpSystem(system, config, logger);
+        miningXpSystem.setAbilityHandler(miningAbilityHandler);
+        entityStoreRegistry.registerSystem(miningXpSystem);
 
         // Logging XP system (ECS - responds to BreakBlockEvent for logs)
-        entityStoreRegistry.registerSystem(
-            new com.livinglands.modules.leveling.listeners.LoggingXpSystem(system, config, logger)
+        // Wire with LoggingAbilityHandler for Tier 2 abilities
+        var loggingAbilityHandler = new com.livinglands.modules.leveling.ability.handlers.LoggingAbilityHandler(
+            abilitySystem, playerRegistry, logger
         );
+        var loggingXpSystem = new com.livinglands.modules.leveling.listeners.LoggingXpSystem(system, config, logger);
+        loggingXpSystem.setAbilityHandler(loggingAbilityHandler);
+        entityStoreRegistry.registerSystem(loggingXpSystem);
 
         // Building XP system (ECS - responds to PlaceBlockEvent)
-        entityStoreRegistry.registerSystem(
-            new com.livinglands.modules.leveling.listeners.BuildingXpSystem(system, config, logger)
+        // Wire with BuildingAbilityHandler for Tier 2 abilities
+        var buildingAbilityHandler = new com.livinglands.modules.leveling.ability.handlers.BuildingAbilityHandler(
+            abilitySystem, playerRegistry, logger
         );
+        var buildingXpSystem = new com.livinglands.modules.leveling.listeners.BuildingXpSystem(system, config, logger);
+        buildingXpSystem.setAbilityHandler(buildingAbilityHandler);
+        entityStoreRegistry.registerSystem(buildingXpSystem);
 
         // Gathering XP system (ECS - responds to InteractivelyPickupItemEvent)
-        entityStoreRegistry.registerSystem(
-            new com.livinglands.modules.leveling.listeners.GatheringXpSystem(system, config, logger)
+        // Wire with GatheringAbilityHandler for Tier 2 abilities
+        var gatheringAbilityHandler = new com.livinglands.modules.leveling.ability.handlers.GatheringAbilityHandler(
+            abilitySystem, playerRegistry, logger
         );
+        var gatheringXpSystem = new com.livinglands.modules.leveling.listeners.GatheringXpSystem(system, config, logger);
+        gatheringXpSystem.setAbilityHandler(gatheringAbilityHandler);
+        entityStoreRegistry.registerSystem(gatheringXpSystem);
 
         // Combat XP system (ECS - responds to KillFeedEvent)
         // Create CombatAbilityHandler first so we can wire it to CombatXpSystem
@@ -206,33 +224,21 @@ public final class LevelingModule extends AbstractModule {
     }
 
     private void registerAbilityHandlers() {
-        var eventRegistry = context.eventRegistry();
-        var playerRegistry = context.playerRegistry();
+        // All ability handlers are now wired directly to their respective XP systems
+        // in registerXpListeners() - this ensures abilities are triggered when XP is awarded.
+        //
+        // Handler wiring:
+        // - CombatAbilityHandler -> CombatXpSystem (kills)
+        // - MiningAbilityHandler -> MiningXpSystem (ore breaks)
+        // - LoggingAbilityHandler -> LoggingXpSystem (wood breaks)
+        // - BuildingAbilityHandler -> BuildingXpSystem (block placements)
+        // - GatheringAbilityHandler -> GatheringXpSystem (item pickups)
+        //
+        // Tier 1 abilities (XP boosts) are handled in LevelingSystem.awardXp()
+        // Tier 2 abilities (triggered effects) are handled by the ability handlers
+        // Tier 3 abilities (permanent buffs) are handled by PermanentBuffManager
 
-        // Combat abilities are handled by CombatXpSystem (wired in registerXpListeners)
-        // This avoids duplicate handler creation
-
-        // Mining abilities (Double Ore, Lucky Strike)
-        new com.livinglands.modules.leveling.ability.handlers.MiningAbilityHandler(
-            abilitySystem, playerRegistry, logger
-        ).register(eventRegistry);
-
-        // Logging abilities (Efficient Chopping, Bark Collector)
-        new com.livinglands.modules.leveling.ability.handlers.LoggingAbilityHandler(
-            abilitySystem, playerRegistry, logger
-        ).register(eventRegistry);
-
-        // Building abilities (Material Saver)
-        new com.livinglands.modules.leveling.ability.handlers.BuildingAbilityHandler(
-            abilitySystem, playerRegistry, logger
-        ).register(eventRegistry);
-
-        // Gathering abilities (Double Harvest, Rare Find)
-        new com.livinglands.modules.leveling.ability.handlers.GatheringAbilityHandler(
-            abilitySystem, playerRegistry, logger
-        ).register(eventRegistry);
-
-        logger.at(Level.FINE).log("[%s] Registered all profession ability handlers", name);
+        logger.at(Level.FINE).log("[%s] Ability handlers wired to XP systems", name);
     }
 
     private void registerCommands() {

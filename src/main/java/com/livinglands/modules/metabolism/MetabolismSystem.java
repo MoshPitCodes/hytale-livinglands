@@ -86,6 +86,10 @@ public class MetabolismSystem {
     // Centralized speed management to prevent conflicts between buff and debuff systems
     private final SpeedManager speedManager;
 
+    // Permanent buff manager for ability-based metabolism reduction (Survivalist)
+    @javax.annotation.Nullable
+    private com.livinglands.modules.leveling.ability.PermanentBuffManager permanentBuffManager;
+
     /**
      * Creates a new metabolism system.
      *
@@ -351,8 +355,12 @@ public class MetabolismSystem {
         var depletionRateSeconds = metabolism.hungerDepletionRate;
         var activityMultiplier = data.getCurrentActivityMultiplier();
 
+        // Apply Survivalist ability reduction (slower depletion = longer interval)
+        float survivalistMultiplier = getSurvivalistMultiplier(data.getPlayerUuid());
+
         // Calculate adjusted depletion rate
-        var adjustedRateSeconds = depletionRateSeconds / activityMultiplier;
+        // Higher survivalistMultiplier (e.g., 1.0 / 0.85 = 1.176) = slower depletion
+        var adjustedRateSeconds = (depletionRateSeconds / activityMultiplier) / survivalistMultiplier;
         var depletionIntervalMs = (long) (adjustedRateSeconds * 1000);
 
         // Check if enough time has passed
@@ -374,8 +382,12 @@ public class MetabolismSystem {
         var depletionRateSeconds = metabolism.thirstDepletionRate;
         var activityMultiplier = data.getCurrentActivityMultiplier();
 
+        // Apply Survivalist ability reduction (slower depletion = longer interval)
+        float survivalistMultiplier = getSurvivalistMultiplier(data.getPlayerUuid());
+
         // Calculate adjusted depletion rate
-        var adjustedRateSeconds = depletionRateSeconds / activityMultiplier;
+        // Higher survivalistMultiplier (e.g., 1.0 / 0.85 = 1.176) = slower depletion
+        var adjustedRateSeconds = (depletionRateSeconds / activityMultiplier) / survivalistMultiplier;
         var depletionIntervalMs = (long) (adjustedRateSeconds * 1000);
 
         // Check if enough time has passed
@@ -685,6 +697,31 @@ public class MetabolismSystem {
         if (buffsSystem != null) {
             buffsSystem.setSpeedManager(speedManager);
         }
+    }
+
+    /**
+     * Sets the permanent buff manager for ability-based metabolism reduction.
+     * Called by LevelingModule to enable Survivalist ability integration.
+     */
+    public void setPermanentBuffManager(@javax.annotation.Nullable com.livinglands.modules.leveling.ability.PermanentBuffManager manager) {
+        this.permanentBuffManager = manager;
+    }
+
+    /**
+     * Gets the survivalist ability multiplier for a player.
+     * Returns a value that affects the depletion interval:
+     * - 1.0 = normal depletion rate
+     * - < 1.0 = slower depletion (Survivalist active: 0.85 = 15% slower)
+     *
+     * The multiplier is inverted in the depletion formula:
+     * adjustedRate = baseRate / survivalistMultiplier
+     * So 0.85 multiplier -> adjustedRate = baseRate / 0.85 = longer interval = slower depletion
+     */
+    private float getSurvivalistMultiplier(UUID playerId) {
+        if (permanentBuffManager == null) {
+            return 1.0f;
+        }
+        return permanentBuffManager.getMetabolismDepletionMultiplier(playerId);
     }
 
     /**
