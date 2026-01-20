@@ -246,7 +246,7 @@ public class SpeedManager {
                     movementManager.update(playerRef.getPacketHandler());
                 }
 
-                logger.at(Level.INFO).log("SpeedManager: Restored original speed for player %s: %.2f",
+                logger.at(Level.FINE).log("SpeedManager: Restored original speed for player %s: %.2f",
                     playerId, originalSpeed);
 
             } catch (Exception e) {

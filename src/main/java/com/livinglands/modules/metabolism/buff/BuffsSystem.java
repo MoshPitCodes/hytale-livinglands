@@ -157,14 +157,14 @@ public class BuffsSystem {
             buffedPlayers.add(playerId);
             applyStatModifier(playerId, buffType, config.multiplier, ref, store, world);
             sendBuffMessage(player, buffType, true);
-            logger.at(Level.INFO).log("Player %s gained %s buff (stat: %.1f >= %.1f)",
+            logger.at(Level.FINE).log("Player %s gained %s buff (stat: %.1f >= %.1f)",
                 playerId, buffType.getDisplayName(), statValue, config.activationThreshold);
         } else if (isBuffed && statValue < config.deactivationThreshold) {
             // Deactivate buff (hysteresis)
             buffedPlayers.remove(playerId);
             removeStatModifier(playerId, buffType, ref, store, world);
             sendBuffMessage(player, buffType, false);
-            logger.at(Level.INFO).log("Player %s lost %s buff (stat: %.1f < %.1f)",
+            logger.at(Level.FINE).log("Player %s lost %s buff (stat: %.1f < %.1f)",
                 playerId, buffType.getDisplayName(), statValue, config.deactivationThreshold);
         }
     }
@@ -185,7 +185,7 @@ public class BuffsSystem {
         if (buffType == BuffType.SPEED) {
             if (speedManager != null) {
                 speedManager.setBuffMultiplier(playerId, multiplier);
-                logger.at(Level.INFO).log("Set speed buff multiplier for player %s: %.2f", playerId, multiplier);
+                logger.at(Level.FINE).log("Set speed buff multiplier for player %s: %.2f", playerId, multiplier);
             }
             return;
         }
@@ -204,7 +204,7 @@ public class BuffsSystem {
                                 multiplier
                             );
                             statMap.putModifier(healthStatId, MODIFIER_KEY_HEALTH, modifier);
-                            logger.at(Level.INFO).log("Applied health buff to player %s: %.2fx", playerId, multiplier);
+                            logger.at(Level.FINE).log("Applied health buff to player %s: %.2fx", playerId, multiplier);
                         }
                     }
                     case STAMINA_REGEN -> {
@@ -218,7 +218,7 @@ public class BuffsSystem {
                                 multiplier
                             );
                             statMap.putModifier(staminaStatId, MODIFIER_KEY_STAMINA, modifier);
-                            logger.at(Level.INFO).log("Applied stamina buff to player %s: %.2fx", playerId, multiplier);
+                            logger.at(Level.FINE).log("Applied stamina buff to player %s: %.2fx", playerId, multiplier);
                         }
                     }
                     default -> {}
@@ -244,7 +244,7 @@ public class BuffsSystem {
         if (buffType == BuffType.SPEED) {
             if (speedManager != null) {
                 speedManager.clearBuffMultiplier(playerId);
-                logger.at(Level.INFO).log("Cleared speed buff multiplier for player %s", playerId);
+                logger.at(Level.FINE).log("Cleared speed buff multiplier for player %s", playerId);
             }
             return;
         }
@@ -257,7 +257,7 @@ public class BuffsSystem {
                         if (statMap != null) {
                             var healthStatId = DefaultEntityStatTypes.getHealth();
                             statMap.removeModifier(healthStatId, MODIFIER_KEY_HEALTH);
-                            logger.at(Level.INFO).log("Removed health buff from player %s", playerId);
+                            logger.at(Level.FINE).log("Removed health buff from player %s", playerId);
                         }
                     }
                     case STAMINA_REGEN -> {
@@ -265,7 +265,7 @@ public class BuffsSystem {
                         if (statMap != null) {
                             var staminaStatId = DefaultEntityStatTypes.getStamina();
                             statMap.removeModifier(staminaStatId, MODIFIER_KEY_STAMINA);
-                            logger.at(Level.INFO).log("Removed stamina buff from player %s", playerId);
+                            logger.at(Level.FINE).log("Removed stamina buff from player %s", playerId);
                         }
                     }
                     default -> {}
@@ -297,7 +297,7 @@ public class BuffsSystem {
         }
 
         if (hadBuffs) {
-            logger.at(Level.INFO).log("Removed all buffs from player %s (debuffs active)", playerId);
+            logger.at(Level.FINE).log("Removed all buffs from player %s (debuffs active)", playerId);
             if (player != null) {
                 try {
                     player.sendMessage(

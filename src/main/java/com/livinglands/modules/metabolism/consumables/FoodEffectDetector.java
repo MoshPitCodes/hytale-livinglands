@@ -221,7 +221,7 @@ public class FoodEffectDetector {
                         determineFoodType(effectId)
                     ));
 
-                    logger.at(Level.INFO).log(
+                    logger.at(Level.FINE).log(
                         "Detected consumable for player %s: %s (tier: %d, type: %s)",
                         playerId, effectId, determineFoodTier(effectId), determineFoodType(effectId)
                     );

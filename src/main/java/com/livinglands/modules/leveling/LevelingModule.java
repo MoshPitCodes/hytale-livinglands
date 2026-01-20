@@ -71,7 +71,7 @@ public final class LevelingModule extends AbstractModule {
         if (hudModuleOpt.isPresent()) {
             var hudModule = hudModuleOpt.get();
 
-            // Skill GUI element (for temporary XP gain popups, toggled by /skillgui)
+            // Skill GUI element (for temporary XP gain popups)
             skillGuiElement = new SkillGuiElement(system, config);
             skillGuiElement.setHudModule(hudModule);
             hudModule.registerElement(skillGuiElement);
@@ -184,17 +184,12 @@ public final class LevelingModule extends AbstractModule {
     private void registerCommands() {
         var commandRegistry = context.commandRegistry();
 
-        // /skillgui command - toggle XP notifications display
-        commandRegistry.registerCommand(
-            new com.livinglands.modules.leveling.commands.SkillsGuiCommand(system)
-        );
-
         // /setlevel command (admin)
         commandRegistry.registerCommand(
             new com.livinglands.modules.leveling.commands.SetLevelCommand(system)
         );
 
-        logger.at(Level.INFO).log("[%s] Registered commands: /skillgui, /setlevel", name);
+        logger.at(Level.INFO).log("[%s] Registered commands: /setlevel", name);
     }
 
     @Override

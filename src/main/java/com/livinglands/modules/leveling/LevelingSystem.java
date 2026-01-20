@@ -150,7 +150,7 @@ public class LevelingSystem {
 
         var data = persistence.load(playerId);
         playerData.put(playerId, data);
-        logger.at(Level.INFO).log("Initialized leveling data for player %s: %s", playerId, data);
+        logger.at(Level.FINE).log("Initialized leveling data for player %s: %s", playerId, data);
     }
 
     /**
@@ -160,7 +160,7 @@ public class LevelingSystem {
         var data = playerData.remove(playerId);
         if (data != null) {
             persistence.save(data);
-            logger.at(Level.INFO).log("Saved and removed leveling data for player %s", playerId);
+            logger.at(Level.FINE).log("Saved and removed leveling data for player %s", playerId);
         }
     }
 
@@ -233,7 +233,7 @@ public class LevelingSystem {
                 ));
             }
 
-            logger.at(Level.INFO).log("Player %s leveled up %s to %d!",
+            logger.at(Level.FINE).log("Player %s leveled up %s to %d!",
                 playerId, profession.getDisplayName(), profData.getLevel());
         }
 
@@ -315,7 +315,7 @@ public class LevelingSystem {
         data.setProfession(profession, profData);
         data.markDirty();
 
-        logger.at(Level.INFO).log("Set player %s %s level to %d",
+        logger.at(Level.FINE).log("Set player %s %s level to %d",
             playerId, profession.getDisplayName(), level);
     }
 

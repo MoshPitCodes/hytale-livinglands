@@ -309,13 +309,35 @@ The `/ll main` panel shows:
 
 ## Player Commands
 
+Commands available to all players:
+
 | Command | Description |
 |---------|-------------|
-| `/ll stats` | View your current hunger, thirst, energy, and any active buffs |
+| `/ll` | Show all available commands |
 | `/ll main` | Toggle the Living Lands panel (shows metabolism, professions, effects, abilities) |
-| `/skillgui` | Toggle XP gain notifications |
+| `/ll help` | Show help panel with mod info and configuration paths |
 
-The `/ll stats` command displays:
+## Admin Commands
+
+Commands requiring OP/admin status:
+
+| Command | Description |
+|---------|-------------|
+| `/setlevel <profession> <level>` | Set your profession level (1-99) |
+
+**Professions:** `combat`, `mining`, `building`, `logging`, `gathering`
+
+**Example:** `/setlevel mining 50` - Sets Mining profession to level 50
+
+### Permission System
+
+Living Lands uses Hytale's native permission system:
+- **Player commands** (`requiresOp: false`) - Available to all players in Adventure and Creative modes
+- **Admin commands** (`requiresOp: true`) - Requires server OP status
+
+To grant OP status to a player, use Hytale's server console or admin commands.
+
+The `/ll main` panel displays:
 - Current values and status labels
 - Color-coded indicators (green = good, red = critical)
 - Active buff list
@@ -425,6 +447,30 @@ On first run, `LivingLands/modules.json` is created:
 
 **Note**: Enabling a module with dependencies automatically enables required modules.
 
+## Logging Configuration
+
+Living Lands uses Java's standard logging levels. To reduce console spam on production servers, configure log levels in your Hytale server's `config.json`:
+
+```json
+{
+  "LogLevels": {
+    "LivingLands": "WARNING"
+  }
+}
+```
+
+**Available Log Levels:**
+
+| Level | Description |
+|-------|-------------|
+| `INFO` | Default - shows startup/shutdown messages only |
+| `WARNING` | Errors and important warnings |
+| `SEVERE` | Critical errors only |
+| `FINE` | Debug - per-player events (buffs, consumables, etc.) |
+| `OFF` | Disable all Living Lands logging |
+
+**Note:** As of v2.3.4-beta, per-player operational logs (buff gained/lost, consumable detected, player connected/disconnected, ECS ready, HUD initialized) are logged at `FINE` level by default. Set log level to `FINE` if you need to debug player-specific issues.
+
 ## Directory Structure
 
 ```
@@ -529,7 +575,7 @@ The metabolism module is optimized for **O(n) linear scaling** with player count
 # Credits
 
 - **Author**: [MoshPitCodes](https://github.com/MoshPitCodes)
-- **Version**: 2.3.3-beta
+- **Version**: 2.3.4-beta
 - **License**: Apache-2.0
 
 ### Resources

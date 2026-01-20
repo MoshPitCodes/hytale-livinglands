@@ -15,7 +15,6 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * HUD element for skills XP notifications.
  * Registers with the HudModule to display XP gains in the combined HUD.
- * Toggled via /skillgui command.
  */
 public class SkillGuiElement implements HudElement {
 

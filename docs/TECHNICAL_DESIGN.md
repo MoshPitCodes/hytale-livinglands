@@ -732,3 +732,4 @@ public record DebuffsConfig(
 | 2.3.1-beta | Death detection fix, mining/logging XP exploit fix, block persistence |
 | 2.3.2-beta | Speed flickering fix via centralized SpeedManager |
 | 2.3.3-beta | Comprehensive consumable detection, reflection-based effect ID retrieval |
+| 2.3.4-beta | Console spam reduction (INFO→FINE), command restructuring (native subcommands), UI backdrops |

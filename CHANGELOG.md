@@ -2,6 +2,44 @@
 
 All notable changes to Living Lands will be documented in this file.
 
+## [2.3.4-beta] - 2026-01-20
+
+### Changed
+
+#### Reduced Console Spam
+- **Verbose Logging Reduced** - Changed per-player operational logs from `INFO` to `FINE` level
+- **Affected Logs** - Buff gained/lost, consumable detected, player connected/disconnected, ECS ready, HUD initialized
+- **Server Admins** - Set `"LivingLands": "WARNING"` in server config.json to suppress INFO messages
+- **Debug Mode** - Set `"LivingLands": "FINE"` in server config.json to see detailed per-player logs
+
+#### Command Restructuring
+- **Native Subcommands** - Refactored `/ll` command to use Hytale's native `addSubCommand()` system
+- **Command List** - `/ll` now shows all available subcommands
+- **Main Panel** - `/ll main` toggles the Living Lands stats panel
+- **Help Panel** - `/ll help` displays mod information and common config paths
+
+#### Removed Commands
+- **`/stats` Removed** - Functionality consolidated into `/ll main` panel
+- **`/skillgui` Removed** - Functionality consolidated into `/ll main` panel
+
+#### UI Improvements
+- **Semi-Transparent Backdrop** - Metabolism HUD now has a dark backdrop (`#1a1a1a` at 70% opacity)
+- **Buff/Debuff Backdrops** - Individual backdrops for each buff (purple) and debuff (red)
+- **Dynamic Visibility** - Buff/debuff containers hidden when empty, shown only when active
+- **Bar Alignment** - Progress bars now display as `[||||.....] 99` with bar first for consistent alignment
+- **Compact Width** - All backdrop elements standardized to 165px width
+
+### Technical Details
+- 30+ log statements changed from `Level.INFO` to `Level.FINE` across BuffsSystem, DebuffsSystem, PlayerRegistry, MetabolismPlayerListener, HudModule, FoodEffectDetector, SpeedManager, and LevelingSystem
+- Production servers should now see only startup/shutdown messages at default INFO level
+- Per-player events only visible when log level is set to FINE or lower
+- `LivingLandsCommand` refactored to register `LivingLandsMainSubcommand` and `LivingLandsHelpSubcommand` via `addSubCommand()`
+- Deleted `StatsCommand.java` and `SkillsGuiCommand.java`
+- New `#Buff1Container`, `#Buff2Container`, `#Debuff1Container`, `#Debuff2Container` groups in UI with `Visible: false` default
+- `MetabolismHudElement.updateBuffsDisplay()` and `updateDebuffsDisplay()` now control container visibility
+
+---
+
 ## [2.3.3-beta] - 2026-01-20
 
 ### Added
