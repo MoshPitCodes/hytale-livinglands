@@ -9,6 +9,7 @@ import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.livinglands.core.hud.HudModule;
 import com.livinglands.core.hud.LivingLandsPanelElement;
 import com.livinglands.util.ColorUtil;
 
@@ -21,6 +22,7 @@ import javax.annotation.Nullable;
  * Usage:
  *   /ll - Show available commands
  *   /ll main - Toggle the Living Lands stats panel
+ *   /ll passives - Toggle passive abilities display on HUD
  *   /ll help - Show help panel with mod information
  */
 public class LivingLandsCommand extends AbstractPlayerCommand {
@@ -30,6 +32,7 @@ public class LivingLandsCommand extends AbstractPlayerCommand {
 
     private final LivingLandsMainSubcommand mainSubcommand;
     private final LivingLandsHelpSubcommand helpSubcommand;
+    private final LivingLandsPassivesSubcommand passivesSubcommand;
 
     public LivingLandsCommand() {
         super("ll", "Living Lands main command", false);
@@ -38,14 +41,20 @@ public class LivingLandsCommand extends AbstractPlayerCommand {
         // Create and register subcommands
         this.mainSubcommand = new LivingLandsMainSubcommand(this);
         this.helpSubcommand = new LivingLandsHelpSubcommand();
+        this.passivesSubcommand = new LivingLandsPassivesSubcommand();
 
         addSubCommand(mainSubcommand);
         addSubCommand(helpSubcommand);
+        addSubCommand(passivesSubcommand);
     }
 
     public void setPanelElement(@Nullable LivingLandsPanelElement panelElement) {
         this.panelElement = panelElement;
         this.mainSubcommand.setPanelElement(panelElement);
+    }
+
+    public void setHudModule(@Nullable HudModule hudModule) {
+        this.passivesSubcommand.setHudModule(hudModule);
     }
 
     @Nullable
@@ -73,6 +82,8 @@ public class LivingLandsCommand extends AbstractPlayerCommand {
             .insert(Message.raw(" - Show this command list").color(ColorUtil.getHexColor("gray"))));
         ctx.sendMessage(Message.raw("/ll main").color(ColorUtil.getHexColor("aqua"))
             .insert(Message.raw(" - Toggle the stats panel").color(ColorUtil.getHexColor("gray"))));
+        ctx.sendMessage(Message.raw("/ll passives").color(ColorUtil.getHexColor("aqua"))
+            .insert(Message.raw(" - Toggle passive abilities on HUD").color(ColorUtil.getHexColor("gray"))));
         ctx.sendMessage(Message.raw("/ll help").color(ColorUtil.getHexColor("aqua"))
             .insert(Message.raw(" - Show help and configuration info").color(ColorUtil.getHexColor("gray"))));
         ctx.sendMessage(Message.raw("").color(ColorUtil.getHexColor("white")));

@@ -36,7 +36,7 @@ public class BuildingXpListener {
         // registration through the ECS system, not the standard EventRegistry.
         // This listener is a placeholder for future integration.
 
-        logger.at(Level.INFO).log("Building XP listener registered (ECS integration pending)");
+        logger.at(Level.FINE).log("Building XP listener registered (ECS integration pending)");
     }
 
     /**

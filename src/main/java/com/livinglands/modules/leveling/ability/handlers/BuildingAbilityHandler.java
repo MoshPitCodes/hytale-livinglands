@@ -12,10 +12,14 @@ import java.util.logging.Level;
 
 /**
  * Handler for building-related passive abilities.
- * Handles Material Saver ability.
  *
- * Note: Block placement events require ECS event registration.
- * This handler provides methods that can be called when events are available.
+ * New Abilities:
+ * - Architect's Focus (Tier 1, Lv.15): +100% building XP (handled by BuildingXpSystem)
+ * - Steady Hands (Tier 2, Lv.35): Pause stamina depletion for 30s
+ * - Master Builder (Tier 3, Lv.60): Permanent +10% max stamina (handled by PermanentBuffManager)
+ *
+ * Note: XP boost abilities are now handled directly in the XP systems.
+ * This handler triggers Tier 2 abilities when building occurs.
  */
 public class BuildingAbilityHandler {
 
@@ -32,22 +36,25 @@ public class BuildingAbilityHandler {
     }
 
     public void register(@Nonnull EventRegistry eventRegistry) {
-        // Note: Block placement events require ECS registration.
-        // This handler provides trigger methods for when events are available.
-        logger.at(Level.INFO).log("Building ability handler registered (ECS events pending)");
+        // Block placement events are handled by the ECS BuildingXpSystem
+        // which calls checkTier2Ability when blocks are placed
+        logger.at(Level.FINE).log("Building ability handler registered");
     }
 
     /**
-     * Check if Material Saver should trigger.
+     * Called by BuildingXpSystem when a block is placed.
+     * Checks and applies Tier 2 ability (Steady Hands).
      *
-     * @param playerId The building player
-     * @return true if ability triggers
+     * @param playerId The building player's UUID
      */
-    public boolean checkMaterialSaver(@Nonnull UUID playerId) {
-        if (abilitySystem.shouldTrigger(playerId, AbilityType.MATERIAL_SAVER)) {
-            abilitySystem.logAbilityTrigger(playerId, AbilityType.MATERIAL_SAVER, "Material refunded");
-            return true;
+    public void onBlockPlaced(@Nonnull UUID playerId) {
+        // Check Tier 2: Steady Hands (pause stamina for 30s)
+        if (abilitySystem.shouldTrigger(playerId, AbilityType.STEADY_HANDS)) {
+            abilitySystem.applyTier2Effect(playerId, AbilityType.STEADY_HANDS);
+            abilitySystem.logAbilityTrigger(playerId, AbilityType.STEADY_HANDS, "Stamina paused");
         }
-        return false;
+
+        // Note: Tier 1 XP boost is handled in BuildingXpSystem via checkXpBoost()
+        // Note: Tier 3 (Master Builder) is handled by PermanentBuffManager on login
     }
 }

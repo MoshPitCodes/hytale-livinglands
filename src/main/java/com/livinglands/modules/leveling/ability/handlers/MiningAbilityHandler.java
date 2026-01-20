@@ -12,10 +12,14 @@ import java.util.logging.Level;
 
 /**
  * Handler for mining-related passive abilities.
- * Handles Double Ore and Lucky Strike abilities.
  *
- * Note: Block break events require ECS event registration.
- * This handler provides methods that can be called when events are available.
+ * New Abilities:
+ * - Prospector's Eye (Tier 1, Lv.15): +50% mining XP (handled by MiningXpSystem)
+ * - Efficient Extraction (Tier 2, Lv.35): Pause hunger depletion for 30s
+ * - Iron Constitution (Tier 3, Lv.60): Permanent +15% max stamina (handled by PermanentBuffManager)
+ *
+ * Note: XP boost abilities are now handled directly in the XP systems.
+ * This handler triggers Tier 2 abilities when mining occurs.
  */
 public class MiningAbilityHandler {
 
@@ -32,36 +36,25 @@ public class MiningAbilityHandler {
     }
 
     public void register(@Nonnull EventRegistry eventRegistry) {
-        // Note: Block break events require ECS registration.
-        // This handler provides trigger methods for when events are available.
-        logger.at(Level.INFO).log("Mining ability handler registered (ECS events pending)");
+        // Block break events are handled by the ECS MiningXpSystem
+        // which calls checkTier2Ability when ores are mined
+        logger.at(Level.FINE).log("Mining ability handler registered");
     }
 
     /**
-     * Check if Double Ore should trigger.
+     * Called by MiningXpSystem when an ore is mined.
+     * Checks and applies Tier 2 ability (Efficient Extraction).
      *
-     * @param playerId The mining player
-     * @return true if ability triggers
+     * @param playerId The mining player's UUID
      */
-    public boolean checkDoubleOre(@Nonnull UUID playerId) {
-        if (abilitySystem.shouldTrigger(playerId, AbilityType.DOUBLE_ORE)) {
-            abilitySystem.logAbilityTrigger(playerId, AbilityType.DOUBLE_ORE, "Double drops triggered");
-            return true;
+    public void onOreMined(@Nonnull UUID playerId) {
+        // Check Tier 2: Efficient Extraction (pause hunger for 30s)
+        if (abilitySystem.shouldTrigger(playerId, AbilityType.EFFICIENT_EXTRACTION)) {
+            abilitySystem.applyTier2Effect(playerId, AbilityType.EFFICIENT_EXTRACTION);
+            abilitySystem.logAbilityTrigger(playerId, AbilityType.EFFICIENT_EXTRACTION, "Hunger paused");
         }
-        return false;
-    }
 
-    /**
-     * Check if Lucky Strike should trigger.
-     *
-     * @param playerId The mining player
-     * @return true if ability triggers
-     */
-    public boolean checkLuckyStrike(@Nonnull UUID playerId) {
-        if (abilitySystem.shouldTrigger(playerId, AbilityType.LUCKY_STRIKE)) {
-            abilitySystem.logAbilityTrigger(playerId, AbilityType.LUCKY_STRIKE, "Found rare gem!");
-            return true;
-        }
-        return false;
+        // Note: Tier 1 XP boost is handled in MiningXpSystem via checkXpBoost()
+        // Note: Tier 3 (Iron Constitution) is handled by PermanentBuffManager on login
     }
 }

@@ -4,6 +4,69 @@ All notable changes to Living Lands for players and server administrators.
 
 ---
 
+## Version 2.4.0-beta - January 2026
+
+### New Features
+
+#### Completely Redesigned Passive Abilities
+The ability system has been completely overhauled with harder-to-obtain, more impactful abilities:
+
+**Each profession now has exactly 3 abilities:**
+
+| Level | Type | Description |
+|-------|------|-------------|
+| **15** | XP Booster | Chance to gain bonus XP from profession activities |
+| **35** | Timed Buff | Powerful temporary effect when triggered |
+| **60** | Permanent | Always-active stat bonus once unlocked |
+
+**Combat Abilities:**
+- **Adrenaline Rush** (Lv.15) - After a kill, chance to gain +20% speed for 10 seconds
+- **Warrior's Resilience** (Lv.35) - After a kill, chance to restore 15% of max health
+- **Battle Hardened** (Lv.60) - Permanent +10% max health
+
+**Mining Abilities:**
+- **Prospector's Eye** (Lv.15) - Chance for +50% XP when mining ores
+- **Efficient Extraction** (Lv.35) - Chance to pause hunger drain for 30 seconds
+- **Iron Constitution** (Lv.60) - Permanent +15% max stamina
+
+**Logging Abilities:**
+- **Lumberjack's Vigor** (Lv.15) - Chance for +50% XP when chopping wood
+- **Forest's Blessing** (Lv.35) - Chance to restore 5 energy
+- **Nature's Endurance** (Lv.60) - Permanent +10% movement speed
+
+**Building Abilities:**
+- **Architect's Focus** (Lv.15) - Chance for +100% XP when building
+- **Steady Hands** (Lv.35) - Chance to pause stamina drain for 30 seconds
+- **Master Builder** (Lv.60) - Permanent +10% max stamina
+
+**Gathering Abilities:**
+- **Forager's Intuition** (Lv.15) - Chance for +50% XP when gathering
+- **Nature's Gift** (Lv.35) - Chance to restore 3 hunger and 3 thirst
+- **Survivalist** (Lv.60) - Permanent -15% hunger/thirst drain rate
+
+#### Active Ability Buffs in HUD
+- When abilities trigger, you'll see **cyan buff indicators** in your HUD
+- Countdown timers show how long temporary effects last
+- Up to 3 ability buffs can display at once
+
+#### Death Penalty
+- **XP Loss on Death** - When you die, you lose 85% of your current XP in 2 random professions
+- Your level is protected - you can't lose a level from death (minimum XP stays at 0 for your current level)
+- Chat messages show exactly which professions were affected and how much XP was lost
+
+#### Ability Feedback
+When abilities trigger, you'll receive:
+- A colored chat message describing the effect
+- A sound effect for audio confirmation
+
+### Fixed
+
+- **Version Display** - The in-game version now correctly matches the CurseForge release version
+- **Thread Safety** - Fixed potential issues with concurrent player actions
+- **Speed Flickering** - Fixed rare flickering when ability speed buffs stack with metabolism buffs
+
+---
+
 ## Version 2.3.4-beta - January 2026
 
 ### Changed

@@ -35,7 +35,7 @@ public class GatheringXpListener {
         // Note: Item pickup events in Hytale may require ECS event registration.
         // This listener is a placeholder for future integration.
 
-        logger.at(Level.INFO).log("Gathering XP listener registered (ECS integration pending)");
+        logger.at(Level.FINE).log("Gathering XP listener registered (ECS integration pending)");
     }
 
     /**

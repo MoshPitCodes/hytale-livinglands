@@ -50,7 +50,7 @@ public final class PlacedBlockPersistence {
         // Ensure data directory exists
         try {
             Files.createDirectories(dataDirectory);
-            logger.at(Level.INFO).log("Placed blocks data directory: %s", dataDirectory);
+            logger.at(Level.FINE).log("Placed blocks data directory: %s", dataDirectory);
         } catch (IOException e) {
             logger.at(Level.WARNING).withCause(e).log("Failed to create placed blocks data directory");
         }
@@ -77,7 +77,7 @@ public final class PlacedBlockPersistence {
             if (positions == null) {
                 positions = new HashSet<>();
             }
-            logger.at(Level.INFO).log("Loaded %d placed block positions for world: %s",
+            logger.at(Level.FINE).log("Loaded %d placed block positions for world: %s",
                 positions.size(), worldId);
             return positions;
         } catch (Exception e) {
@@ -145,7 +145,7 @@ public final class PlacedBlockPersistence {
             saveWorld(entry.getKey(), entry.getValue());
             totalPositions += entry.getValue().size();
         }
-        logger.at(Level.INFO).log("Saved placed blocks data: %d positions across %d worlds",
+        logger.at(Level.FINE).log("Saved placed blocks data: %d positions across %d worlds",
             totalPositions, worldData.size());
     }
 
@@ -177,7 +177,7 @@ public final class PlacedBlockPersistence {
             }
 
             int totalPositions = worldData.values().stream().mapToInt(Set::size).sum();
-            logger.at(Level.INFO).log("Loaded placed blocks data: %d positions across %d worlds",
+            logger.at(Level.FINE).log("Loaded placed blocks data: %d positions across %d worlds",
                 totalPositions, worldData.size());
 
         } catch (IOException e) {

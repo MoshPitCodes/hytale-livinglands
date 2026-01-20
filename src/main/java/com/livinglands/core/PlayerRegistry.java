@@ -257,6 +257,6 @@ public class PlayerRegistry {
     public void shutdown() {
         sessions.values().forEach(PlayerSession::invalidate);
         sessions.clear();
-        logger.at(Level.INFO).log("PlayerRegistry shutdown complete");
+        logger.at(Level.FINE).log("PlayerRegistry shutdown complete");
     }
 }

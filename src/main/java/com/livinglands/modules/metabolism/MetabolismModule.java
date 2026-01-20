@@ -1,7 +1,10 @@
 package com.livinglands.modules.metabolism;
 
 import com.livinglands.api.AbstractModule;
+import com.livinglands.core.CoreModule;
+import com.livinglands.core.events.PlayerDeathBroadcaster;
 import com.livinglands.core.hud.HudModule;
+import com.livinglands.core.util.SpeedManager;
 import com.livinglands.modules.metabolism.buff.BuffEffectsSystem;
 import com.livinglands.modules.metabolism.buff.BuffsSystem;
 import com.livinglands.modules.metabolism.config.MetabolismModuleConfig;
@@ -9,11 +12,12 @@ import com.livinglands.modules.metabolism.consumables.ConsumableRegistry;
 import com.livinglands.modules.metabolism.listeners.BedInteractionListener;
 import com.livinglands.modules.metabolism.listeners.CombatDetectionListener;
 import com.livinglands.modules.metabolism.listeners.MetabolismPlayerListener;
-import com.livinglands.modules.metabolism.listeners.PlayerDeathSystem;
 import com.livinglands.modules.metabolism.poison.PoisonRegistry;
 import com.livinglands.modules.metabolism.ui.MetabolismHudElement;
 
 import java.util.Set;
+import java.util.UUID;
+import java.util.function.Consumer;
 
 /**
  * Metabolism module for Living Lands.
@@ -38,10 +42,10 @@ public final class MetabolismModule extends AbstractModule {
     private MetabolismHudElement hudElement;
     private BuffsSystem buffsSystem;
     private BuffEffectsSystem buffEffectsSystem;
-    private PlayerDeathSystem playerDeathSystem;
+    private Consumer<UUID> deathListener;
 
     public MetabolismModule() {
-        super(ID, NAME, VERSION, Set.of(HudModule.ID)); // Depends on HUD module
+        super(ID, NAME, VERSION, Set.of(CoreModule.ID, HudModule.ID)); // Depends on Core and HUD modules
     }
 
     @Override
@@ -68,9 +72,22 @@ public final class MetabolismModule extends AbstractModule {
         ThirstStat.initialize();
         EnergyStat.initialize();
 
+        // Get utilities from CoreModule
+        SpeedManager speedManager = null;
+        PlayerDeathBroadcaster deathBroadcaster = null;
+        var coreModuleOpt = context.moduleManager().getModule(CoreModule.ID, CoreModule.class);
+        if (coreModuleOpt.isPresent()) {
+            var coreModule = coreModuleOpt.get();
+            speedManager = coreModule.getSpeedManager();
+            deathBroadcaster = coreModule.getDeathBroadcaster();
+            logger.at(java.util.logging.Level.INFO).log("[%s] SpeedManager and DeathBroadcaster obtained from CoreModule", name);
+        } else {
+            logger.at(java.util.logging.Level.WARNING).log("[%s] CoreModule not found, speed effects and death handling disabled", name);
+        }
+
         // Create metabolism system
         logger.at(java.util.logging.Level.INFO).log("[%s] Creating metabolism system...", name);
-        system = new MetabolismSystem(config, logger, context.playerRegistry(), configDirectory);
+        system = new MetabolismSystem(config, logger, context.playerRegistry(), configDirectory, speedManager);
 
         // Register HUD element with HudModule
         logger.at(java.util.logging.Level.INFO).log("[%s] Registering HUD element...", name);
@@ -110,11 +127,41 @@ public final class MetabolismModule extends AbstractModule {
         new BedInteractionListener(this).register(context.eventRegistry());
         new CombatDetectionListener(this).register(context.eventRegistry());
 
-        // Register death detection ECS system (resets metabolism on death)
-        playerDeathSystem = new PlayerDeathSystem(system, config, logger);
-        context.entityStoreRegistry().registerSystem(playerDeathSystem);
+        // Register death listener with CoreModule's death broadcaster
+        if (deathBroadcaster != null) {
+            deathListener = this::onPlayerDeath;
+            deathBroadcaster.addListener(deathListener);
+            logger.at(java.util.logging.Level.INFO).log("[%s] Death listener registered with CoreModule", name);
+        }
+    }
 
-        logger.at(java.util.logging.Level.INFO).log("[%s] Death detection registered (ECS)", name);
+    /**
+     * Handle player death - reset metabolism to initial values.
+     */
+    private void onPlayerDeath(UUID playerId) {
+        var dataOpt = system.getPlayerData(playerId);
+        if (dataOpt.isPresent()) {
+            var data = dataOpt.get();
+            var metabolism = config.metabolism;
+
+            logger.at(java.util.logging.Level.FINE).log(
+                "[%s] Player %s died (hunger=%.0f, thirst=%.0f, energy=%.0f) - resetting metabolism",
+                name, playerId, data.getHunger(), data.getThirst(), data.getEnergy()
+            );
+
+            // Reset to initial values
+            data.reset(
+                System.currentTimeMillis(),
+                metabolism.initialHunger,
+                metabolism.initialThirst,
+                metabolism.initialEnergy
+            );
+
+            logger.at(java.util.logging.Level.FINE).log(
+                "[%s] Reset metabolism for player %s on death (hunger=%.0f, thirst=%.0f, energy=%.0f)",
+                name, playerId, metabolism.initialHunger, metabolism.initialThirst, metabolism.initialEnergy
+            );
+        }
     }
 
     @Override
@@ -135,6 +182,12 @@ public final class MetabolismModule extends AbstractModule {
 
     @Override
     protected void onShutdown() {
+        // Remove death listener
+        if (deathListener != null) {
+            var coreModuleOpt = context.moduleManager().getModule(CoreModule.ID, CoreModule.class);
+            coreModuleOpt.ifPresent(core -> core.getDeathBroadcaster().removeListener(deathListener));
+        }
+
         if (system != null) {
             system.saveAll();
             system.stop();

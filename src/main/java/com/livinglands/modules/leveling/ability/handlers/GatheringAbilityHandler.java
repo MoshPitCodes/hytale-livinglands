@@ -12,10 +12,14 @@ import java.util.logging.Level;
 
 /**
  * Handler for gathering-related passive abilities.
- * Handles Double Harvest and Rare Find abilities.
  *
- * Note: Item pickup events may require ECS event registration.
- * This handler provides methods that can be called when events are available.
+ * New Abilities:
+ * - Forager's Intuition (Tier 1, Lv.15): +50% gathering XP (handled by GatheringXpSystem)
+ * - Nature's Gift (Tier 2, Lv.35): Restore 3 hunger and 3 thirst
+ * - Survivalist (Tier 3, Lv.60): Permanent -15% hunger/thirst depletion (handled by PermanentBuffManager)
+ *
+ * Note: XP boost abilities are now handled directly in the XP systems.
+ * This handler triggers Tier 2 abilities when gathering occurs.
  */
 public class GatheringAbilityHandler {
 
@@ -32,36 +36,25 @@ public class GatheringAbilityHandler {
     }
 
     public void register(@Nonnull EventRegistry eventRegistry) {
-        // Note: Item pickup events may require ECS registration.
-        // This handler provides trigger methods for when events are available.
-        logger.at(Level.INFO).log("Gathering ability handler registered (ECS events pending)");
+        // Item pickup events are handled by the ECS GatheringXpSystem
+        // which calls checkTier2Ability when items are gathered
+        logger.at(Level.FINE).log("Gathering ability handler registered");
     }
 
     /**
-     * Check if Double Harvest should trigger.
+     * Called by GatheringXpSystem when an item is gathered.
+     * Checks and applies Tier 2 ability (Nature's Gift).
      *
-     * @param playerId The gathering player
-     * @return true if ability triggers
+     * @param playerId The gathering player's UUID
      */
-    public boolean checkDoubleHarvest(@Nonnull UUID playerId) {
-        if (abilitySystem.shouldTrigger(playerId, AbilityType.DOUBLE_HARVEST)) {
-            abilitySystem.logAbilityTrigger(playerId, AbilityType.DOUBLE_HARVEST, "Double harvest triggered");
-            return true;
+    public void onItemGathered(@Nonnull UUID playerId) {
+        // Check Tier 2: Nature's Gift (restore 3 hunger and 3 thirst)
+        if (abilitySystem.shouldTrigger(playerId, AbilityType.NATURES_GIFT)) {
+            abilitySystem.applyTier2Effect(playerId, AbilityType.NATURES_GIFT);
+            abilitySystem.logAbilityTrigger(playerId, AbilityType.NATURES_GIFT, "Hunger and thirst restored");
         }
-        return false;
-    }
 
-    /**
-     * Check if Rare Find should trigger.
-     *
-     * @param playerId The gathering player
-     * @return true if ability triggers
-     */
-    public boolean checkRareFind(@Nonnull UUID playerId) {
-        if (abilitySystem.shouldTrigger(playerId, AbilityType.RARE_FIND)) {
-            abilitySystem.logAbilityTrigger(playerId, AbilityType.RARE_FIND, "Rare item found!");
-            return true;
-        }
-        return false;
+        // Note: Tier 1 XP boost is handled in GatheringXpSystem via checkXpBoost()
+        // Note: Tier 3 (Survivalist) is handled by PermanentBuffManager on login
     }
 }

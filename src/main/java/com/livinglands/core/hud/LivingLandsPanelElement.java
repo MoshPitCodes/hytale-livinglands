@@ -29,7 +29,11 @@ public class LivingLandsPanelElement implements HudElement {
 
     private static final String ID = "livinglands_panel";
     private static final String NAME = "Living Lands Panel";
-    private static final int MAX_ABILITIES_DISPLAYED = 5;
+    private static final int TOTAL_ABILITIES = 15;  // All abilities (3 per profession x 5 professions)
+
+    // Colors for ability text (Hytale UI uses hex without #)
+    private static final String COLOR_UNLOCKED = "#3fb950";  // Green - unlocked
+    private static final String COLOR_LOCKED = "#484f58";    // Dimmed gray - locked
 
     @Nullable
     private MetabolismSystem metabolismSystem;
@@ -79,16 +83,18 @@ public class LivingLandsPanelElement implements HudElement {
 
     @Override
     public boolean update(@Nonnull UICommandBuilder builder, @Nonnull UUID playerId) {
+        // Check if visibility toggle was requested
         Boolean refresh = needsRefresh.remove(playerId);
-        if (refresh == null || !refresh) {
-            return false;
-        }
 
+        // Always update content when panel is visible (realtime updates)
         if (visibleForPlayers.contains(playerId)) {
             return showPanel(builder, playerId);
-        } else {
+        } else if (refresh != null && refresh) {
+            // Only hide when explicitly toggled off
             return hidePanel(builder);
         }
+
+        return false;
     }
 
     @Override
@@ -171,43 +177,43 @@ public class LivingLandsPanelElement implements HudElement {
 
     private void populateMetabolismSection(UICommandBuilder builder, UUID playerId) {
         if (metabolismSystem == null) {
-            builder.set("#PanelHunger.Text", "Hunger:    --");
-            builder.set("#PanelThirst.Text", "Thirst:    --");
-            builder.set("#PanelEnergy.Text", "Energy:    --");
+            builder.set("#PanelHunger.Text", "Hunger:  --");
+            builder.set("#PanelThirst.Text", "Thirst:  --");
+            builder.set("#PanelEnergy.Text", "Energy:  --");
             return;
         }
 
         var dataOpt = metabolismSystem.getPlayerData(playerId);
         if (dataOpt.isEmpty()) {
-            builder.set("#PanelHunger.Text", "Hunger:    --");
-            builder.set("#PanelThirst.Text", "Thirst:    --");
-            builder.set("#PanelEnergy.Text", "Energy:    --");
+            builder.set("#PanelHunger.Text", "Hunger:  --");
+            builder.set("#PanelThirst.Text", "Thirst:  --");
+            builder.set("#PanelEnergy.Text", "Energy:  --");
             return;
         }
 
         var data = dataOpt.get();
-        builder.set("#PanelHunger.Text", String.format("Hunger:    %.0f / 100", data.getHunger()));
-        builder.set("#PanelThirst.Text", String.format("Thirst:    %.0f / 100", data.getThirst()));
-        builder.set("#PanelEnergy.Text", String.format("Energy:    %.0f / 100", data.getEnergy()));
+        builder.set("#PanelHunger.Text", String.format("Hunger:  %.0f / 100", data.getHunger()));
+        builder.set("#PanelThirst.Text", String.format("Thirst:  %.0f / 100", data.getThirst()));
+        builder.set("#PanelEnergy.Text", String.format("Energy:  %.0f / 100", data.getEnergy()));
     }
 
     private void populateSkillsSection(UICommandBuilder builder, UUID playerId) {
         if (levelingSystem == null) {
-            builder.set("#SkillCombat.Text", "Combat       Lv.1    0 XP");
-            builder.set("#SkillMining.Text", "Mining       Lv.1    0 XP");
-            builder.set("#SkillBuilding.Text", "Building     Lv.1    0 XP");
-            builder.set("#SkillLogging.Text", "Logging      Lv.1    0 XP");
-            builder.set("#SkillGathering.Text", "Gathering    Lv.1    0 XP");
+            builder.set("#SkillCombat.Text", "Combat     Lv.1");
+            builder.set("#SkillMining.Text", "Mining     Lv.1");
+            builder.set("#SkillBuilding.Text", "Building   Lv.1");
+            builder.set("#SkillLogging.Text", "Logging    Lv.1");
+            builder.set("#SkillGathering.Text", "Gathering  Lv.1");
             return;
         }
 
         var dataOpt = levelingSystem.getPlayerData(playerId);
         if (dataOpt.isEmpty()) {
-            builder.set("#SkillCombat.Text", "Combat       Lv.1    0 XP");
-            builder.set("#SkillMining.Text", "Mining       Lv.1    0 XP");
-            builder.set("#SkillBuilding.Text", "Building     Lv.1    0 XP");
-            builder.set("#SkillLogging.Text", "Logging      Lv.1    0 XP");
-            builder.set("#SkillGathering.Text", "Gathering    Lv.1    0 XP");
+            builder.set("#SkillCombat.Text", "Combat     Lv.1");
+            builder.set("#SkillMining.Text", "Mining     Lv.1");
+            builder.set("#SkillBuilding.Text", "Building   Lv.1");
+            builder.set("#SkillLogging.Text", "Logging    Lv.1");
+            builder.set("#SkillGathering.Text", "Gathering  Lv.1");
             return;
         }
 
@@ -239,7 +245,7 @@ public class LivingLandsPanelElement implements HudElement {
         long currentXp = prof != null ? prof.getCurrentXp() : 0;
         long xpNeeded = prof != null ? prof.getXpToNextLevel() : 100;
 
-        return String.format("%-10s Lv.%-2d  %d / %d XP", name, level, currentXp, xpNeeded);
+        return String.format("%-9s Lv.%-2d  %d/%d XP", name, level, currentXp, xpNeeded);
     }
 
     private void populateEffectsSection(UICommandBuilder builder, UUID playerId) {
@@ -282,24 +288,46 @@ public class LivingLandsPanelElement implements HudElement {
     }
 
     private void populateAbilitiesSection(UICommandBuilder builder, UUID playerId) {
-        List<String> abilities = new ArrayList<>();
+        // Show ALL abilities - unlocked ones highlighted, locked ones dimmed
+        // Use static cached array to avoid allocation
+        AbilityType[] allAbilities = AbilityType.getAllAbilities();
 
-        // Get unlocked abilities from the ability system
-        if (abilitySystem != null) {
-            for (AbilityType ability : AbilityType.values()) {
-                if (abilitySystem.isUnlocked(playerId, ability)) {
+        // Get unlocked set once (O(1) after initial cache build)
+        java.util.Set<AbilityType> unlockedSet = abilitySystem != null
+            ? abilitySystem.getUnlockedAbilities(playerId)
+            : java.util.Collections.emptySet();
+
+        for (int i = 0; i < TOTAL_ABILITIES && i < allAbilities.length; i++) {
+            AbilityType ability = allAbilities[i];
+            String selector = "#PanelAbility" + (i + 1);
+
+            boolean isUnlocked = unlockedSet.contains(ability);
+            int unlockLevel = ability.getTier().getDefaultUnlockLevel();
+
+            String abilityText;
+            String textColor;
+
+            if (isUnlocked) {
+                // Unlocked - show with green color and status
+                var abilityConfig = abilitySystem.getAbilityConfig(ability);
+
+                if (abilityConfig != null && abilityConfig.isPermanent) {
+                    // Permanent abilities: "[*] Ability Name (Active)"
+                    abilityText = String.format("[*] %s (Active)", ability.getDisplayName());
+                } else {
+                    // Chance-based abilities: "[>] Ability Name (X%)"
                     float chance = abilitySystem.getTriggerChance(playerId, ability);
-                    // Format: "[✓] Ability Name (X%)"
-                    abilities.add(String.format("[✓] %s (%.0f%%)",
-                        ability.getDisplayName(), chance * 100));
+                    abilityText = String.format("[>] %s (%.0f%%)", ability.getDisplayName(), chance * 100);
                 }
+                textColor = COLOR_UNLOCKED;
+            } else {
+                // Locked - show dimmed with unlock level requirement
+                abilityText = String.format("[ ] %s (Lv.%d)", ability.getDisplayName(), unlockLevel);
+                textColor = COLOR_LOCKED;
             }
-        }
 
-        // Fill ability slots (up to MAX_ABILITIES_DISPLAYED) - uses #PanelAbility for the panel
-        for (int i = 0; i < MAX_ABILITIES_DISPLAYED; i++) {
-            String abilityText = (i < abilities.size()) ? abilities.get(i) : "";
-            builder.set("#PanelAbility" + (i + 1) + ".Text", abilityText);
+            builder.set(selector + ".Text", abilityText);
+            builder.set(selector + ".Style.TextColor", textColor);
         }
     }
 

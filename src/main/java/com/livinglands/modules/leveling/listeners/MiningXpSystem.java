@@ -97,7 +97,7 @@ public class MiningXpSystem extends EntityEventSystem<EntityStore, BreakBlockEve
             // Skip player-placed blocks - only award XP for naturally generated blocks
             boolean isPlayerPlaced = PlayerPlacedBlockChecker.isPlayerPlaced(store, blockPosition);
             if (isPlayerPlaced) {
-                logger.at(Level.INFO).log("Skipping Mining XP for player-placed block %s at %s",
+                logger.at(Level.FINE).log("Skipping Mining XP for player-placed block %s at %s",
                     blockId, blockPosition);
                 // Clean up tracking when block is broken
                 PlayerPlacedBlockChecker.recordBlockBroken(worldId, blockPosition);

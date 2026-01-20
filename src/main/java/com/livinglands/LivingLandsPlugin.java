@@ -2,9 +2,11 @@ package com.livinglands;
 
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
+import com.livinglands.core.CoreModule;
 import com.livinglands.core.ModuleManager;
 import com.livinglands.core.PlayerRegistry;
 import com.livinglands.core.hud.HudModule;
+import com.livinglands.core.notifications.NotificationModule;
 import com.livinglands.modules.claims.ClaimsModule;
 import com.livinglands.modules.economy.EconomyModule;
 import com.livinglands.modules.groups.GroupsModule;
@@ -38,7 +40,6 @@ import java.util.logging.Level;
 public class LivingLandsPlugin extends JavaPlugin {
 
     private static final String MOD_NAME = "Living Lands";
-    private static final String VERSION = "2.0.0-beta";
 
     // Plugin directory for configs and data
     private Path pluginDirectory;
@@ -65,22 +66,22 @@ public class LivingLandsPlugin extends JavaPlugin {
     protected void setup() {
         super.setup();
 
-        getLogger().at(Level.INFO).log("========================================");
-        getLogger().at(Level.INFO).log("%s v%s", MOD_NAME, VERSION);
-        getLogger().at(Level.INFO).log("Modular Architecture");
-        getLogger().at(Level.INFO).log("========================================");
+        getLogger().at(Level.FINE).log("========================================");
+        getLogger().at(Level.FINE).log("%s v%s", MOD_NAME, ModVersion.get());
+        getLogger().at(Level.FINE).log("Modular Architecture");
+        getLogger().at(Level.FINE).log("========================================");
 
         try {
             // Initialize plugin directory
             pluginDirectory = getFile().getParent().resolve("LivingLands");
-            getLogger().at(Level.INFO).log("Plugin directory: %s", pluginDirectory);
+            getLogger().at(Level.FINE).log("Plugin directory: %s", pluginDirectory);
 
             // Initialize core services (shared across all modules)
-            getLogger().at(Level.INFO).log("Initializing core services...");
+            getLogger().at(Level.FINE).log("Initializing core services...");
             playerRegistry = new PlayerRegistry(getLogger());
 
             // Initialize module manager
-            getLogger().at(Level.INFO).log("Initializing module manager...");
+            getLogger().at(Level.FINE).log("Initializing module manager...");
             moduleManager = new ModuleManager(getLogger(), pluginDirectory);
             moduleManager.loadConfig();
             moduleManager.setRegistries(getEventRegistry(), getCommandRegistry(), getEntityStoreRegistry(), playerRegistry);
@@ -91,7 +92,7 @@ public class LivingLandsPlugin extends JavaPlugin {
             // Setup all enabled modules
             moduleManager.setupAll();
 
-            getLogger().at(Level.INFO).log("Setup completed successfully");
+            getLogger().at(Level.FINE).log("Setup completed successfully");
 
         } catch (Exception e) {
             getLogger().at(Level.SEVERE).withCause(e).log("Failed to setup Living Lands");
@@ -104,9 +105,11 @@ public class LivingLandsPlugin extends JavaPlugin {
      * Order matters - core modules should be registered first.
      */
     private void registerModules() {
-        getLogger().at(Level.INFO).log("Registering modules...");
+        getLogger().at(Level.FINE).log("Registering modules...");
 
         // Core infrastructure modules (register first, no dependencies)
+        moduleManager.register(new CoreModule());        // Shared utilities - must be first
+        moduleManager.register(new NotificationModule());
         moduleManager.register(new HudModule());
 
         // Core gameplay modules (depend on HUD)
@@ -125,14 +128,14 @@ public class LivingLandsPlugin extends JavaPlugin {
      */
     @Override
     protected void start() {
-        getLogger().at(Level.INFO).log("Starting Living Lands...");
+        getLogger().at(Level.FINE).log("Starting Living Lands...");
 
         try {
             moduleManager.startAll();
 
-            getLogger().at(Level.INFO).log("========================================");
-            getLogger().at(Level.INFO).log("Living Lands started successfully!");
-            getLogger().at(Level.INFO).log("========================================");
+            getLogger().at(Level.FINE).log("========================================");
+            getLogger().at(Level.FINE).log("Living Lands started successfully!");
+            getLogger().at(Level.FINE).log("========================================");
 
         } catch (Exception e) {
             getLogger().at(Level.SEVERE).withCause(e).log("Failed to start Living Lands");
@@ -145,7 +148,7 @@ public class LivingLandsPlugin extends JavaPlugin {
      */
     @Override
     protected void shutdown() {
-        getLogger().at(Level.INFO).log("Shutting down Living Lands...");
+        getLogger().at(Level.FINE).log("Shutting down Living Lands...");
 
         try {
             // Shutdown all modules (in reverse dependency order)
@@ -158,7 +161,7 @@ public class LivingLandsPlugin extends JavaPlugin {
                 playerRegistry.shutdown();
             }
 
-            getLogger().at(Level.INFO).log("Living Lands shutdown completed");
+            getLogger().at(Level.FINE).log("Living Lands shutdown completed");
 
         } catch (Exception e) {
             getLogger().at(Level.SEVERE).withCause(e).log("Error during shutdown");

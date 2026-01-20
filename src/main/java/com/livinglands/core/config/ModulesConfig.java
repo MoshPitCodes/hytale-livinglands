@@ -76,8 +76,10 @@ public class ModulesConfig {
     @Nonnull
     public static ModulesConfig defaults() {
         var config = new ModulesConfig();
-        // Core modules (always enabled)
-        config.enabled.put("hud", true);
+        // Core infrastructure modules (always enabled)
+        config.enabled.put("core", true);          // Shared utilities (SpeedManager, etc.)
+        config.enabled.put("notifications", true); // Title/sound notifications
+        config.enabled.put("hud", true);           // HUD framework
         // Feature modules
         config.enabled.put("metabolism", true);
         config.enabled.put("leveling", true);

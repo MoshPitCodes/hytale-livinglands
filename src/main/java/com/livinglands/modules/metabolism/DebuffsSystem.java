@@ -13,6 +13,7 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.livinglands.core.PlayerRegistry;
 import com.livinglands.core.config.DebuffsConfig;
+import com.livinglands.core.util.SpeedManager;
 import com.livinglands.util.ColorUtil;
 
 import javax.annotation.Nonnull;

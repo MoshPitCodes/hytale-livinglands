@@ -43,7 +43,7 @@ public class LevelingDataPersistence {
         // Ensure data directory exists
         try {
             Files.createDirectories(dataDirectory);
-            logger.at(Level.INFO).log("Leveling player data directory: %s", dataDirectory);
+            logger.at(Level.FINE).log("Leveling player data directory: %s", dataDirectory);
         } catch (IOException e) {
             logger.at(Level.WARNING).withCause(e).log("Failed to create leveling player data directory");
         }
@@ -96,7 +96,7 @@ public class LevelingDataPersistence {
             // Validate and repair any missing data
             data.validateAndRepair(xpCalculator);
 
-            logger.at(Level.INFO).log("Loaded leveling data for player: %s (%s)",
+            logger.at(Level.FINE).log("Loaded leveling data for player: %s (%s)",
                 playerId, data);
             return data;
         } catch (Exception e) {

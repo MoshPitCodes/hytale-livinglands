@@ -40,7 +40,7 @@ public final class ConfigLoader {
             if (Files.exists(configPath)) {
                 return load(configPath, logger);
             } else {
-                logger.at(Level.INFO).log("Config file not found, creating default: %s", configPath);
+                logger.at(Level.FINE).log("Config file not found, creating default: %s", configPath);
                 var defaultConfig = ModConfig.defaultConfig();
                 save(configPath, defaultConfig, logger);
                 return defaultConfig;
@@ -55,7 +55,7 @@ public final class ConfigLoader {
      * Loads configuration from an existing file.
      */
     public static ModConfig load(@Nonnull Path configPath, @Nonnull HytaleLogger logger) throws IOException {
-        logger.at(Level.INFO).log("Loading config from: %s", configPath);
+        logger.at(Level.FINE).log("Loading config from: %s", configPath);
         var json = Files.readString(configPath);
         var jsonConfig = GSON.fromJson(json, JsonConfig.class);
         return jsonConfig.toModConfig();
@@ -70,7 +70,7 @@ public final class ConfigLoader {
             var jsonConfig = JsonConfig.fromModConfig(config);
             var json = GSON.toJson(jsonConfig);
             Files.writeString(configPath, json);
-            logger.at(Level.INFO).log("Saved config to: %s", configPath);
+            logger.at(Level.FINE).log("Saved config to: %s", configPath);
         } catch (IOException e) {
             logger.at(Level.WARNING).withCause(e).log("Failed to save config");
         }

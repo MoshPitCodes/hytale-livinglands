@@ -46,7 +46,7 @@ public class CombatXpListener {
         // - Track damage dealers for kill credit
         // - Award XP for damage dealt and kills
 
-        logger.at(Level.INFO).log("Combat XP listener registered (damage events pending)");
+        logger.at(Level.FINE).log("Combat XP listener registered (damage events pending)");
     }
 
     /**

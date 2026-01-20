@@ -43,7 +43,7 @@ public final class ModulesConfigLoader {
             if (Files.exists(configPath)) {
                 return load(configPath, logger);
             } else {
-                logger.at(Level.INFO).log("Modules config not found, creating default: %s", configPath);
+                logger.at(Level.FINE).log("Modules config not found, creating default: %s", configPath);
                 var defaultConfig = ModulesConfig.defaults();
                 save(pluginDirectory, defaultConfig, logger);
                 return defaultConfig;
@@ -61,7 +61,7 @@ public final class ModulesConfigLoader {
     @Nonnull
     public static ModulesConfig load(@Nonnull Path configPath,
                                       @Nonnull HytaleLogger logger) throws IOException {
-        logger.at(Level.INFO).log("Loading modules config from: %s", configPath);
+        logger.at(Level.FINE).log("Loading modules config from: %s", configPath);
         var json = Files.readString(configPath);
         var config = GSON.fromJson(json, ModulesConfig.class);
 
@@ -70,7 +70,7 @@ public final class ModulesConfigLoader {
         for (var entry : defaults.enabled.entrySet()) {
             if (!config.enabled.containsKey(entry.getKey())) {
                 config.enabled.put(entry.getKey(), entry.getValue());
-                logger.at(Level.INFO).log("Added missing module to config: %s = %s",
+                logger.at(Level.FINE).log("Added missing module to config: %s = %s",
                         entry.getKey(), entry.getValue());
             }
         }
@@ -94,7 +94,7 @@ public final class ModulesConfigLoader {
             Files.createDirectories(pluginDirectory);
             var json = GSON.toJson(config);
             Files.writeString(configPath, json);
-            logger.at(Level.INFO).log("Saved modules config to: %s", configPath);
+            logger.at(Level.FINE).log("Saved modules config to: %s", configPath);
         } catch (IOException e) {
             logger.at(Level.WARNING).withCause(e).log("Failed to save modules config");
         }

@@ -34,7 +34,7 @@ public final class LevelUpNotification {
             var playerId = session.getPlayerId();
 
             // Log the level-up event
-            logger.at(Level.INFO).log(
+            logger.at(Level.FINE).log(
                 "[Level Up] Player %s reached %s Level %d!",
                 playerId, profession.getDisplayName(), newLevel
             );
@@ -68,7 +68,7 @@ public final class LevelUpNotification {
             var playerId = session.getPlayerId();
 
             // Log the ability unlock
-            logger.at(Level.INFO).log(
+            logger.at(Level.FINE).log(
                 "[Ability Unlock] Player %s unlocked %s (%s)!",
                 playerId, ability.getDisplayName(), ability.getProfession().getDisplayName()
             );

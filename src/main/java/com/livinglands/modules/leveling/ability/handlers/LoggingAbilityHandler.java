@@ -12,10 +12,14 @@ import java.util.logging.Level;
 
 /**
  * Handler for logging-related passive abilities.
- * Handles Efficient Chopping and Bark Collector abilities.
  *
- * Note: Block break events require ECS event registration.
- * This handler provides methods that can be called when events are available.
+ * New Abilities:
+ * - Lumberjack's Vigor (Tier 1, Lv.15): +50% logging XP (handled by LoggingXpSystem)
+ * - Forest's Blessing (Tier 2, Lv.35): Restore 5 energy when chopping
+ * - Nature's Endurance (Tier 3, Lv.60): Permanent +10% movement speed (handled by PermanentBuffManager)
+ *
+ * Note: XP boost abilities are now handled directly in the XP systems.
+ * This handler triggers Tier 2 abilities when logging occurs.
  */
 public class LoggingAbilityHandler {
 
@@ -32,36 +36,25 @@ public class LoggingAbilityHandler {
     }
 
     public void register(@Nonnull EventRegistry eventRegistry) {
-        // Note: Block break events require ECS registration.
-        // This handler provides trigger methods for when events are available.
-        logger.at(Level.INFO).log("Logging ability handler registered (ECS events pending)");
+        // Block break events are handled by the ECS LoggingXpSystem
+        // which calls checkTier2Ability when logs are chopped
+        logger.at(Level.FINE).log("Logging ability handler registered");
     }
 
     /**
-     * Check if Efficient Chopping should trigger.
+     * Called by LoggingXpSystem when a log is chopped.
+     * Checks and applies Tier 2 ability (Forest's Blessing).
      *
-     * @param playerId The logging player
-     * @return true if ability triggers
+     * @param playerId The logging player's UUID
      */
-    public boolean checkEfficientChopping(@Nonnull UUID playerId) {
-        if (abilitySystem.shouldTrigger(playerId, AbilityType.EFFICIENT_CHOPPING)) {
-            abilitySystem.logAbilityTrigger(playerId, AbilityType.EFFICIENT_CHOPPING, "Tree felling triggered");
-            return true;
+    public void onLogChopped(@Nonnull UUID playerId) {
+        // Check Tier 2: Forest's Blessing (restore 5 energy)
+        if (abilitySystem.shouldTrigger(playerId, AbilityType.FORESTS_BLESSING)) {
+            abilitySystem.applyTier2Effect(playerId, AbilityType.FORESTS_BLESSING);
+            abilitySystem.logAbilityTrigger(playerId, AbilityType.FORESTS_BLESSING, "Energy restored");
         }
-        return false;
-    }
 
-    /**
-     * Check if Bark Collector should trigger.
-     *
-     * @param playerId The logging player
-     * @return true if ability triggers
-     */
-    public boolean checkBarkCollector(@Nonnull UUID playerId) {
-        if (abilitySystem.shouldTrigger(playerId, AbilityType.BARK_COLLECTOR)) {
-            abilitySystem.logAbilityTrigger(playerId, AbilityType.BARK_COLLECTOR, "Bonus bark drops");
-            return true;
-        }
-        return false;
+        // Note: Tier 1 XP boost is handled in LoggingXpSystem via checkXpBoost()
+        // Note: Tier 3 (Nature's Endurance) is handled by PermanentBuffManager on login
     }
 }

@@ -32,7 +32,7 @@ public class PoisonRegistry {
         logger = log;
 
         if (!config.enabled()) {
-            logger.at(Level.INFO).log("Poison system is disabled");
+            logger.at(Level.FINE).log("Poison system is disabled");
             initialized = true;
             return;
         }
@@ -48,7 +48,7 @@ public class PoisonRegistry {
         }
 
         initialized = true;
-        logger.at(Level.INFO).log("Registered %d poisonous items", POISON_ITEMS.size());
+        logger.at(Level.FINE).log("Registered %d poisonous items", POISON_ITEMS.size());
     }
 
     /**

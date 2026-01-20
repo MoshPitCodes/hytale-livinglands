@@ -14,7 +14,7 @@ import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.livinglands.core.PlayerRegistry;
 import com.livinglands.modules.metabolism.DebuffsSystem;
 import com.livinglands.modules.metabolism.PlayerMetabolismData;
-import com.livinglands.modules.metabolism.SpeedManager;
+import com.livinglands.core.util.SpeedManager;
 import com.livinglands.util.ColorUtil;
 
 import javax.annotation.Nonnull;

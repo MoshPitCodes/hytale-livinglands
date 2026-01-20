@@ -9,6 +9,7 @@ import com.livinglands.core.PlayerSession;
 import com.livinglands.core.commands.LivingLandsCommand;
 import com.livinglands.modules.leveling.LevelingSystem;
 import com.livinglands.modules.leveling.ability.AbilitySystem;
+import com.livinglands.modules.leveling.ability.TimedBuffManager;
 import com.livinglands.modules.metabolism.MetabolismSystem;
 import com.livinglands.modules.metabolism.buff.BuffsSystem;
 
@@ -56,8 +57,8 @@ public final class HudModule extends AbstractModule {
     private final Set<UUID> initializingPlayers = ConcurrentHashMap.newKeySet();
 
     // Background update executor
-    private ScheduledExecutorService executor;
-    private ScheduledFuture<?> updateTask;
+    private volatile ScheduledExecutorService executor;
+    private volatile ScheduledFuture<?> updateTask;
     private volatile boolean running = false;
 
     // Unified panel element
@@ -73,6 +74,8 @@ public final class HudModule extends AbstractModule {
     private AbilitySystem abilitySystem;
     @Nullable
     private BuffsSystem buffsSystem;
+    @Nullable
+    private TimedBuffManager timedBuffManager;
 
     public HudModule() {
         super(ID, NAME, VERSION, Set.of());
@@ -96,9 +99,10 @@ public final class HudModule extends AbstractModule {
         // Register /ll command
         llCommand = new LivingLandsCommand();
         llCommand.setPanelElement(panelElement);
+        llCommand.setHudModule(this);
         context.commandRegistry().registerCommand(llCommand);
 
-        logger.at(Level.INFO).log("[%s] HUD module setup complete, /ll command registered", name);
+        logger.at(Level.FINE).log("[%s] HUD module setup complete, /ll command registered", name);
     }
 
     @Override
@@ -111,7 +115,7 @@ public final class HudModule extends AbstractModule {
         );
 
         running = true;
-        logger.at(Level.INFO).log("[%s] HUD update loop started (interval: %dms)", name, UPDATE_INTERVAL_MS);
+        logger.at(Level.FINE).log("[%s] HUD update loop started (interval: %dms)", name, UPDATE_INTERVAL_MS);
     }
 
     @Override
@@ -138,7 +142,7 @@ public final class HudModule extends AbstractModule {
         hudInitTime.clear();
         initializingPlayers.clear();
 
-        logger.at(Level.INFO).log("[%s] HUD module shutdown complete", name);
+        logger.at(Level.FINE).log("[%s] HUD module shutdown complete", name);
     }
 
     /**
@@ -149,7 +153,7 @@ public final class HudModule extends AbstractModule {
      */
     public void registerElement(@Nonnull HudElement element) {
         elements.add(element);
-        logger.at(Level.INFO).log("[%s] Registered HUD element: %s (%s)",
+        logger.at(Level.FINE).log("[%s] Registered HUD element: %s (%s)",
             name, element.getName(), element.getId());
     }
 
@@ -160,43 +164,50 @@ public final class HudModule extends AbstractModule {
      * @param playerId The player's UUID
      */
     public void initializePlayer(@Nonnull UUID playerId) {
-        // Prevent duplicate initialization
-        if (playerHuds.containsKey(playerId)) {
-            return;
-        }
-        if (initializingPlayers.contains(playerId)) {
-            return;
-        }
-
-        var sessionOpt = playerRegistry.getSession(playerId);
-        if (sessionOpt.isEmpty()) {
-            return;
-        }
-
-        initializePlayerHud(playerId, sessionOpt.get());
-    }
-
-    private void initializePlayerHud(@Nonnull UUID playerId, @Nonnull PlayerSession session) {
+        // Atomically check and mark player as initializing
+        // This prevents race conditions where multiple threads try to initialize the same player
         if (!initializingPlayers.add(playerId)) {
-            return; // Already being initialized
+            return; // Already being initialized by another thread
         }
 
         try {
-            if (!session.isEcsReady()) {
+            // Double-check if HUD already exists (could have been created between add() and here)
+            if (playerHuds.containsKey(playerId)) {
+                return;
+            }
+
+            var sessionOpt = playerRegistry.getSession(playerId);
+            if (sessionOpt.isEmpty()) {
+                return;
+            }
+
+            initializePlayerHud(playerId, sessionOpt.get());
+        } finally {
+            // Only remove from initializingPlayers if initialization failed at this level
+            // If initializePlayerHud was called, it will handle the removal
+            if (!playerHuds.containsKey(playerId)) {
                 initializingPlayers.remove(playerId);
+            }
+        }
+    }
+
+    private void initializePlayerHud(@Nonnull UUID playerId, @Nonnull PlayerSession session) {
+        // Note: initializingPlayers.add() already called by initializePlayer()
+        // We're already marked as initializing at this point
+
+        try {
+            if (!session.isEcsReady()) {
                 return;
             }
 
             var playerRef = session.getPlayerRef();
             if (playerRef == null) {
-                initializingPlayers.remove(playerId);
                 return;
             }
 
             var entityRef = session.getEntityRef();
             var store = session.getStore();
             if (entityRef == null || store == null) {
-                initializingPlayers.remove(playerId);
                 return;
             }
 
@@ -227,7 +238,7 @@ public final class HudModule extends AbstractModule {
                     // Register with player's HudManager (single slot)
                     hudManager.setCustomHud(playerRef, hud);
 
-                    // Store for updates
+                    // Atomically store for updates - this marks initialization as complete
                     playerHuds.put(playerId, hud);
                     hudInitTime.put(playerId, System.currentTimeMillis());
 
@@ -241,14 +252,15 @@ public final class HudModule extends AbstractModule {
                     logger.at(Level.WARNING).withCause(e).log(
                         "[%s] Error initializing HUD on world thread for player %s", name, playerId);
                 } finally {
+                    // Always remove from initializing set when done (success or failure)
                     initializingPlayers.remove(playerId);
                 }
             });
 
         } catch (Exception e) {
-            initializingPlayers.remove(playerId);
             logger.at(Level.WARNING).withCause(e).log(
                 "[%s] Error setting up HUD for player %s", name, playerId);
+            // Note: initializingPlayers.remove() will be called by initializePlayer's finally block
         }
     }
 
@@ -360,7 +372,7 @@ public final class HudModule extends AbstractModule {
         if (panelElement != null) {
             panelElement.setMetabolismSystem(system);
         }
-        logger.at(Level.INFO).log("[%s] Metabolism system integrated with panel", name);
+        logger.at(Level.FINE).log("[%s] Metabolism system integrated with panel", name);
     }
 
     /**
@@ -369,7 +381,7 @@ public final class HudModule extends AbstractModule {
      */
     public void setBuffsSystem(@Nullable BuffsSystem system) {
         this.buffsSystem = system;
-        logger.at(Level.INFO).log("[%s] Buffs system integrated", name);
+        logger.at(Level.FINE).log("[%s] Buffs system integrated", name);
     }
 
     /**
@@ -381,7 +393,7 @@ public final class HudModule extends AbstractModule {
         if (panelElement != null) {
             panelElement.setLevelingSystem(system);
         }
-        logger.at(Level.INFO).log("[%s] Leveling system integrated with panel", name);
+        logger.at(Level.FINE).log("[%s] Leveling system integrated with panel", name);
     }
 
     /**
@@ -393,7 +405,72 @@ public final class HudModule extends AbstractModule {
         if (panelElement != null) {
             panelElement.setAbilitySystem(system);
         }
-        logger.at(Level.INFO).log("[%s] Ability system integrated with panel", name);
+        // Also wire ability system to MetabolismHudElement if registered
+        wireAbilitySystemToElements();
+        logger.at(Level.FINE).log("[%s] Ability system integrated with panel", name);
+    }
+
+    /**
+     * Set the timed buff manager for active ability buffs display.
+     * Called by LevelingModule during integration.
+     */
+    public void setTimedBuffManager(@Nullable TimedBuffManager manager) {
+        this.timedBuffManager = manager;
+        // Wire to MetabolismHudElement if registered
+        wireTimedBuffManagerToElements();
+        logger.at(Level.FINE).log("[%s] TimedBuffManager integrated", name);
+    }
+
+    /**
+     * Wire the ability system to registered elements that need it.
+     */
+    private void wireAbilitySystemToElements() {
+        if (abilitySystem == null) {
+            return;
+        }
+        for (HudElement element : elements) {
+            if (element instanceof com.livinglands.modules.metabolism.ui.MetabolismHudElement metabolismHud) {
+                metabolismHud.setAbilitySystem(abilitySystem);
+                metabolismHud.setHudModule(this);
+                logger.at(Level.FINE).log("[%s] Ability system wired to MetabolismHudElement", name);
+            }
+        }
+    }
+
+    /**
+     * Wire the timed buff manager to registered elements that need it.
+     */
+    private void wireTimedBuffManagerToElements() {
+        if (timedBuffManager == null) {
+            return;
+        }
+        for (HudElement element : elements) {
+            if (element instanceof com.livinglands.modules.metabolism.ui.MetabolismHudElement metabolismHud) {
+                metabolismHud.setTimedBuffManager(timedBuffManager);
+                logger.at(Level.FINE).log("[%s] TimedBuffManager wired to MetabolismHudElement", name);
+            }
+        }
+    }
+
+    /**
+     * Get the ability system.
+     */
+    @Nullable
+    public AbilitySystem getAbilitySystem() {
+        return abilitySystem;
+    }
+
+    /**
+     * Get MetabolismHudElement if registered.
+     */
+    @Nullable
+    public com.livinglands.modules.metabolism.ui.MetabolismHudElement getMetabolismHudElement() {
+        for (HudElement element : elements) {
+            if (element instanceof com.livinglands.modules.metabolism.ui.MetabolismHudElement metabolismHud) {
+                return metabolismHud;
+            }
+        }
+        return null;
     }
 
     /**

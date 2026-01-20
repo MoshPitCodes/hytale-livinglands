@@ -35,7 +35,7 @@ public class CombatDetectionListener {
         // Combat detection is currently handled via MovementStatesComponent
         // which can detect combat animations and states
 
-        logger.at(Level.INFO).log(
+        logger.at(Level.FINE).log(
             "Combat detection listener registered (using movement state detection)"
         );
     }
