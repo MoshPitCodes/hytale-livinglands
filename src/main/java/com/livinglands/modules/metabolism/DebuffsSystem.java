@@ -146,7 +146,7 @@ public class DebuffsSystem {
         if (!isCurrentlyStarving && hunger <= config.hunger().damageStartThreshold()) {
             starvingPlayers.add(playerId);
             isCurrentlyStarving = true;
-            logger.at(Level.INFO).log("Player %s entered starvation state (hunger: %.1f)", playerId, hunger);
+            logger.at(Level.FINE).log("Player %s entered starvation state (hunger: %.1f)", playerId, hunger);
             sendDebuffMessage(player, "You are starving! Find food quickly!", true);
         }
 
@@ -155,7 +155,7 @@ public class DebuffsSystem {
             starvingPlayers.remove(playerId);
             starvationTicks.remove(playerId);
             lastHungerDamageTime.remove(playerId);
-            logger.at(Level.INFO).log("Player %s RECOVERED from starvation (hunger: %.1f >= %.1f)",
+            logger.at(Level.FINE).log("Player %s RECOVERED from starvation (hunger: %.1f >= %.1f)",
                 playerId, hunger, recoveryThreshold);
             sendDebuffMessage(player, "You are no longer starving.", false);
             return;
@@ -210,7 +210,7 @@ public class DebuffsSystem {
         if (!isCurrentlyDehydrated && thirst <= config.thirst().damageStartThreshold()) {
             dehydratedPlayers.add(playerId);
             isCurrentlyDehydrated = true;
-            logger.at(Level.INFO).log("Player %s entered dehydration state (thirst: %.1f)", playerId, thirst);
+            logger.at(Level.FINE).log("Player %s entered dehydration state (thirst: %.1f)", playerId, thirst);
             sendDebuffMessage(player, "You are severely dehydrated! Find water immediately!", true);
         }
 
@@ -218,7 +218,7 @@ public class DebuffsSystem {
         if (isCurrentlyDehydrated && thirst >= recoveryThreshold) {
             dehydratedPlayers.remove(playerId);
             lastThirstDamageTime.remove(playerId);
-            logger.at(Level.INFO).log("Player %s RECOVERED from dehydration (thirst: %.1f >= %.1f)",
+            logger.at(Level.FINE).log("Player %s RECOVERED from dehydration (thirst: %.1f >= %.1f)",
                 playerId, thirst, recoveryThreshold);
             sendDebuffMessage(player, "You are no longer dehydrated.", false);
             return;
@@ -266,7 +266,7 @@ public class DebuffsSystem {
             // Track that player is parched
             if (!isCurrentlyParched) {
                 parchedPlayers.add(playerId);
-                logger.at(Level.INFO).log("Player %s entered parched state (thirst: %.1f < %.1f)",
+                logger.at(Level.FINE).log("Player %s entered parched state (thirst: %.1f < %.1f)",
                     playerId, thirst, slowThreshold);
                 sendDebuffMessage(player, "You are getting thirsty. Your speed and stamina are reduced.", true);
             }
@@ -288,7 +288,7 @@ public class DebuffsSystem {
                 speedManager.clearThirstDebuffMultiplier(playerId);
             }
             removeThirstStaminaRegenModifier(ref, store, world);
-            logger.at(Level.INFO).log("Player %s RECOVERED from parched state (thirst: %.1f >= %.1f)",
+            logger.at(Level.FINE).log("Player %s RECOVERED from parched state (thirst: %.1f >= %.1f)",
                 playerId, thirst, slowThreshold);
             sendDebuffMessage(player, "Your thirst is quenched. Speed and stamina restored.", false);
         }
@@ -367,7 +367,7 @@ public class DebuffsSystem {
         if (!isCurrentlyExhausted && energy <= config.energy().staminaDrainStartThreshold()) {
             exhaustedPlayers.add(playerId);
             isCurrentlyExhausted = true;
-            logger.at(Level.INFO).log("Player %s entered exhausted state (energy: %.1f) - stamina drain active",
+            logger.at(Level.FINE).log("Player %s entered exhausted state (energy: %.1f) - stamina drain active",
                 playerId, energy);
             sendDebuffMessage(player, "You are exhausted! Your stamina is draining rapidly. Rest now!", true);
         }
@@ -376,7 +376,7 @@ public class DebuffsSystem {
         if (isCurrentlyExhausted && energy >= recoveryThreshold) {
             exhaustedPlayers.remove(playerId);
             lastStaminaDrainTime.remove(playerId);
-            logger.at(Level.INFO).log("Player %s RECOVERED from exhaustion (energy: %.1f >= %.1f)",
+            logger.at(Level.FINE).log("Player %s RECOVERED from exhaustion (energy: %.1f >= %.1f)",
                 playerId, energy, recoveryThreshold);
             sendDebuffMessage(player, "You are no longer exhausted.", false);
             return;

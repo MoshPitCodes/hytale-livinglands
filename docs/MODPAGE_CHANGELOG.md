@@ -4,6 +4,30 @@ All notable changes to Living Lands for players and server administrators.
 
 ---
 
+## Version 2.3.4-beta - January 2026
+
+### Changed
+
+#### Reduced Console Spam
+- **Quieter Logs** - Server consoles are now much cleaner with reduced logging
+- **Server Admins** - Set `"LivingLands": "WARNING"` in server config.json for minimal logs
+- **Debug Mode** - Set `"LivingLands": "FINE"` in server config.json for detailed debugging
+
+#### Simplified Commands
+- **`/ll`** - Shows all available subcommands
+- **`/ll main`** - Toggles the Living Lands stats panel
+- **`/ll help`** - Shows mod information and config file paths
+- **`/stats` Removed** - Use `/ll main` instead (shows same information in the panel)
+- **`/skillgui` Removed** - Use `/ll main` instead (skills shown in the panel)
+
+#### Visual Improvements
+- **HUD Backdrop** - Metabolism stats now have a semi-transparent dark background for better readability
+- **Buff/Debuff Backdrops** - Each buff (purple) and debuff (red) has its own backdrop
+- **Cleaner Display** - Buff/debuff backdrops only appear when effects are active
+- **Aligned Bars** - Progress bars now display consistently regardless of stat value
+
+---
+
 ## Version 2.3.3-beta - January 2026
 
 ### New Features

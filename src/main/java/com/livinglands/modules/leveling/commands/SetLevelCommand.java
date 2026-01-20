@@ -3,6 +3,7 @@ package com.livinglands.modules.leveling.commands;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.server.core.Message;
+import com.hypixel.hytale.protocol.GameMode;
 import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
@@ -35,6 +36,9 @@ public class SetLevelCommand extends AbstractPlayerCommand {
         this.professionArg = withRequiredArg("profession",
             "combat, mining, building, logging, gathering", ArgTypes.STRING);
         this.levelArg = withRequiredArg("level", "The level to set (1-99)", ArgTypes.INTEGER);
+
+        // Allow command in both Adventure (Survival) and Creative modes (for admins)
+        setPermissionGroups(GameMode.Adventure.toString(), GameMode.Creative.toString());
     }
 
     @Override

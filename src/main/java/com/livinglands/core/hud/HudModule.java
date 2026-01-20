@@ -234,7 +234,7 @@ public final class HudModule extends AbstractModule {
                     // Show the HUD
                     hud.show();
 
-                    logger.at(Level.INFO).log("[%s] Initialized HUD for player %s with %d elements",
+                    logger.at(Level.FINE).log("[%s] Initialized HUD for player %s with %d elements",
                         name, playerId, elements.size());
 
                 } catch (Exception e) {
@@ -360,22 +360,16 @@ public final class HudModule extends AbstractModule {
         if (panelElement != null) {
             panelElement.setMetabolismSystem(system);
         }
-        if (llCommand != null) {
-            llCommand.setMetabolismSystem(system);
-        }
         logger.at(Level.INFO).log("[%s] Metabolism system integrated with panel", name);
     }
 
     /**
-     * Set the buffs system for the /ll stats command.
+     * Set the buffs system.
      * Called by MetabolismModule during integration.
      */
     public void setBuffsSystem(@Nullable BuffsSystem system) {
         this.buffsSystem = system;
-        if (llCommand != null) {
-            llCommand.setBuffsSystem(system);
-        }
-        logger.at(Level.INFO).log("[%s] Buffs system integrated with command", name);
+        logger.at(Level.INFO).log("[%s] Buffs system integrated", name);
     }
 
     /**

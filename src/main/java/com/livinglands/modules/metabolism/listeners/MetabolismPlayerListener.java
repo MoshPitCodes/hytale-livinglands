@@ -90,7 +90,7 @@ public class MetabolismPlayerListener {
                 metabolismSystem.initializePlayer(playerId);
             }
 
-            logger.at(Level.INFO).log("Player connected: %s", playerId);
+            logger.at(Level.FINE).log("Player connected: %s", playerId);
 
         } catch (Exception e) {
             logger.at(Level.WARNING).withCause(e).log(
@@ -130,7 +130,7 @@ public class MetabolismPlayerListener {
                 hudModule.initializePlayer(playerId);
             }
 
-            logger.at(Level.INFO).log("ECS ready for player: %s", playerId);
+            logger.at(Level.FINE).log("ECS ready for player: %s", playerId);
 
         } catch (Exception e) {
             logger.at(Level.WARNING).withCause(e).log(
@@ -163,7 +163,7 @@ public class MetabolismPlayerListener {
             // Unregister from central PlayerRegistry
             playerRegistry.unregisterPlayer(playerId);
 
-            logger.at(Level.INFO).log("Player disconnected: %s", playerId);
+            logger.at(Level.FINE).log("Player disconnected: %s", playerId);
 
         } catch (Exception e) {
             logger.at(Level.WARNING).withCause(e).log(

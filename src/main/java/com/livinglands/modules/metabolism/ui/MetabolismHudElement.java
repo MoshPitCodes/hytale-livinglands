@@ -207,19 +207,20 @@ public class MetabolismHudElement implements HudElement {
 
     /**
      * Format just the progress bar with value (no label name).
-     * Example: "75 [|||||||...]"
+     * Example: "[|||||||...] 75"
+     * Bar comes first for consistent alignment, value displayed after.
      */
     private String formatBar(double value) {
         int filledSegments = (int) Math.round((value / MAX_VALUE) * BAR_SEGMENTS);
         filledSegments = Math.max(0, Math.min(BAR_SEGMENTS, filledSegments));
 
         StringBuilder bar = new StringBuilder();
-        bar.append(String.format("%.0f ", value));
         bar.append("[");
         for (int i = 0; i < BAR_SEGMENTS; i++) {
             bar.append(i < filledSegments ? "|" : ".");
         }
-        bar.append("]");
+        bar.append("] ");
+        bar.append(String.format("%.0f", value));
 
         return bar.toString();
     }
@@ -276,26 +277,32 @@ public class MetabolismHudElement implements HudElement {
 
     /**
      * Update the buffs display labels (violet).
+     * Also controls container visibility - hidden when empty.
      */
     private void updateBuffsDisplay(UICommandBuilder builder, List<String> buffs) {
         for (int i = 1; i <= MAX_BUFFS; i++) {
             if (i <= buffs.size()) {
                 builder.set("#Buff" + i + ".Text", buffs.get(i - 1));
+                builder.set("#Buff" + i + "Container.Visible", true);
             } else {
                 builder.set("#Buff" + i + ".Text", "");
+                builder.set("#Buff" + i + "Container.Visible", false);
             }
         }
     }
 
     /**
      * Update the debuffs display labels (red).
+     * Also controls container visibility - hidden when empty.
      */
     private void updateDebuffsDisplay(UICommandBuilder builder, List<String> debuffs) {
         for (int i = 1; i <= MAX_DEBUFFS; i++) {
             if (i <= debuffs.size()) {
                 builder.set("#Debuff" + i + ".Text", debuffs.get(i - 1));
+                builder.set("#Debuff" + i + "Container.Visible", true);
             } else {
                 builder.set("#Debuff" + i + ".Text", "");
+                builder.set("#Debuff" + i + "Container.Visible", false);
             }
         }
     }

@@ -112,7 +112,7 @@ public class PlayerRegistry {
         session.setEcsReferences(entityRef, store, world, playerRef, player);
 
         if (session.isEcsReady()) {
-            logger.at(Level.INFO).log("ECS ready for player: %s", playerId);
+            logger.at(Level.FINE).log("ECS ready for player: %s", playerId);
         } else {
             logger.at(Level.WARNING).log(
                 "ECS refs set but not ready for player: %s (ref=%s, store=%s, world=%s)",

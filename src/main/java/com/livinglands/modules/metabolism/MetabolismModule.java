@@ -4,7 +4,6 @@ import com.livinglands.api.AbstractModule;
 import com.livinglands.core.hud.HudModule;
 import com.livinglands.modules.metabolism.buff.BuffEffectsSystem;
 import com.livinglands.modules.metabolism.buff.BuffsSystem;
-import com.livinglands.modules.metabolism.commands.StatsCommand;
 import com.livinglands.modules.metabolism.config.MetabolismModuleConfig;
 import com.livinglands.modules.metabolism.consumables.ConsumableRegistry;
 import com.livinglands.modules.metabolism.listeners.BedInteractionListener;
@@ -104,10 +103,6 @@ public final class MetabolismModule extends AbstractModule {
                 hudModuleOpt.get().setBuffsSystem(buffsSystem);
             }
         }
-
-        // Register commands
-        logger.at(java.util.logging.Level.INFO).log("[%s] Registering commands...", name);
-        context.commandRegistry().registerCommand(new StatsCommand(system, buffsSystem));
 
         // Register event listeners
         logger.at(java.util.logging.Level.INFO).log("[%s] Registering event listeners...", name);

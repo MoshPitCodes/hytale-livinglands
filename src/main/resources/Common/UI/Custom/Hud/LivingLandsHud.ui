@@ -2,95 +2,137 @@
 // Reference: https://github.com/trouble-dev/hytale-basic-uis
 
 // === Metabolism HUD (always visible - top left corner) ===
+// Container for positioning (no background)
 Group #LivingLandsHud {
   LayoutMode: Top;
-  Anchor: (Top: 16, Left: 16, Width: 280, Height: 140);
+  Anchor: (Top: 16, Left: 16, Width: 200, Height: 140);
 
-  // Hunger row - label and bar aligned
-  Group #HungerRow {
-    LayoutMode: Left;
-    Anchor: (Height: 18);
+  // Metabolism bars with tight backdrop
+  Group #MetabolismBars {
+    LayoutMode: Top;
+    Anchor: (Width: 165, Height: 66);
+    Background: #1a1a1a(0.70);
+    Padding: (Full: 8);
 
-    Label #HungerName {
-      Text: "Hunger";
-      Anchor: (Width: 55, Height: 18);
-      Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #e67e22, RenderBold: true);
+    // Hunger row - label and bar aligned
+    Group #HungerRow {
+      LayoutMode: Left;
+      Anchor: (Height: 16);
+
+      Label #HungerName {
+        Text: "Hunger";
+        Anchor: (Width: 50, Height: 16);
+        Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #e67e22, RenderBold: true);
+      }
+
+      Label #HungerBar {
+        Text: "";
+        Anchor: (Width: 115, Height: 16);
+        Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #e67e22);
+      }
     }
 
-    Label #HungerBar {
-      Text: "";
-      Anchor: (Width: 225, Height: 18);
-      Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #e67e22);
+    // Thirst row - label and bar aligned
+    Group #ThirstRow {
+      LayoutMode: Left;
+      Anchor: (Height: 16, Top: 1);
+
+      Label #ThirstName {
+        Text: "Thirst";
+        Anchor: (Width: 50, Height: 16);
+        Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #5dade2, RenderBold: true);
+      }
+
+      Label #ThirstBar {
+        Text: "";
+        Anchor: (Width: 115, Height: 16);
+        Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #5dade2);
+      }
+    }
+
+    // Energy row - label and bar aligned
+    Group #EnergyRow {
+      LayoutMode: Left;
+      Anchor: (Height: 16, Top: 1);
+
+      Label #EnergyName {
+        Text: "Energy";
+        Anchor: (Width: 50, Height: 16);
+        Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #f4d03f, RenderBold: true);
+      }
+
+      Label #EnergyBar {
+        Text: "";
+        Anchor: (Width: 115, Height: 16);
+        Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #f4d03f);
+      }
     }
   }
 
-  // Thirst row - label and bar aligned
-  Group #ThirstRow {
-    LayoutMode: Left;
-    Anchor: (Height: 18, Top: 2);
-
-    Label #ThirstName {
-      Text: "Thirst";
-      Anchor: (Width: 55, Height: 18);
-      Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #5dade2, RenderBold: true);
-    }
-
-    Label #ThirstBar {
-      Text: "";
-      Anchor: (Width: 225, Height: 18);
-      Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #5dade2);
-    }
-  }
-
-  // Energy row - label and bar aligned
-  Group #EnergyRow {
-    LayoutMode: Left;
-    Anchor: (Height: 18, Top: 2);
-
-    Label #EnergyName {
-      Text: "Energy";
-      Anchor: (Width: 55, Height: 18);
-      Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #f4d03f, RenderBold: true);
-    }
-
-    Label #EnergyBar {
-      Text: "";
-      Anchor: (Width: 225, Height: 18);
-      Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #f4d03f);
-    }
-  }
-
-  // Spacer
-  Group { Anchor: (Height: 6); }
-
-  // Active Effects section (buffs/debuffs)
-  // Buffs use #BuffN (violet), Debuffs use #DebuffN (red)
+  // Active Effects section (buffs/debuffs) - each with individual backdrop
+  // Containers are hidden by default, shown via Java when there's content
   Group #ActiveEffects {
     LayoutMode: Top;
-    Anchor: (Height: 72);
+    Anchor: (Height: 72, Top: 4);
 
-    Label #Buff1 {
-      Text: "";
-      Anchor: (Height: 16);
-      Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #9b59b6);
+    // Buff 1 with backdrop (hidden by default)
+    Group #Buff1Container {
+      LayoutMode: Left;
+      Anchor: (Width: 165, Height: 16);
+      Background: #2d1f4e(0.75);
+      Padding: (Left: 8, Right: 8);
+      Visible: false;
+
+      Label #Buff1 {
+        Text: "";
+        Anchor: (Height: 16);
+        Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #b388ff);
+      }
     }
 
-    Label #Buff2 {
-      Text: "";
-      Anchor: (Height: 16);
-      Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #9b59b6);
+    // Buff 2 with backdrop (hidden by default)
+    Group #Buff2Container {
+      LayoutMode: Left;
+      Anchor: (Width: 165, Height: 16, Top: 2);
+      Background: #2d1f4e(0.75);
+      Padding: (Left: 8, Right: 8);
+      Visible: false;
+
+      Label #Buff2 {
+        Text: "";
+        Anchor: (Height: 16);
+        Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #b388ff);
+      }
     }
 
-    Label #Debuff1 {
-      Text: "";
-      Anchor: (Height: 16);
-      Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #e74c3c);
+    // Debuff 1 with backdrop (hidden by default)
+    Group #Debuff1Container {
+      LayoutMode: Left;
+      Anchor: (Width: 165, Height: 16, Top: 2);
+      Background: #4a1a1a(0.75);
+      Padding: (Left: 8, Right: 8);
+      Visible: false;
+
+      Label #Debuff1 {
+        Text: "";
+        Anchor: (Height: 16);
+        Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #ff6b6b);
+      }
     }
 
-    Label #Debuff2 {
-      Text: "";
-      Anchor: (Height: 16);
-      Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #e74c3c);
+    // Debuff 2 with backdrop (hidden by default)
+    Group #Debuff2Container {
+      LayoutMode: Left;
+      Anchor: (Width: 165, Height: 16, Top: 2);
+      Background: #4a1a1a(0.75);
+      Padding: (Left: 8, Right: 8);
+      Visible: false;
+
+      Label #Debuff2 {
+        Text: "";
+        Anchor: (Height: 16);
+        Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #ff6b6b);
+      }
     }
   }
 }

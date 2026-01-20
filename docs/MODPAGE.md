@@ -2,7 +2,7 @@
 
 **Living Lands** transforms Hytale into an immersive survival experience. Manage your character's **hunger**, **thirst**, and **energy** while exploring the world. The mod integrates seamlessly with vanilla items - no new blocks or complicated recipes, just pure survival gameplay.
 
-**Version 2.3.3** features an **enhanced HUD** with real-time buff/debuff indicators, a **buff/debuff system** that rewards well-maintained stats and penalizes neglect, **comprehensive consumable detection** for all vanilla items, plus a **modular architecture** - enable only the features you want!
+**Version 2.3.4** features an **enhanced HUD** with semi-transparent backdrops, real-time buff/debuff indicators, a **buff/debuff system** that rewards well-maintained stats and penalizes neglect, **comprehensive consumable detection** for all vanilla items, plus a **modular architecture** - enable only the features you want!
 
 ---
 
@@ -66,7 +66,9 @@
 ### Real-time HUD
 
 - Custom on-screen display shows all three stats with text-based progress bars
-- **Active Effects Display** - Buffs shown in violet, debuffs shown in red below the bars
+- **Semi-Transparent Backdrops** - Clean dark backgrounds for better readability
+- **Active Effects Display** - Buffs shown in violet, debuffs shown in red with individual backdrops
+- **Dynamic Visibility** - Buff/debuff backdrops only appear when effects are active
 - **XP Notifications** - XP gain notifications appear to the right of metabolism bars
 - Color-coded warnings when stats get low
 - Buff indicators: `[+] Well Fed`, `[+] Hydrated`, `[+] Energized`
@@ -164,12 +166,25 @@ The metabolism module has extensive configuration options:
 
 ## Commands
 
+### Player Commands (All Players)
+
 | Command | Description |
 |---------|-------------|
-| `/ll stats` | View your current hunger, thirst, energy, and active buffs |
+| `/ll` | Show all available commands |
 | `/ll main` | Toggle the Living Lands panel (metabolism, professions, effects, abilities) |
-| `/skillgui` | Toggle XP gain notifications |
-| `/setlevel` | (Admin) Set a player's profession level |
+| `/ll help` | Show help panel with mod info and configuration paths |
+
+### Admin Commands (OP Required)
+
+| Command | Description |
+|---------|-------------|
+| `/setlevel <profession> <level>` | Set a player's profession level (1-99) |
+
+**Example:** `/setlevel combat 25`
+
+### Permissions
+
+Living Lands uses Hytale's native permission system. Admin commands require OP status on the server.
 
 ---
 
