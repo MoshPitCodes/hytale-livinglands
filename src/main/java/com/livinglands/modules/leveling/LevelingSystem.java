@@ -173,12 +173,19 @@ public class LevelingSystem {
 
     /**
      * Award XP to a player for a profession.
+     * XP is not awarded in Creative mode.
      *
      * @param playerId The player's UUID
      * @param profession The profession to award XP to
      * @param baseXp The base XP amount (before multipliers)
      */
     public void awardXp(@Nonnull UUID playerId, @Nonnull ProfessionType profession, long baseXp) {
+        // Skip XP awards for Creative mode players
+        var sessionOpt = playerRegistry.getSession(playerId);
+        if (sessionOpt.isPresent() && sessionOpt.get().isCreativeMode()) {
+            return; // XP paused in Creative mode
+        }
+
         var data = playerData.get(playerId);
         if (data == null) {
             logger.at(Level.FINE).log("Cannot award XP - player %s not initialized", playerId);

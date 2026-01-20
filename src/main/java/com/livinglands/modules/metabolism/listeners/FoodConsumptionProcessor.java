@@ -155,6 +155,8 @@ public class FoodConsumptionProcessor {
             case HEALTH_POTION -> base * 0.3;  // Health potions: slight hunger restore
             case MANA_POTION -> 0.0;           // Mana potions: no hunger restore
             case STAMINA_POTION -> 0.0;        // Stamina potions: no hunger restore
+            case WATER -> 0.0;                 // Water: no hunger restore
+            case MILK -> base * 0.3;           // Milk: slight hunger restore
             default -> base;
         };
     }
@@ -175,6 +177,8 @@ public class FoodConsumptionProcessor {
             case HEALTH_POTION -> base * 2.0;  // Health potions: bigger thirst restore
             case MANA_POTION -> base * 2.0;    // Mana potions: bigger thirst restore
             case STAMINA_POTION -> base * 2.0; // Stamina potions: bigger thirst restore
+            case WATER -> base * 3.0;          // Water: primary thirst restore
+            case MILK -> base * 2.5;           // Milk: good thirst restore
             default -> base;
         };
     }
@@ -194,6 +198,8 @@ public class FoodConsumptionProcessor {
             case HEALTH_POTION -> 0.0;         // Health potions: no energy restore
             case MANA_POTION -> base * 0.3;    // Mana potions: slight energy restore
             case STAMINA_POTION -> base * 0.3; // Stamina potions: slight energy restore
+            case WATER -> base * 0.5;          // Water: slight energy restore
+            case MILK -> base * 0.8;           // Milk: moderate energy restore
             default -> base;
         };
     }

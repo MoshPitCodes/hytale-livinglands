@@ -2,6 +2,37 @@
 
 All notable changes to Living Lands will be documented in this file.
 
+## [2.3.3-beta] - 2026-01-20
+
+### Added
+
+#### Comprehensive Consumable Detection
+- **Water/Drink Detection** - Added `Food_Health_Restore_*` effect detection for water mugs and buckets
+- **Stamina Drinks** - Added `Food_Stamina_Restore_*` effect detection for stamina restoration drinks
+- **Regen Food Effects** - Added `Food_Health_Regen_*` and `Food_Stamina_Regen_*` effect detection
+- **Milk Detection** - Added `Antidote` effect detection for milk buckets (milk applies Antidote in Hytale)
+- **Morph Potions** - Added `Potion_Morph_*` detection for morph potions (Dog, Frog, Mosshorn, Mouse, Pigeon)
+
+### Fixed
+
+#### Consumable Effect Detection
+- **Effect ID Retrieval** - Fixed effect ID retrieval to use multiple strategies (reflection-based) for dynamic effects
+- **Potion Detection Reliability** - Improved potion detection by getting effect ID directly from effect object instead of asset map lookup
+- **Deduplication System** - Changed from time-based (500ms window) to index-based deduplication, allowing rapid consecutive potion use while preventing duplicate detection
+
+### Changed
+
+#### Commands
+- **Stats Command** - Changed `/stats` command to `/ll stats` for consistency with other Living Lands commands
+
+### Technical Details
+- New `getEffectIdFromEffect()` method uses three strategies: `getType().getId()`, direct `getId()`, and asset map fallback
+- Removed redundant `DRINK_EFFECT_PREFIXES` - water/milk items use `Food_Health_Restore_*` effects
+- `processedEffectIndexes` map tracks processed effects per-player with 200ms cleanup interval
+- Added comprehensive effect pattern matching for all vanilla Hytale consumables
+
+---
+
 ## [2.3.2-beta] - 2026-01-20
 
 ### Fixed

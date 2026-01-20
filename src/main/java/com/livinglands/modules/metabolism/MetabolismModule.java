@@ -98,6 +98,11 @@ public final class MetabolismModule extends AbstractModule {
 
             // Wire buff system into metabolism system
             system.setBuffSystems(buffsSystem, buffEffectsSystem);
+
+            // Integrate with HudModule for /ll stats command
+            if (hudModuleOpt.isPresent()) {
+                hudModuleOpt.get().setBuffsSystem(buffsSystem);
+            }
         }
 
         // Register commands

@@ -43,27 +43,37 @@ public class FoodEffectDetector {
     // Key: player UUID, Value: set of effect indexes currently active
     private final Map<UUID, Set<Integer>> previousEffects = new ConcurrentHashMap<>();
 
-    // Track recently processed consumable effects to prevent duplicate detections
-    // Key: player UUID, Value: timestamp when last consumable was processed
-    // This prevents detecting multiple effects from the same food/potion item
-    // (e.g., one apple applying Food_Instant_Heal_T1 + FruitVeggie_Buff_T1 + HealthRegen_Buff_T1)
-    private final Map<UUID, Long> recentConsumables = new ConcurrentHashMap<>();
+    // Track recently processed effect indexes per player to prevent duplicate detections
+    // Key: player UUID, Value: set of effect indexes already processed
+    // This prevents re-detecting the same effect if it persists across multiple ticks
+    // while allowing new effects (with new indexes) to be detected immediately
+    private final Map<UUID, Set<Integer>> processedEffectIndexes = new ConcurrentHashMap<>();
 
-    // Time window for deduplication (milliseconds) - effects from the same consumable
-    // may appear across multiple ticks, so we use a longer window
-    // Food consumption animation takes ~500ms, so 500ms should cover all effects from one item
-    private static final long DEDUP_WINDOW_MS = 500;
+    // Track when we last cleaned up processed effects for each player
+    // Key: player UUID, Value: timestamp of last cleanup
+    private final Map<UUID, Long> lastCleanupTime = new ConcurrentHashMap<>();
+
+    // How often to clean up old processed effect indexes (milliseconds)
+    // This allows the same effect index to be re-detected after this time
+    // (e.g., if player drinks another potion of the same type later)
+    // Set to 200ms to allow rapid consecutive potion use while still preventing
+    // duplicate detection within a single consumption animation
+    private static final long CLEANUP_INTERVAL_MS = 200;
 
     // Food effect ID prefixes to detect
     private static final Set<String> FOOD_EFFECT_PREFIXES = Set.of(
-        "Food_Instant_Heal",
-        "Food_Health_Boost",
-        "Food_Stamina_Boost",
-        "Food_Health_Regen",
-        "Meat_Buff",
-        "FruitVeggie_Buff",
-        "HealthRegen_Buff",
-        "Food_Buff"  // Deprecated but might still be used
+        "Food_Instant_Heal",     // Food_Instant_Heal_T1/T2/T3/Bread
+        "Food_Health_Restore",   // Food_Health_Restore_Tiny/Small/Medium/Large (water/drinks)
+        "Food_Stamina_Restore",  // Food_Stamina_Restore_Tiny/Small/Medium/Large (stamina drinks)
+        "Food_Health_Boost",     // Food_Health_Boost_Tiny/Small/Medium/Large
+        "Food_Stamina_Boost",    // Food_Stamina_Boost_Tiny/Small/Medium/Large
+        "Food_Health_Regen",     // Food_Health_Regen_Tiny/Small/Medium/Large
+        "Food_Stamina_Regen",    // Food_Stamina_Regen_Tiny/Small/Medium/Large
+        "Meat_Buff",             // Meat_Buff_T1/T2/T3
+        "FruitVeggie_Buff",      // FruitVeggie_Buff_T1/T2/T3
+        "HealthRegen_Buff",      // HealthRegen_Buff_T1/T2/T3
+        "Food_Buff",             // Deprecated but might still be used
+        "Antidote"               // Milk bucket applies Antidote effect
     );
 
     // Potion effect ID prefixes to detect
@@ -72,19 +82,42 @@ public class FoodEffectDetector {
     // "Potion_Regen_Health_Small_InteractionVars_..." (alternative naming)
     // So we match on the item name prefix pattern
     private static final Set<String> POTION_EFFECT_PREFIXES = Set.of(
-        "Potion_Health",       // Health potions (Small, Large, Lesser, Greater, etc.)
-        "Potion_Regen_Health", // Health regen potions (alternative naming: Potion_Regen_Health_Small)
-        "Potion_Stamina",      // Stamina potions
+        "Potion_Health",       // Health potions (Instant/Regen, Lesser/Greater)
+        "Potion_Regen_Health", // Health regen potions (alternative naming)
+        "Potion_Stamina",      // Stamina potions (Instant/Regen, Lesser/Greater)
         "Potion_Regen_Stamina",// Stamina regen potions (alternative naming)
-        "Potion_Signature",    // Mana/Signature potions
+        "Potion_Signature",    // Mana/Signature potions (Regen, Lesser/Greater)
         "Potion_Regen_Signature", // Signature regen potions (alternative naming)
         "Potion_Mana",         // Mana potions (alternative naming)
         "Potion_Regen_Mana",   // Mana regen potions (alternative naming)
-        "Potion_Regen"         // Generic regen potions
+        "Potion_Regen",        // Generic regen potions
+        "Potion_Morph"         // Morph potions (Dog, Frog, Mosshorn, Mouse, Pigeon)
     );
+
+    // Note: Water/milk items use Food_Health_Restore_* effects (covered in FOOD_EFFECT_PREFIXES)
+    // No separate drink prefixes needed - detection is handled via Food_Health_Restore
 
     public FoodEffectDetector(@Nonnull HytaleLogger logger) {
         this.logger = logger;
+    }
+
+    /**
+     * Cleans up old processed effect indexes to allow re-detection.
+     * Called periodically to prevent memory buildup and allow the same
+     * effect index to be detected again after the cleanup interval.
+     */
+    private void cleanupProcessedEffects(UUID playerId, long currentTime) {
+        Long lastCleanup = lastCleanupTime.get(playerId);
+        if (lastCleanup != null && currentTime - lastCleanup < CLEANUP_INTERVAL_MS) {
+            return; // Not time to clean up yet
+        }
+
+        // Clear processed effects and update cleanup time
+        Set<Integer> processed = processedEffectIndexes.get(playerId);
+        if (processed != null) {
+            processed.clear();
+        }
+        lastCleanupTime.put(playerId, currentTime);
     }
 
     /**
@@ -139,37 +172,47 @@ public class FoodEffectDetector {
             Set<Integer> previous = previousEffects.getOrDefault(playerId, Set.of());
             long currentTime = System.currentTimeMillis();
 
-            // Check if we recently processed a consumable for this player
-            Long lastConsumableTime = recentConsumables.get(playerId);
-            boolean recentlyProcessed = lastConsumableTime != null &&
-                currentTime - lastConsumableTime <= DEDUP_WINDOW_MS;
+            // Periodically clean up processed effect indexes to allow re-detection
+            // of the same effect type after the cleanup interval
+            cleanupProcessedEffects(playerId, currentTime);
+
+            // Get the set of already-processed effect indexes for this player
+            Set<Integer> processed = processedEffectIndexes.computeIfAbsent(
+                playerId, k -> ConcurrentHashMap.newKeySet()
+            );
 
             // Find NEW effects (in current but not in previous)
-            // We only process the FIRST consumable effect we find per dedup window
-            boolean foundConsumable = false;
-
             for (var effect : activeEffects) {
                 if (effect == null) continue;
 
                 int effectIndex = effect.getEntityEffectIndex();
 
-                // Skip if we already knew about this effect
+                // Skip if this effect was already active in the previous tick
+                // (we only want to detect NEW effects, not ongoing ones)
                 if (previous.contains(effectIndex)) {
                     continue;
                 }
 
-                // Check if this is a food or potion effect
-                String effectId = getEffectId(effectIndex);
+                // Skip if we already processed this effect index recently
+                // (prevents duplicate detection if effect persists across ticks)
+                if (processed.contains(effectIndex)) {
+                    continue;
+                }
+
+                // Get effect ID using multiple strategies (handles dynamic effects)
+                String effectId = getEffectIdFromEffect(effect);
+
+                // Debug log new effects to help diagnose detection issues
+                if (effectId != null) {
+                    logger.at(Level.FINE).log(
+                        "New effect detected for player %s: %s (index: %d, isFood: %b, isPotion: %b)",
+                        playerId, effectId, effectIndex, isFoodEffect(effectId), isPotionEffect(effectId)
+                    );
+                }
 
                 if (effectId != null && (isFoodEffect(effectId) || isPotionEffect(effectId))) {
-                    // Skip if we recently processed a consumable (deduplication)
-                    if (recentlyProcessed || foundConsumable) {
-                        continue;
-                    }
-
-                    // Mark that we found and are processing a consumable
-                    foundConsumable = true;
-                    recentConsumables.put(playerId, currentTime);
+                    // Mark this effect index as processed to prevent duplicate detection
+                    processed.add(effectIndex);
 
                     // Found a newly applied food or potion effect
                     detectedConsumptions.add(new DetectedFoodConsumption(
@@ -177,6 +220,11 @@ public class FoodEffectDetector {
                         determineFoodTier(effectId),
                         determineFoodType(effectId)
                     ));
+
+                    logger.at(Level.INFO).log(
+                        "Detected consumable for player %s: %s (tier: %d, type: %s)",
+                        playerId, effectId, determineFoodTier(effectId), determineFoodType(effectId)
+                    );
                 }
             }
 
@@ -201,7 +249,67 @@ public class FoodEffectDetector {
     }
 
     /**
-     * Gets the effect ID string from an effect index.
+     * Gets the effect ID string from an effect object.
+     * Uses multiple strategies to handle both predefined and dynamically generated effects.
+     *
+     * @param effect The active effect object
+     * @return The effect ID, or null if not found
+     */
+    private String getEffectIdFromEffect(Object effect) {
+        if (effect == null) {
+            return null;
+        }
+
+        // Strategy 1: Try getType().getId() pattern (works for most effects)
+        try {
+            var effectClass = effect.getClass();
+            var getType = effectClass.getMethod("getType");
+            var type = getType.invoke(effect);
+            if (type != null) {
+                var getId = type.getClass().getMethod("getId");
+                var id = getId.invoke(type);
+                if (id != null) {
+                    return id.toString();
+                }
+            }
+        } catch (Exception e) {
+            // Method not available, try next strategy
+        }
+
+        // Strategy 2: Try direct getId() method
+        try {
+            var getId = effect.getClass().getMethod("getId");
+            var id = getId.invoke(effect);
+            if (id != null) {
+                return id.toString();
+            }
+        } catch (Exception e) {
+            // Method not available, try next strategy
+        }
+
+        // Strategy 3: Fall back to asset map lookup by index
+        try {
+            var getIndex = effect.getClass().getMethod("getEntityEffectIndex");
+            var index = (Integer) getIndex.invoke(effect);
+            if (index != null) {
+                var assetMap = EntityEffect.getAssetMap();
+                if (assetMap != null) {
+                    var asset = assetMap.getAsset(index);
+                    if (asset != null) {
+                        return asset.getId();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Asset lookup failed
+        }
+
+        return null;
+    }
+
+    /**
+     * Gets the effect ID string from an effect index (legacy method).
+     * @deprecated Use getEffectIdFromEffect instead for better dynamic effect support
      */
     private String getEffectId(int effectIndex) {
         try {
@@ -405,9 +513,22 @@ public class FoodEffectDetector {
             return FoodType.MANA_POTION;
         } else if (cleanedId.startsWith("Potion_Regen_Stamina") || cleanedId.startsWith("Potion_Stamina")) {
             return FoodType.STAMINA_POTION;
+        } else if (cleanedId.startsWith("Potion_Morph")) {
+            // Morph potions - treat as mana potion for metabolism purposes
+            return FoodType.MANA_POTION;
         } else if (cleanedId.startsWith("Potion_Regen")) {
             // Generic regen potion - treat as health
             return FoodType.HEALTH_POTION;
+        }
+
+        // Check for restore effects and drinks
+        // Food_Health_Restore_* is used by water mugs/buckets
+        if (cleanedId.startsWith("Food_Health_Restore")) {
+            return FoodType.WATER;
+        } else if (cleanedId.startsWith("Food_Stamina_Restore")) {
+            return FoodType.STAMINA_POTION; // Stamina restore drinks
+        } else if (cleanedId.equals("Antidote")) {
+            return FoodType.MILK; // Milk bucket applies Antidote effect
         }
 
         // Then check for food types
@@ -417,8 +538,11 @@ public class FoodEffectDetector {
             return FoodType.FRUIT_VEGGIE;
         } else if (cleanedId.contains("Bread")) {
             return FoodType.BREAD;
-        } else if (cleanedId.contains("Health_Regen") || cleanedId.contains("HealthRegen")) {
+        } else if (cleanedId.contains("Health_Regen") || cleanedId.contains("HealthRegen") ||
+                   cleanedId.startsWith("Food_Health_Regen")) {
             return FoodType.HEALTH_REGEN;
+        } else if (cleanedId.contains("Stamina_Regen") || cleanedId.startsWith("Food_Stamina_Regen")) {
+            return FoodType.STAMINA_BOOST; // Stamina regen food gives stamina boost effect
         } else if (cleanedId.contains("Instant_Heal")) {
             return FoodType.INSTANT_HEAL;
         } else if (cleanedId.contains("Health_Boost")) {
@@ -435,7 +559,8 @@ public class FoodEffectDetector {
      */
     public void removePlayer(@Nonnull UUID playerId) {
         previousEffects.remove(playerId);
-        recentConsumables.remove(playerId);
+        processedEffectIndexes.remove(playerId);
+        lastCleanupTime.remove(playerId);
     }
 
     /**
@@ -461,6 +586,8 @@ public class FoodEffectDetector {
         HEALTH_POTION,  // Health potions (instant heal or regen)
         MANA_POTION,    // Mana/Signature potions
         STAMINA_POTION, // Stamina potions (instant restore or regen)
+        WATER,          // Water (bucket, mug, etc.)
+        MILK,           // Milk (bucket, mug, etc.)
         GENERIC         // Unknown food type
     }
 }

@@ -4,6 +4,31 @@ All notable changes to Living Lands for players and server administrators.
 
 ---
 
+## Version 2.3.3-beta - January 2026
+
+### New Features
+
+#### Comprehensive Consumable Detection
+All vanilla Hytale consumables are now properly detected:
+- **Water Mugs & Buckets** - Drinking water now restores thirst
+- **Milk Buckets** - Drinking milk now restores hunger and thirst
+- **Stamina Drinks** - Stamina restoration drinks properly detected
+- **Health/Stamina Regen Foods** - Foods with regen effects properly detected
+- **Morph Potions** - Transformation potions (Dog, Frog, Mosshorn, etc.) detected
+
+### Fixed
+
+#### Potion Detection Reliability
+- **More Reliable Detection** - Potions are now detected more consistently
+- **Rapid Consumption** - You can now drink potions quickly without missing detection
+
+### Changed
+
+#### Commands
+- **Stats Command** - Changed `/stats` to `/ll stats` for consistency
+
+---
+
 ## Version 2.3.2-beta - January 2026
 
 ### Fixed

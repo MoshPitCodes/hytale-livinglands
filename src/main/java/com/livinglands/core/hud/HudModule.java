@@ -10,6 +10,7 @@ import com.livinglands.core.commands.LivingLandsCommand;
 import com.livinglands.modules.leveling.LevelingSystem;
 import com.livinglands.modules.leveling.ability.AbilitySystem;
 import com.livinglands.modules.metabolism.MetabolismSystem;
+import com.livinglands.modules.metabolism.buff.BuffsSystem;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -70,6 +71,8 @@ public final class HudModule extends AbstractModule {
     private LevelingSystem levelingSystem;
     @Nullable
     private AbilitySystem abilitySystem;
+    @Nullable
+    private BuffsSystem buffsSystem;
 
     public HudModule() {
         super(ID, NAME, VERSION, Set.of());
@@ -357,7 +360,22 @@ public final class HudModule extends AbstractModule {
         if (panelElement != null) {
             panelElement.setMetabolismSystem(system);
         }
+        if (llCommand != null) {
+            llCommand.setMetabolismSystem(system);
+        }
         logger.at(Level.INFO).log("[%s] Metabolism system integrated with panel", name);
+    }
+
+    /**
+     * Set the buffs system for the /ll stats command.
+     * Called by MetabolismModule during integration.
+     */
+    public void setBuffsSystem(@Nullable BuffsSystem system) {
+        this.buffsSystem = system;
+        if (llCommand != null) {
+            llCommand.setBuffsSystem(system);
+        }
+        logger.at(Level.INFO).log("[%s] Buffs system integrated with command", name);
     }
 
     /**
