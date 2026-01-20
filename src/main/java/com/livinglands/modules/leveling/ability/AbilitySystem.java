@@ -231,10 +231,40 @@ public class AbilitySystem {
         var session = sessionOpt.get();
         if (!session.isEcsReady()) return;
 
-        // TODO: Implement health restore via EntityStatMap
-        // For now, log the trigger
-        logger.at(Level.FINE).log("Health restore triggered for %s (%.0f%% max health)",
-            playerId, percentage * 100);
+        var ref = session.getEntityRef();
+        var store = session.getStore();
+        var world = session.getWorld();
+
+        if (ref == null || store == null || world == null) return;
+
+        world.execute(() -> {
+            try {
+                var statMap = store.getComponent(ref,
+                    com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap.getComponentType());
+                if (statMap == null) return;
+
+                var healthStatId = com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntityStatTypes.getHealth();
+                var healthStat = statMap.get(healthStatId);
+                if (healthStat == null) return;
+
+                float currentHealth = healthStat.get();
+                float maxHealth = healthStat.getMax();
+                float restoreAmount = maxHealth * percentage;
+                float newHealth = Math.min(maxHealth, currentHealth + restoreAmount);
+
+                // Use SELF predictable to sync to client
+                statMap.setStatValue(
+                    com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap.Predictable.SELF,
+                    healthStatId,
+                    newHealth
+                );
+
+                logger.at(Level.FINE).log("Health restored for %s: %.0f -> %.0f (+%.0f, %.0f%% of max %.0f)",
+                    playerId, currentHealth, newHealth, restoreAmount, percentage * 100, maxHealth);
+            } catch (Exception e) {
+                logger.at(Level.WARNING).withCause(e).log("Failed to restore health for %s", playerId);
+            }
+        });
     }
 
     private void applyEnergyRestore(UUID playerId, float amount) {

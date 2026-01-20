@@ -11,11 +11,13 @@ import com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.livinglands.modules.leveling.LevelingSystem;
+import com.livinglands.modules.leveling.ability.handlers.MiningAbilityHandler;
 import com.livinglands.modules.leveling.config.LevelingModuleConfig;
 import com.livinglands.modules.leveling.profession.ProfessionType;
 import com.livinglands.modules.leveling.util.PlayerPlacedBlockChecker;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -29,6 +31,9 @@ public class MiningXpSystem extends EntityEventSystem<EntityStore, BreakBlockEve
     private final LevelingModuleConfig config;
     private final HytaleLogger logger;
     private final ComponentType<EntityStore, PlayerRef> playerRefType;
+
+    @Nullable
+    private MiningAbilityHandler abilityHandler;
 
     // Block types that award mining XP (ores)
     // Ore names follow pattern: Ore_{Material}_{RockType}
@@ -55,6 +60,13 @@ public class MiningXpSystem extends EntityEventSystem<EntityStore, BreakBlockEve
         this.config = config;
         this.logger = logger;
         this.playerRefType = PlayerRef.getComponentType();
+    }
+
+    /**
+     * Sets the mining ability handler for triggering mining abilities on ore breaks.
+     */
+    public void setAbilityHandler(@Nullable MiningAbilityHandler abilityHandler) {
+        this.abilityHandler = abilityHandler;
     }
 
     @Override
@@ -110,6 +122,11 @@ public class MiningXpSystem extends EntityEventSystem<EntityStore, BreakBlockEve
             logger.at(Level.FINE).log("Awarded %d Mining XP to player %s for breaking %s",
                 xp, playerId, blockId);
 
+            // Trigger mining abilities (Efficient Extraction) for ore blocks
+            if (abilityHandler != null && isOreBlock(blockId)) {
+                abilityHandler.onOreMined(playerId);
+            }
+
         } catch (Exception e) {
             logger.at(Level.WARNING).withCause(e).log("Error processing mining XP");
         }
@@ -138,5 +155,17 @@ public class MiningXpSystem extends EntityEventSystem<EntityStore, BreakBlockEve
         }
 
         return 0; // No XP for other blocks
+    }
+
+    /**
+     * Check if a block is an ore (for ability triggering).
+     */
+    private boolean isOreBlock(String blockId) {
+        for (String orePrefix : ORE_PREFIXES) {
+            if (blockId.startsWith(orePrefix)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

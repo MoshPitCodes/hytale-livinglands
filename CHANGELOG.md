@@ -2,6 +2,43 @@
 
 All notable changes to Living Lands will be documented in this file.
 
+## [2.4.1-beta] - 2026-01-20
+
+### Fixed
+
+#### Stale Stat Modifier Persistence
+- **Hytale Persists Modifiers** - Discovered that Hytale saves stat modifiers (health/stamina bonuses) in player save files
+- **Mismatch on Mod Reset** - When mod data was deleted but player saves weren't, old ability modifiers persisted incorrectly
+- **Automatic Cleanup on Login** - Both ability and metabolism buff modifiers are now cleaned up on player login
+- **Re-application Based on Actual State** - Modifiers are re-applied based on current levels/metabolism, not persisted values
+
+#### Missing Tier 2 Ability Implementations
+- **Warrior's Resilience** - Now properly restores 15% max health after kills (was TODO placeholder)
+- **Survivalist Integration** - Metabolism system now queries PermanentBuffManager for depletion multiplier
+- **Hunger/Thirst Reduction** - Both depleteHunger() and depleteThirst() apply Survivalist's -15% depletion rate
+
+#### XP System Ability Handler Wiring
+- **All 5 Professions Connected** - XP systems now trigger Tier 2 abilities when awarding XP:
+  - MiningXpSystem → MiningAbilityHandler.onOreMined()
+  - LoggingXpSystem → LoggingAbilityHandler.onLogChopped()
+  - BuildingXpSystem → BuildingAbilityHandler.onBlockPlaced()
+  - GatheringXpSystem → GatheringAbilityHandler.onItemGathered()
+  - CombatXpSystem → CombatAbilityHandler.onKill() (already existed)
+- **Removed Duplicate Handlers** - Ability handlers now wired through XP systems only, not registered separately
+
+### Changed
+
+#### Improved Modifier Management
+- **cleanupStaleModifiers()** in PermanentBuffManager - Removes ability modifiers player hasn't unlocked
+- **cleanupStaleModifiers()** in BuffsSystem - Removes metabolism buff modifiers on login
+- **Order of Operations** - Cleanup happens after ECS ready, before HUD init and first tick
+
+### Technical Details
+- Added `getSurvivalistMultiplier()` helper to MetabolismSystem
+- PermanentBuffManager checks all Tier 3 abilities to determine which modifiers should exist
+- BuffsSystem clears tracking state after cleanup so buffs re-evaluate on next tick
+- Modifier cleanup uses same `Predictable.SELF` for client sync
+
 ## [2.4.0-beta] - 2026-01-20
 
 ### Added

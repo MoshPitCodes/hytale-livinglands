@@ -11,11 +11,13 @@ import com.hypixel.hytale.server.core.event.events.ecs.BreakBlockEvent;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.livinglands.modules.leveling.LevelingSystem;
+import com.livinglands.modules.leveling.ability.handlers.LoggingAbilityHandler;
 import com.livinglands.modules.leveling.config.LevelingModuleConfig;
 import com.livinglands.modules.leveling.profession.ProfessionType;
 import com.livinglands.modules.leveling.util.PlayerPlacedBlockChecker;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Set;
 import java.util.logging.Level;
 
@@ -33,6 +35,9 @@ public class LoggingXpSystem extends EntityEventSystem<EntityStore, BreakBlockEv
     private final HytaleLogger logger;
     private final ComponentType<EntityStore, PlayerRef> playerRefType;
 
+    @Nullable
+    private LoggingAbilityHandler abilityHandler;
+
     // Wood block prefixes that award logging XP
     // Wood names follow pattern: Wood_{TreeType}_{Part}
     private static final String WOOD_PREFIX = "Wood_";
@@ -49,6 +54,13 @@ public class LoggingXpSystem extends EntityEventSystem<EntityStore, BreakBlockEv
         this.config = config;
         this.logger = logger;
         this.playerRefType = PlayerRef.getComponentType();
+    }
+
+    /**
+     * Sets the logging ability handler for triggering logging abilities on wood breaks.
+     */
+    public void setAbilityHandler(@Nullable LoggingAbilityHandler abilityHandler) {
+        this.abilityHandler = abilityHandler;
     }
 
     @Override
@@ -106,6 +118,11 @@ public class LoggingXpSystem extends EntityEventSystem<EntityStore, BreakBlockEv
 
             logger.at(Level.FINE).log("Awarded %d Logging XP to player %s for breaking %s",
                 xp, playerId, blockId);
+
+            // Trigger logging abilities (Forest's Blessing) for wood blocks (not leaves)
+            if (abilityHandler != null && blockId.startsWith(WOOD_PREFIX)) {
+                abilityHandler.onLogChopped(playerId);
+            }
 
         } catch (Exception e) {
             logger.at(Level.WARNING).withCause(e).log("Error processing logging XP");

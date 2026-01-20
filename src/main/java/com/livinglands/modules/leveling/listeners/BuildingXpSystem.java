@@ -11,10 +11,12 @@ import com.hypixel.hytale.server.core.event.events.ecs.PlaceBlockEvent;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.livinglands.modules.leveling.LevelingSystem;
+import com.livinglands.modules.leveling.ability.handlers.BuildingAbilityHandler;
 import com.livinglands.modules.leveling.config.LevelingModuleConfig;
 import com.livinglands.modules.leveling.profession.ProfessionType;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.logging.Level;
 
 /**
@@ -28,6 +30,9 @@ public class BuildingXpSystem extends EntityEventSystem<EntityStore, PlaceBlockE
     private final HytaleLogger logger;
     private final ComponentType<EntityStore, PlayerRef> playerRefType;
 
+    @Nullable
+    private BuildingAbilityHandler abilityHandler;
+
     public BuildingXpSystem(@Nonnull LevelingSystem system,
                             @Nonnull LevelingModuleConfig config,
                             @Nonnull HytaleLogger logger) {
@@ -36,6 +41,13 @@ public class BuildingXpSystem extends EntityEventSystem<EntityStore, PlaceBlockE
         this.config = config;
         this.logger = logger;
         this.playerRefType = PlayerRef.getComponentType();
+    }
+
+    /**
+     * Sets the building ability handler for triggering building abilities on block placement.
+     */
+    public void setAbilityHandler(@Nullable BuildingAbilityHandler abilityHandler) {
+        this.abilityHandler = abilityHandler;
     }
 
     @Override
@@ -68,6 +80,11 @@ public class BuildingXpSystem extends EntityEventSystem<EntityStore, PlaceBlockE
 
             logger.at(Level.FINE).log("Awarded %d Building XP to player %s for placing block",
                 xp, playerId);
+
+            // Trigger building abilities (Steady Hands)
+            if (abilityHandler != null) {
+                abilityHandler.onBlockPlaced(playerId);
+            }
 
         } catch (Exception e) {
             logger.at(Level.WARNING).withCause(e).log("Error processing building XP");
