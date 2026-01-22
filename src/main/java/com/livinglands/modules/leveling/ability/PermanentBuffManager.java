@@ -3,8 +3,6 @@ package com.livinglands.modules.leveling.ability;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.logger.HytaleLogger;
-import com.hypixel.hytale.server.core.Message;
-import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.modules.entitystats.EntityStatMap;
 import com.hypixel.hytale.server.core.modules.entitystats.asset.DefaultEntityStatTypes;
 import com.hypixel.hytale.server.core.modules.entitystats.modifier.Modifier;
@@ -13,11 +11,11 @@ import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.livinglands.core.PlayerRegistry;
 import com.livinglands.core.PlayerSession;
+import com.livinglands.core.notifications.NotificationModule;
 import com.livinglands.modules.leveling.LevelingSystem;
 import com.livinglands.modules.leveling.config.LevelingModuleConfig;
 import com.livinglands.modules.leveling.profession.ProfessionType;
 import com.livinglands.core.util.SpeedManager;
-import com.livinglands.util.ColorUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -59,6 +57,8 @@ public class PermanentBuffManager {
 
     @Nullable
     private SpeedManager speedManager;
+    @Nullable
+    private NotificationModule notificationModule;
 
     // Track which permanent buffs are applied per player
     private final Map<UUID, Set<PermanentBuffType>> appliedBuffs = new ConcurrentHashMap<>();
@@ -80,6 +80,10 @@ public class PermanentBuffManager {
 
     public void setSpeedManager(@Nullable SpeedManager speedManager) {
         this.speedManager = speedManager;
+    }
+
+    public void setNotificationModule(@Nullable NotificationModule notificationModule) {
+        this.notificationModule = notificationModule;
     }
 
     /**
@@ -324,7 +328,7 @@ public class PermanentBuffManager {
         }
 
         // Apply the effect
-        logger.at(Level.FINE).log("Applying permanent buff %s to %s (ability=%s, strength=%.0f%%)",
+        logger.at(Level.FINE).log("[PermanentBuff] Applying buff %s to %s (ability=%s, strength=%.0f%%)",
             buffType, playerId, ability.getDisplayName(), strength * 100);
         applyPermanentBuffEffect(playerId, session, buffType, strength);
         playerBuffs.add(buffType);
@@ -352,7 +356,7 @@ public class PermanentBuffManager {
         playerBuffs.add(buffType);
 
         // Apply the versioned effect
-        logger.at(Level.FINE).log("Applying permanent buff %s to %s (version=%d, wasTracked=%s)",
+        logger.at(Level.FINE).log("[PermanentBuff] Applying versioned buff %s to %s (version=%d, wasTracked=%s)",
             buffType, playerId, operationVersion, wasAlreadyTracked);
         applyPermanentBuffEffectVersioned(playerId, session, buffType, strength, versionKey, operationVersion);
 
@@ -547,8 +551,8 @@ public class PermanentBuffManager {
                         statMap.setStatValue(healthStatId, newCurrentHealth);
                     }
 
-                    logger.at(Level.FINE).log("Health modifier applied: +%.0f -> max %.0f -> %.0f",
-                        absoluteBonus, maxHealthBefore, maxHealthAfter);
+                    logger.at(Level.FINE).log("[PermanentBuff] Health modifier applied: +%.0f (%.0f%%) -> max %.0f -> %.0f",
+                        absoluteBonus, strength * 100, maxHealthBefore, maxHealthAfter);
                 }
             } catch (Exception e) {
                 logger.at(Level.WARNING).log("Failed to apply health modifier: " + e.getMessage());
@@ -657,7 +661,7 @@ public class PermanentBuffManager {
                         statMap.setStatValue(staminaStatId, newCurrentStamina);
                     }
 
-                    logger.at(Level.FINE).log("Stamina modifier applied: +%.1f (%.0f%% of base) -> max %.1f -> %.1f (version %d)",
+                    logger.at(Level.FINE).log("[PermanentBuff] Stamina modifier applied: +%.1f (%.0f%% of base) -> max %.1f -> %.1f (version %d)",
                         absoluteBonus, strength * 100, maxStaminaBefore, maxStaminaAfter, operationVersion);
                 }
             } catch (Exception e) {
@@ -705,12 +709,11 @@ public class PermanentBuffManager {
     }
 
     private void sendUnlockMessage(PlayerSession session, AbilityType ability) {
-        Player player = session.getPlayer();
-        if (player == null) return;
+        if (notificationModule == null) return;
 
         String message = String.format("[Ability Unlocked] %s - %s",
             ability.getDisplayName(), ability.getDescription());
-        player.sendMessage(Message.raw(message).color(ColorUtil.getHexColor("gold")));
+        notificationModule.sendChatWarning(session.getPlayerId(), message);
     }
 
     @Nullable

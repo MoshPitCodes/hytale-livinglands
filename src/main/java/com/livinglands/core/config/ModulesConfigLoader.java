@@ -29,6 +29,7 @@ public final class ModulesConfigLoader {
     /**
      * Loads modules configuration from the plugin directory.
      * Creates default if file doesn't exist.
+     * Migrates existing config to preserve user settings while adding new fields.
      *
      * @param pluginDirectory Plugin data directory (LivingLands/)
      * @param logger          Logger for status messages
@@ -41,7 +42,10 @@ public final class ModulesConfigLoader {
 
         try {
             if (Files.exists(configPath)) {
-                return load(configPath, logger);
+                var config = load(configPath, logger);
+                // Re-save to update the file with migrated structure
+                save(pluginDirectory, config, logger);
+                return config;
             } else {
                 logger.at(Level.FINE).log("Modules config not found, creating default: %s", configPath);
                 var defaultConfig = ModulesConfig.defaults();
@@ -57,20 +61,29 @@ public final class ModulesConfigLoader {
 
     /**
      * Loads modules configuration from an existing file.
+     * Migrates existing values and adds any new modules from defaults.
      */
     @Nonnull
     public static ModulesConfig load(@Nonnull Path configPath,
                                       @Nonnull HytaleLogger logger) throws IOException {
         logger.at(Level.FINE).log("Loading modules config from: %s", configPath);
         var json = Files.readString(configPath);
-        var config = GSON.fromJson(json, ModulesConfig.class);
-
-        // Ensure defaults are present for any new modules
         var defaults = ModulesConfig.defaults();
+
+        // Use migration manager to preserve existing values while adding new fields
+        var config = ConfigMigrationManager.migrateConfig(
+                json,
+                defaults,
+                ModulesConfig.class,
+                logger,
+                "modules.json"
+        );
+
+        // Ensure all default modules are present (handles new modules added to code)
         for (var entry : defaults.enabled.entrySet()) {
             if (!config.enabled.containsKey(entry.getKey())) {
                 config.enabled.put(entry.getKey(), entry.getValue());
-                logger.at(Level.FINE).log("Added missing module to config: %s = %s",
+                logger.at(Level.FINE).log("Added new module to config: %s = %s",
                         entry.getKey(), entry.getValue());
             }
         }

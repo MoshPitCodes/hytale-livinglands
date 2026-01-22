@@ -4,11 +4,13 @@ import com.hypixel.hytale.component.ComponentRegistryProxy;
 import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.event.EventRegistry;
 import com.hypixel.hytale.server.core.command.system.CommandRegistry;
+import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.livinglands.api.AbstractModule;
 import com.livinglands.api.Module;
 import com.livinglands.api.ModuleContext;
 import com.livinglands.api.ModuleState;
+import com.livinglands.core.config.ConfigBackupManager;
 import com.livinglands.core.config.ModulesConfig;
 import com.livinglands.core.config.ModulesConfigLoader;
 
@@ -37,6 +39,7 @@ public final class ModuleManager {
     private EventRegistry eventRegistry;
     private CommandRegistry commandRegistry;
     private ComponentRegistryProxy<EntityStore> entityStoreRegistry;
+    private ComponentRegistryProxy<ChunkStore> chunkStoreRegistry;
     private PlayerRegistry playerRegistry;
 
     /**
@@ -57,17 +60,26 @@ public final class ModuleManager {
     public void setRegistries(@Nonnull EventRegistry eventRegistry,
                                @Nonnull CommandRegistry commandRegistry,
                                @Nonnull ComponentRegistryProxy<EntityStore> entityStoreRegistry,
+                               @Nonnull ComponentRegistryProxy<ChunkStore> chunkStoreRegistry,
                                @Nonnull PlayerRegistry playerRegistry) {
         this.eventRegistry = eventRegistry;
         this.commandRegistry = commandRegistry;
         this.entityStoreRegistry = entityStoreRegistry;
+        this.chunkStoreRegistry = chunkStoreRegistry;
         this.playerRegistry = playerRegistry;
     }
 
     /**
      * Loads the modules configuration from disk.
+     *
+     * If the mod version has changed since the last run, all existing
+     * configuration files are backed up before loading.
      */
     public void loadConfig() {
+        // Check for version change and backup configs if needed
+        ConfigBackupManager.backupIfVersionChanged(pluginDirectory, logger);
+
+        // Load or create module configuration
         this.modulesConfig = ModulesConfigLoader.loadOrCreate(pluginDirectory, logger);
     }
 
@@ -132,6 +144,7 @@ public final class ModuleManager {
                 eventRegistry,
                 commandRegistry,
                 entityStoreRegistry,
+                chunkStoreRegistry,
                 playerRegistry,
                 this
         );

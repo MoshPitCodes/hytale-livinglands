@@ -288,10 +288,18 @@ public class SpeedManager {
     public void applySpeedModifier(UUID playerId, Ref<EntityStore> ref, Store<EntityStore> store, World world) {
         float combinedMultiplier = getCombinedMultiplier(playerId);
 
-        // Check if multiplier changed significantly (avoid spamming updates)
-        // Use getOrDefault for atomic read - accepts minor redundancy to avoid race conditions
-        float lastApplied = lastAppliedMultipliers.getOrDefault(playerId, -1.0f);
-        if (lastApplied >= 0.0f && Math.abs(lastApplied - combinedMultiplier) < 0.01f) {
+        // Atomic check-and-update: only proceed if multiplier changed significantly
+        // compute() ensures thread-safe read-compare-write operation
+        boolean[] shouldUpdate = {false};
+        lastAppliedMultipliers.compute(playerId, (key, lastApplied) -> {
+            if (lastApplied == null || Math.abs(lastApplied - combinedMultiplier) >= 0.01f) {
+                shouldUpdate[0] = true;
+                return combinedMultiplier; // Update to new value
+            }
+            return lastApplied; // Keep existing value
+        });
+
+        if (!shouldUpdate[0]) {
             return; // No significant change, skip update
         }
 
@@ -321,7 +329,6 @@ public class SpeedManager {
 
                 // Apply the modified speed
                 settings.baseSpeed = newSpeed;
-                lastAppliedMultipliers.put(playerId, combinedMultiplier);
 
                 // Sync the movement settings to the client
                 var playerRef = store.getComponent(ref, PlayerRef.getComponentType());

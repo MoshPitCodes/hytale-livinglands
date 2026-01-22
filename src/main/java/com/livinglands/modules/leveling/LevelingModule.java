@@ -1,6 +1,5 @@
 package com.livinglands.modules.leveling;
 
-import com.hypixel.hytale.server.core.Message;
 import com.livinglands.api.AbstractModule;
 import com.livinglands.core.CoreModule;
 import com.livinglands.core.events.PlayerDeathBroadcaster;
@@ -17,6 +16,7 @@ import com.livinglands.modules.leveling.ui.SkillsPanelElement;
 import com.livinglands.modules.leveling.util.PlayerPlacedBlockChecker;
 import com.livinglands.modules.metabolism.MetabolismModule;
 
+import javax.annotation.Nullable;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -48,6 +48,8 @@ public final class LevelingModule extends AbstractModule {
     private SkillGuiElement skillGuiElement;
     private SkillsPanelElement panelElement;
     private Consumer<UUID> deathListener;
+    @Nullable
+    private NotificationModule notificationModule;
 
     public LevelingModule() {
         super(ID, NAME, VERSION, Set.of(CoreModule.ID, HudModule.ID)); // Depends on Core and HUD modules
@@ -144,7 +146,10 @@ public final class LevelingModule extends AbstractModule {
         // Try to integrate with notification module (optional, for ability unlock notifications)
         context.moduleManager().getModule(NotificationModule.ID, NotificationModule.class)
             .ifPresent(notifications -> {
+                this.notificationModule = notifications;
                 abilitySystem.setNotificationModule(notifications);
+                timedBuffManager.setNotificationModule(notifications);
+                permanentBuffManager.setNotificationModule(notifications);
                 logger.at(Level.FINE).log("[%s] Notification integration enabled", name);
             });
 
@@ -152,6 +157,7 @@ public final class LevelingModule extends AbstractModule {
         var playerListener = new com.livinglands.modules.leveling.listeners.LevelingPlayerListener(
             this, system, logger
         );
+        playerListener.setAbilitySystem(abilitySystem);
         playerListener.register(context.eventRegistry());
 
         // Register XP listeners for all professions
@@ -294,26 +300,22 @@ public final class LevelingModule extends AbstractModule {
 
         // Death penalty notification callback - send chat messages
         system.setDeathPenaltyCallback((playerId, event) -> {
-            var sessionOpt = context.playerRegistry().getSession(playerId);
-            sessionOpt.ifPresent(session -> {
-                var player = session.getPlayer();
-                if (player == null) return;
+            if (notificationModule == null) return;
 
-                // Send header message
-                player.sendMessage(Message.raw("[Death Penalty] You lost XP in the following professions:").color("#F85149"));
+            // Send header message
+            notificationModule.sendChatHex(playerId, "[Death Penalty] You lost XP in the following professions:", "#F85149");
 
-                // Send details for each affected profession
-                for (var penalty : event.penalties()) {
-                    String msg = String.format("  - %s (Lv.%d): -%d XP (%.0f%% -> %.0f%%)",
-                        penalty.profession().getDisplayName(),
-                        penalty.level(),
-                        penalty.xpLost(),
-                        calculateProgressPercent(penalty.xpBefore(), penalty.profession(), penalty.level()),
-                        calculateProgressPercent(penalty.xpAfter(), penalty.profession(), penalty.level())
-                    );
-                    player.sendMessage(Message.raw(msg).color("#FF9999"));
-                }
-            });
+            // Send details for each affected profession
+            for (var penalty : event.penalties()) {
+                String msg = String.format("  - %s (Lv.%d): -%d XP (%.0f%% -> %.0f%%)",
+                    penalty.profession().getDisplayName(),
+                    penalty.level(),
+                    penalty.xpLost(),
+                    calculateProgressPercent(penalty.xpBefore(), penalty.profession(), penalty.level()),
+                    calculateProgressPercent(penalty.xpAfter(), penalty.profession(), penalty.level())
+                );
+                notificationModule.sendChatHex(playerId, msg, "#FF9999");
+            }
         });
     }
 
@@ -330,7 +332,7 @@ public final class LevelingModule extends AbstractModule {
      * Handle player death - apply XP penalty and save immediately.
      */
     private void onPlayerDeath(UUID playerId) {
-        logger.at(Level.FINE).log("[%s] Player %s died - applying death penalty", name, playerId);
+        logger.at(Level.FINE).log("[%s] onPlayerDeath called for player %s - applying death penalty", name, playerId);
 
         // Apply the death penalty
         system.applyDeathPenalty(playerId);
@@ -402,5 +404,13 @@ public final class LevelingModule extends AbstractModule {
      */
     public AbilitySystem getAbilitySystem() {
         return abilitySystem;
+    }
+
+    @Override
+    public com.livinglands.api.ModuleUIProvider getUIProvider() {
+        if (system != null && config != null) {
+            return new com.livinglands.modules.leveling.ui.LevelingUIProvider(system, config, logger);
+        }
+        return null;
     }
 }

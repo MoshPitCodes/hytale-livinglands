@@ -323,297 +323,266 @@ Label #EnergyLabel { Text: ""; Anchor: (Width: 0, Height: 0); Style: (FontSize: 
 
 // === Living Lands Panel (toggled by /ll main command) ===
 Group #SkillsPanel {
-  Anchor: (Top: 50, Right: 16, Width: 280, Height: 580);
+  Anchor: (Top: 16, Right: 16, Width: 360, Height: 780);
   Visible: false;
-  Background: #0d1117(0.95);
+  Background: #0a1628(0.95);
+
+  // Header bar (like CoreSettingsPage)
+  Group #PanelHeader {
+    Anchor: (Top: 0, Width: 360, Height: 50);
+    Background: #152238;
+
+    Label #SkillsPanelTitle {
+      Text: "LIVING LANDS";
+      Anchor: (Left: 0, Top: 0, Width: 360, Height: 50);
+      Style: (FontSize: 18, RenderBold: true, RenderUppercase: true, TextColor: #ccd8e8, HorizontalAlignment: Center, VerticalAlignment: Center, LetterSpacing: 3);
+    }
+
+    Label #PanelSubtitle {
+      Text: "Professions & Abilities";
+      Anchor: (Left: 0, Top: 28, Width: 360, Height: 18);
+      Style: (FontSize: 11, TextColor: #8899aa, HorizontalAlignment: Center, VerticalAlignment: Center, LetterSpacing: 1);
+    }
+  }
 
   Group #SkillsPanelContent {
     LayoutMode: Top;
-    Padding: (Full: 12);
+    Anchor: (Top: 50, Width: 360, Height: 730);
+    Padding: (Full: 14);
 
-    // Title bar
-    Group #TitleBar {
-      Anchor: (Height: 24);
-      LayoutMode: Center;
-
-      Label #SkillsPanelTitle {
-        Text: "LIVING LANDS";
-        Style: (FontSize: 12, HorizontalAlignment: Center, VerticalAlignment: Center, TextColor: #58a6ff, RenderBold: true, LetterSpacing: 2);
-      }
-    }
-
-    // Separator
-    Group #Separator {
-      Anchor: (Height: 1, Top: 6, Bottom: 8);
-      Background: #30363d;
-    }
-
-    // === Section: Metabolism ===
-    Group #MetabolismSection {
+    // === COMBAT PROFESSION ===
+    Group #CombatSection {
       LayoutMode: Top;
-      Anchor: (Height: 70);
+      Anchor: (Height: 120);
 
-      Label #MetabolismHeader {
-        Text: "METABOLISM";
-        Anchor: (Height: 16);
-        Style: (FontSize: 9, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #8b949e, RenderUppercase: true, LetterSpacing: 1);
+      // Header row with profession name and level/XP
+      Group #CombatHeaderRow {
+        LayoutMode: Left;
+        Anchor: (Height: 20);
+
+        Label #CombatHeader {
+          Text: "COMBAT";
+          Anchor: (Width: 90, Height: 20);
+          Style: (FontSize: 12, RenderBold: true, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #e74c3c, RenderUppercase: true, LetterSpacing: 1);
+        }
+
+        Label #CombatLevel {
+          Text: "";
+          Anchor: (Height: 20);
+          Style: (FontSize: 12, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #8b949e);
+        }
       }
 
-      Group #MetabolismStats {
+      // Abilities - each with name line and description line
+      Group #CombatAbilities {
         LayoutMode: Top;
-        Padding: (Left: 4, Top: 2);
+        Padding: (Left: 10, Top: 4);
 
-        Label #PanelHunger {
-          Text: "";
-          Anchor: (Height: 16);
-          Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #f0883e);
-        }
-
-        Label #PanelThirst {
-          Text: "";
-          Anchor: (Height: 16);
-          Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #58a6ff);
-        }
-
-        Label #PanelEnergy {
-          Text: "";
-          Anchor: (Height: 16);
-          Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #d29922);
-        }
+        Label #CombatAbility1 { Text: ""; Anchor: (Height: 16); Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #484f58); }
+        Label #CombatAbility1Desc { Text: ""; Anchor: (Height: 14, Left: 14); Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #6e7681); }
+        Label #CombatAbility2 { Text: ""; Anchor: (Height: 16); Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #484f58); }
+        Label #CombatAbility2Desc { Text: ""; Anchor: (Height: 14, Left: 14); Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #6e7681); }
+        Label #CombatAbility3 { Text: ""; Anchor: (Height: 16); Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #484f58); }
+        Label #CombatAbility3Desc { Text: ""; Anchor: (Height: 14, Left: 14); Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #6e7681); }
       }
     }
 
     // Separator
     Group #Sep1 {
-      Anchor: (Height: 1, Top: 2, Bottom: 6);
+      Anchor: (Height: 1, Top: 4, Bottom: 6);
       Background: #30363d;
     }
 
-    // === Section: Professions ===
-    Group #SkillsSection {
+    // === MINING PROFESSION ===
+    Group #MiningSection {
       LayoutMode: Top;
-      Anchor: (Height: 115);
+      Anchor: (Height: 120);
 
-      Label #SkillsHeader {
-        Text: "PROFESSIONS";
-        Anchor: (Height: 16);
-        Style: (FontSize: 9, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #8b949e, RenderUppercase: true, LetterSpacing: 1);
+      Group #MiningHeaderRow {
+        LayoutMode: Left;
+        Anchor: (Height: 20);
+
+        Label #MiningHeader {
+          Text: "MINING";
+          Anchor: (Width: 90, Height: 20);
+          Style: (FontSize: 12, RenderBold: true, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #3498db, RenderUppercase: true, LetterSpacing: 1);
+        }
+
+        Label #MiningLevel {
+          Text: "";
+          Anchor: (Height: 20);
+          Style: (FontSize: 12, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #8b949e);
+        }
       }
 
-      Group #SkillsList {
+      Group #MiningAbilities {
         LayoutMode: Top;
-        Padding: (Left: 4, Top: 2);
+        Padding: (Left: 10, Top: 4);
 
-        Label #SkillCombat {
-          Text: "";
-          Anchor: (Height: 18);
-          Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #c9d1d9);
-        }
-
-        Label #SkillMining {
-          Text: "";
-          Anchor: (Height: 18);
-          Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #c9d1d9);
-        }
-
-        Label #SkillBuilding {
-          Text: "";
-          Anchor: (Height: 18);
-          Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #c9d1d9);
-        }
-
-        Label #SkillLogging {
-          Text: "";
-          Anchor: (Height: 18);
-          Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #c9d1d9);
-        }
-
-        Label #SkillGathering {
-          Text: "";
-          Anchor: (Height: 18);
-          Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #c9d1d9);
-        }
+        Label #MiningAbility1 { Text: ""; Anchor: (Height: 16); Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #484f58); }
+        Label #MiningAbility1Desc { Text: ""; Anchor: (Height: 14, Left: 14); Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #6e7681); }
+        Label #MiningAbility2 { Text: ""; Anchor: (Height: 16); Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #484f58); }
+        Label #MiningAbility2Desc { Text: ""; Anchor: (Height: 14, Left: 14); Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #6e7681); }
+        Label #MiningAbility3 { Text: ""; Anchor: (Height: 16); Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #484f58); }
+        Label #MiningAbility3Desc { Text: ""; Anchor: (Height: 14, Left: 14); Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #6e7681); }
       }
     }
 
     // Separator
     Group #Sep2 {
-      Anchor: (Height: 1, Top: 2, Bottom: 6);
+      Anchor: (Height: 1, Top: 4, Bottom: 6);
       Background: #30363d;
     }
 
-    // === Section: Active Effects ===
-    Group #EffectsSection {
+    // === BUILDING PROFESSION ===
+    Group #BuildingSection {
       LayoutMode: Top;
-      Anchor: (Height: 70);
+      Anchor: (Height: 120);
 
-      Label #EffectsHeader {
-        Text: "ACTIVE EFFECTS";
-        Anchor: (Height: 16);
-        Style: (FontSize: 9, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #8b949e, RenderUppercase: true, LetterSpacing: 1);
+      Group #BuildingHeaderRow {
+        LayoutMode: Left;
+        Anchor: (Height: 20);
+
+        Label #BuildingHeader {
+          Text: "BUILDING";
+          Anchor: (Width: 90, Height: 20);
+          Style: (FontSize: 12, RenderBold: true, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #9b59b6, RenderUppercase: true, LetterSpacing: 1);
+        }
+
+        Label #BuildingLevel {
+          Text: "";
+          Anchor: (Height: 20);
+          Style: (FontSize: 12, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #8b949e);
+        }
       }
 
-      Group #EffectsList {
+      Group #BuildingAbilities {
         LayoutMode: Top;
-        Padding: (Left: 4, Top: 2);
+        Padding: (Left: 10, Top: 4);
 
-        Label #PanelEffect1 {
-          Text: "";
-          Anchor: (Height: 16);
-          Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #8b949e);
-        }
-
-        Label #PanelEffect2 {
-          Text: "";
-          Anchor: (Height: 16);
-          Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #8b949e);
-        }
-
-        Label #PanelEffect3 {
-          Text: "";
-          Anchor: (Height: 16);
-          Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #8b949e);
-        }
+        Label #BuildingAbility1 { Text: ""; Anchor: (Height: 16); Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #484f58); }
+        Label #BuildingAbility1Desc { Text: ""; Anchor: (Height: 14, Left: 14); Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #6e7681); }
+        Label #BuildingAbility2 { Text: ""; Anchor: (Height: 16); Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #484f58); }
+        Label #BuildingAbility2Desc { Text: ""; Anchor: (Height: 14, Left: 14); Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #6e7681); }
+        Label #BuildingAbility3 { Text: ""; Anchor: (Height: 16); Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #484f58); }
+        Label #BuildingAbility3Desc { Text: ""; Anchor: (Height: 14, Left: 14); Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #6e7681); }
       }
     }
 
     // Separator
     Group #Sep3 {
-      Anchor: (Height: 1, Top: 2, Bottom: 6);
+      Anchor: (Height: 1, Top: 4, Bottom: 6);
       Background: #30363d;
     }
 
-    // === Section: Passive Abilities (all 15 abilities, dimmed when locked) ===
-    Group #AbilitiesSection {
+    // === LOGGING PROFESSION ===
+    Group #LoggingSection {
       LayoutMode: Top;
-      Anchor: (Height: 250);
+      Anchor: (Height: 120);
 
-      Label #AbilitiesHeader {
-        Text: "PASSIVE ABILITIES";
-        Anchor: (Height: 16);
-        Style: (FontSize: 9, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #8b949e, RenderUppercase: true, LetterSpacing: 1);
+      Group #LoggingHeaderRow {
+        LayoutMode: Left;
+        Anchor: (Height: 20);
+
+        Label #LoggingHeader {
+          Text: "LOGGING";
+          Anchor: (Width: 90, Height: 20);
+          Style: (FontSize: 12, RenderBold: true, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #27ae60, RenderUppercase: true, LetterSpacing: 1);
+        }
+
+        Label #LoggingLevel {
+          Text: "";
+          Anchor: (Height: 20);
+          Style: (FontSize: 12, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #8b949e);
+        }
       }
 
-      Group #AbilitiesList {
+      Group #LoggingAbilities {
         LayoutMode: Top;
-        Padding: (Left: 4, Top: 2);
+        Padding: (Left: 10, Top: 4);
 
-        // Ability 1
-        Label #PanelAbility1 {
-          Text: "";
-          Anchor: (Height: 14);
-          Style: (FontSize: 9, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #3fb950);
+        Label #LoggingAbility1 { Text: ""; Anchor: (Height: 16); Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #484f58); }
+        Label #LoggingAbility1Desc { Text: ""; Anchor: (Height: 14, Left: 14); Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #6e7681); }
+        Label #LoggingAbility2 { Text: ""; Anchor: (Height: 16); Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #484f58); }
+        Label #LoggingAbility2Desc { Text: ""; Anchor: (Height: 14, Left: 14); Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #6e7681); }
+        Label #LoggingAbility3 { Text: ""; Anchor: (Height: 16); Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #484f58); }
+        Label #LoggingAbility3Desc { Text: ""; Anchor: (Height: 14, Left: 14); Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #6e7681); }
+      }
+    }
+
+    // Separator
+    Group #Sep4 {
+      Anchor: (Height: 1, Top: 4, Bottom: 6);
+      Background: #30363d;
+    }
+
+    // === GATHERING PROFESSION ===
+    Group #GatheringSection {
+      LayoutMode: Top;
+      Anchor: (Height: 120);
+
+      Group #GatheringHeaderRow {
+        LayoutMode: Left;
+        Anchor: (Height: 20);
+
+        Label #GatheringHeader {
+          Text: "GATHERING";
+          Anchor: (Width: 100, Height: 20);
+          Style: (FontSize: 12, RenderBold: true, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #f39c12, RenderUppercase: true, LetterSpacing: 1);
         }
 
-        // Ability 2
-        Label #PanelAbility2 {
+        Label #GatheringLevel {
           Text: "";
-          Anchor: (Height: 14);
-          Style: (FontSize: 9, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #3fb950);
+          Anchor: (Height: 20);
+          Style: (FontSize: 12, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #8b949e);
         }
+      }
 
-        // Ability 3
-        Label #PanelAbility3 {
-          Text: "";
-          Anchor: (Height: 14);
-          Style: (FontSize: 9, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #3fb950);
-        }
+      Group #GatheringAbilities {
+        LayoutMode: Top;
+        Padding: (Left: 10, Top: 4);
 
-        // Ability 4
-        Label #PanelAbility4 {
-          Text: "";
-          Anchor: (Height: 14);
-          Style: (FontSize: 9, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #3fb950);
-        }
-
-        // Ability 5
-        Label #PanelAbility5 {
-          Text: "";
-          Anchor: (Height: 14);
-          Style: (FontSize: 9, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #3fb950);
-        }
-
-        // Ability 6
-        Label #PanelAbility6 {
-          Text: "";
-          Anchor: (Height: 14);
-          Style: (FontSize: 9, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #3fb950);
-        }
-
-        // Ability 7
-        Label #PanelAbility7 {
-          Text: "";
-          Anchor: (Height: 14);
-          Style: (FontSize: 9, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #3fb950);
-        }
-
-        // Ability 8
-        Label #PanelAbility8 {
-          Text: "";
-          Anchor: (Height: 14);
-          Style: (FontSize: 9, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #3fb950);
-        }
-
-        // Ability 9
-        Label #PanelAbility9 {
-          Text: "";
-          Anchor: (Height: 14);
-          Style: (FontSize: 9, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #3fb950);
-        }
-
-        // Ability 10
-        Label #PanelAbility10 {
-          Text: "";
-          Anchor: (Height: 14);
-          Style: (FontSize: 9, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #3fb950);
-        }
-
-        // Ability 11
-        Label #PanelAbility11 {
-          Text: "";
-          Anchor: (Height: 14);
-          Style: (FontSize: 9, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #3fb950);
-        }
-
-        // Ability 12
-        Label #PanelAbility12 {
-          Text: "";
-          Anchor: (Height: 14);
-          Style: (FontSize: 9, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #3fb950);
-        }
-
-        // Ability 13
-        Label #PanelAbility13 {
-          Text: "";
-          Anchor: (Height: 14);
-          Style: (FontSize: 9, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #3fb950);
-        }
-
-        // Ability 14
-        Label #PanelAbility14 {
-          Text: "";
-          Anchor: (Height: 14);
-          Style: (FontSize: 9, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #3fb950);
-        }
-
-        // Ability 15
-        Label #PanelAbility15 {
-          Text: "";
-          Anchor: (Height: 14);
-          Style: (FontSize: 9, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #3fb950);
-        }
+        Label #GatheringAbility1 { Text: ""; Anchor: (Height: 16); Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #484f58); }
+        Label #GatheringAbility1Desc { Text: ""; Anchor: (Height: 14, Left: 14); Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #6e7681); }
+        Label #GatheringAbility2 { Text: ""; Anchor: (Height: 16); Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #484f58); }
+        Label #GatheringAbility2Desc { Text: ""; Anchor: (Height: 14, Left: 14); Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #6e7681); }
+        Label #GatheringAbility3 { Text: ""; Anchor: (Height: 16); Style: (FontSize: 11, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #484f58); }
+        Label #GatheringAbility3Desc { Text: ""; Anchor: (Height: 14, Left: 14); Style: (FontSize: 10, HorizontalAlignment: Start, VerticalAlignment: Center, TextColor: #6e7681); }
       }
     }
 
     // Footer
     Group #Footer {
-      Anchor: (Height: 16);
+      Anchor: (Height: 20, Top: 8);
       LayoutMode: Center;
 
       Label #SkillsTotalXp {
         Text: "";
-        Style: (FontSize: 9, HorizontalAlignment: Center, VerticalAlignment: Center, TextColor: #484f58);
+        Style: (FontSize: 11, HorizontalAlignment: Center, VerticalAlignment: Center, TextColor: #484f58);
       }
     }
   }
 }
+
+// Hidden legacy selectors for compatibility (metabolism moved to corner HUD only)
+Label #PanelHunger { Text: ""; Anchor: (Width: 0, Height: 0); Style: (FontSize: 1, TextColor: #00000000); }
+Label #PanelThirst { Text: ""; Anchor: (Width: 0, Height: 0); Style: (FontSize: 1, TextColor: #00000000); }
+Label #PanelEnergy { Text: ""; Anchor: (Width: 0, Height: 0); Style: (FontSize: 1, TextColor: #00000000); }
+Label #PanelEffect1 { Text: ""; Anchor: (Width: 0, Height: 0); Style: (FontSize: 1, TextColor: #00000000); }
+Label #PanelEffect2 { Text: ""; Anchor: (Width: 0, Height: 0); Style: (FontSize: 1, TextColor: #00000000); }
+Label #PanelEffect3 { Text: ""; Anchor: (Width: 0, Height: 0); Style: (FontSize: 1, TextColor: #00000000); }
+Label #PanelAbility1 { Text: ""; Anchor: (Width: 0, Height: 0); Style: (FontSize: 1, TextColor: #00000000); }
+Label #PanelAbility2 { Text: ""; Anchor: (Width: 0, Height: 0); Style: (FontSize: 1, TextColor: #00000000); }
+Label #PanelAbility3 { Text: ""; Anchor: (Width: 0, Height: 0); Style: (FontSize: 1, TextColor: #00000000); }
+Label #PanelAbility4 { Text: ""; Anchor: (Width: 0, Height: 0); Style: (FontSize: 1, TextColor: #00000000); }
+Label #PanelAbility5 { Text: ""; Anchor: (Width: 0, Height: 0); Style: (FontSize: 1, TextColor: #00000000); }
+Label #PanelAbility6 { Text: ""; Anchor: (Width: 0, Height: 0); Style: (FontSize: 1, TextColor: #00000000); }
+Label #PanelAbility7 { Text: ""; Anchor: (Width: 0, Height: 0); Style: (FontSize: 1, TextColor: #00000000); }
+Label #PanelAbility8 { Text: ""; Anchor: (Width: 0, Height: 0); Style: (FontSize: 1, TextColor: #00000000); }
+Label #PanelAbility9 { Text: ""; Anchor: (Width: 0, Height: 0); Style: (FontSize: 1, TextColor: #00000000); }
+Label #PanelAbility10 { Text: ""; Anchor: (Width: 0, Height: 0); Style: (FontSize: 1, TextColor: #00000000); }
+Label #PanelAbility11 { Text: ""; Anchor: (Width: 0, Height: 0); Style: (FontSize: 1, TextColor: #00000000); }
+Label #PanelAbility12 { Text: ""; Anchor: (Width: 0, Height: 0); Style: (FontSize: 1, TextColor: #00000000); }
+Label #PanelAbility13 { Text: ""; Anchor: (Width: 0, Height: 0); Style: (FontSize: 1, TextColor: #00000000); }
+Label #PanelAbility14 { Text: ""; Anchor: (Width: 0, Height: 0); Style: (FontSize: 1, TextColor: #00000000); }
+Label #PanelAbility15 { Text: ""; Anchor: (Width: 0, Height: 0); Style: (FontSize: 1, TextColor: #00000000); }

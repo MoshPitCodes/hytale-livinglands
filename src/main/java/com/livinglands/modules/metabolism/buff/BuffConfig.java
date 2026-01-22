@@ -63,9 +63,9 @@ public class BuffConfig {
 
         /**
          * Multiplier applied to the relevant stat.
-         * Default: 1.15 (15% increase)
+         * Default: 1.132 (13.2% increase, reduced by 12% from original 15%)
          */
-        public float multiplier = 1.15f;
+        public float multiplier = 1.132f;
 
         /**
          * Creates default stat buff config.

@@ -47,8 +47,8 @@ public class MetabolismHudElement implements HudElement, AbilitySystem.AbilityUn
     @Nullable
     private com.livinglands.core.hud.HudModule hudModule;
 
-    // Track which players have passives display enabled
-    private final java.util.Set<UUID> passivesVisibleForPlayers = ConcurrentHashMap.newKeySet();
+    // Note: Display preferences are now persisted via HudModule.getPreferences()/savePreferences()
+    // The old in-memory sets have been removed in favor of persistent storage
 
     // Cache last values to avoid unnecessary updates
     private final Map<UUID, CachedValues> playerCache = new ConcurrentHashMap<>();
@@ -118,17 +118,17 @@ public class MetabolismHudElement implements HudElement, AbilitySystem.AbilityUn
      * @return true if now visible, false if hidden
      */
     public boolean togglePassivesDisplay(@Nonnull UUID playerId) {
-        boolean nowVisible;
-        if (passivesVisibleForPlayers.contains(playerId)) {
-            passivesVisibleForPlayers.remove(playerId);
-            nowVisible = false;
-        } else {
-            passivesVisibleForPlayers.add(playerId);
-            nowVisible = true;
+        if (hudModule == null) {
+            return false;
         }
 
+        var prefs = hudModule.getPreferences(playerId);
+        prefs.passivesVisible = !prefs.passivesVisible;
+        boolean nowVisible = prefs.passivesVisible;
+        hudModule.savePreferences(playerId, prefs);
+
         // Send immediate update
-        if (hudModule != null && hudModule.isHudReady(playerId)) {
+        if (hudModule.isHudReady(playerId)) {
             var builder = new com.hypixel.hytale.server.core.ui.builder.UICommandBuilder();
             if (nowVisible) {
                 var passives = getUnlockedPassiveAbilities(playerId);
@@ -150,7 +150,157 @@ public class MetabolismHudElement implements HudElement, AbilitySystem.AbilityUn
      * Check if passives display is visible for a player.
      */
     public boolean isPassivesVisible(@Nonnull UUID playerId) {
-        return passivesVisibleForPlayers.contains(playerId);
+        if (hudModule == null) {
+            return false; // Default hidden if no HudModule
+        }
+        return hudModule.getPreferences(playerId).passivesVisible;
+    }
+
+    /**
+     * Toggle the stats display visibility for a player.
+     * @return true if now visible, false if hidden
+     */
+    public boolean toggleStatsDisplay(@Nonnull UUID playerId) {
+        if (hudModule == null) {
+            return true;
+        }
+
+        var prefs = hudModule.getPreferences(playerId);
+        prefs.statsVisible = !prefs.statsVisible;
+        boolean nowVisible = prefs.statsVisible;
+        hudModule.savePreferences(playerId, prefs);
+
+        // Send immediate update
+        if (hudModule.isHudReady(playerId)) {
+            var builder = new com.hypixel.hytale.server.core.ui.builder.UICommandBuilder();
+            if (nowVisible) {
+                // Show the entire metabolism bars container (includes backdrop)
+                builder.set("#MetabolismBars.Visible", true);
+                var dataOpt = system.getPlayerData(playerId);
+                if (dataOpt.isPresent()) {
+                    var data = dataOpt.get();
+                    if (config.metabolism.enableHunger) {
+                        builder.set("#HungerBar.Text", formatBar(data.getHunger()));
+                    }
+                    if (config.metabolism.enableThirst) {
+                        builder.set("#ThirstBar.Text", formatBar(data.getThirst()));
+                    }
+                    if (config.metabolism.enableEnergy) {
+                        builder.set("#EnergyBar.Text", formatBar(data.getEnergy()));
+                    }
+                }
+            } else {
+                // Hide the entire metabolism bars container (includes backdrop)
+                builder.set("#MetabolismBars.Visible", false);
+            }
+            hudModule.sendImmediateUpdate(playerId, builder);
+        }
+
+        return nowVisible;
+    }
+
+    /**
+     * Check if stats display is visible for a player.
+     */
+    public boolean isStatsVisible(@Nonnull UUID playerId) {
+        if (hudModule == null) {
+            return true; // Default visible if no HudModule
+        }
+        return hudModule.getPreferences(playerId).statsVisible;
+    }
+
+    /**
+     * Toggle the buffs display visibility for a player.
+     * @return true if now visible, false if hidden
+     */
+    public boolean toggleBuffsDisplay(@Nonnull UUID playerId) {
+        if (hudModule == null) {
+            return true;
+        }
+
+        var prefs = hudModule.getPreferences(playerId);
+        prefs.buffsVisible = !prefs.buffsVisible;
+        boolean nowVisible = prefs.buffsVisible;
+        hudModule.savePreferences(playerId, prefs);
+
+        // Send immediate update
+        if (hudModule.isHudReady(playerId)) {
+            var builder = new com.hypixel.hytale.server.core.ui.builder.UICommandBuilder();
+            if (nowVisible) {
+                var dataOpt = system.getPlayerData(playerId);
+                if (dataOpt.isPresent()) {
+                    var data = dataOpt.get();
+                    var buffs = getActiveBuffs(data.getHunger(), data.getThirst(), data.getEnergy());
+                    updateBuffsDisplay(builder, buffs);
+                }
+            } else {
+                // Hide all buff containers
+                for (int i = 1; i <= MAX_BUFFS; i++) {
+                    builder.set("#Buff" + i + ".Text", "");
+                    builder.set("#Buff" + i + "Container.Visible", false);
+                }
+            }
+            hudModule.sendImmediateUpdate(playerId, builder);
+        }
+
+        return nowVisible;
+    }
+
+    /**
+     * Check if buffs display is visible for a player.
+     */
+    public boolean isBuffsVisible(@Nonnull UUID playerId) {
+        if (hudModule == null) {
+            return true; // Default visible if no HudModule
+        }
+        return hudModule.getPreferences(playerId).buffsVisible;
+    }
+
+    /**
+     * Toggle the debuffs display visibility for a player.
+     * @return true if now visible, false if hidden
+     */
+    public boolean toggleDebuffsDisplay(@Nonnull UUID playerId) {
+        if (hudModule == null) {
+            return true;
+        }
+
+        var prefs = hudModule.getPreferences(playerId);
+        prefs.debuffsVisible = !prefs.debuffsVisible;
+        boolean nowVisible = prefs.debuffsVisible;
+        hudModule.savePreferences(playerId, prefs);
+
+        // Send immediate update
+        if (hudModule.isHudReady(playerId)) {
+            var builder = new com.hypixel.hytale.server.core.ui.builder.UICommandBuilder();
+            if (nowVisible) {
+                var dataOpt = system.getPlayerData(playerId);
+                if (dataOpt.isPresent()) {
+                    var data = dataOpt.get();
+                    var debuffs = getActiveDebuffs(data.getHunger(), data.getThirst(), data.getEnergy());
+                    updateDebuffsDisplay(builder, debuffs);
+                }
+            } else {
+                // Hide all debuff containers
+                for (int i = 1; i <= MAX_DEBUFFS; i++) {
+                    builder.set("#Debuff" + i + ".Text", "");
+                    builder.set("#Debuff" + i + "Container.Visible", false);
+                }
+            }
+            hudModule.sendImmediateUpdate(playerId, builder);
+        }
+
+        return nowVisible;
+    }
+
+    /**
+     * Check if debuffs display is visible for a player.
+     */
+    public boolean isDebuffsVisible(@Nonnull UUID playerId) {
+        if (hudModule == null) {
+            return true; // Default visible if no HudModule
+        }
+        return hudModule.getPreferences(playerId).debuffsVisible;
     }
 
     @Override
@@ -202,36 +352,61 @@ public class MetabolismHudElement implements HudElement, AbilitySystem.AbilityUn
         }
 
         var data = dataOpt.get();
+        boolean statsVisible = isStatsVisible(playerId);
+        boolean buffsVisible = isBuffsVisible(playerId);
+        boolean debuffsVisible = isDebuffsVisible(playerId);
 
-        if (config.metabolism.enableHunger) {
-            double hunger = data.getHunger();
-            builder.set("#HungerBar.Text", formatBar(hunger));
+        // Stats display (respects toggle)
+        if (statsVisible) {
+            if (config.metabolism.enableHunger) {
+                double hunger = data.getHunger();
+                builder.set("#HungerBar.Text", formatBar(hunger));
+            } else {
+                builder.set("#HungerBar.Text", "");
+                builder.set("#HungerName.Text", "");
+            }
+
+            if (config.metabolism.enableThirst) {
+                double thirst = data.getThirst();
+                builder.set("#ThirstBar.Text", formatBar(thirst));
+            } else {
+                builder.set("#ThirstBar.Text", "");
+                builder.set("#ThirstName.Text", "");
+            }
+
+            if (config.metabolism.enableEnergy) {
+                double energy = data.getEnergy();
+                builder.set("#EnergyBar.Text", formatBar(energy));
+            } else {
+                builder.set("#EnergyBar.Text", "");
+                builder.set("#EnergyName.Text", "");
+            }
         } else {
-            builder.set("#HungerBar.Text", "");
-            builder.set("#HungerName.Text", "");
+            // Hide stats by hiding the entire metabolism bars container (includes backdrop)
+            builder.set("#MetabolismBars.Visible", false);
         }
 
-        if (config.metabolism.enableThirst) {
-            double thirst = data.getThirst();
-            builder.set("#ThirstBar.Text", formatBar(thirst));
-        } else {
-            builder.set("#ThirstBar.Text", "");
-            builder.set("#ThirstName.Text", "");
-        }
-
-        if (config.metabolism.enableEnergy) {
-            double energy = data.getEnergy();
-            builder.set("#EnergyBar.Text", formatBar(energy));
-        } else {
-            builder.set("#EnergyBar.Text", "");
-            builder.set("#EnergyName.Text", "");
-        }
-
-        // Build and display active effects (buffs and debuffs separately)
+        // Build and display active effects (buffs and debuffs separately, respecting toggles)
         var buffs = getActiveBuffs(data.getHunger(), data.getThirst(), data.getEnergy());
         var debuffs = getActiveDebuffs(data.getHunger(), data.getThirst(), data.getEnergy());
-        updateBuffsDisplay(builder, buffs);
-        updateDebuffsDisplay(builder, debuffs);
+
+        if (buffsVisible) {
+            updateBuffsDisplay(builder, buffs);
+        } else {
+            for (int i = 1; i <= MAX_BUFFS; i++) {
+                builder.set("#Buff" + i + ".Text", "");
+                builder.set("#Buff" + i + "Container.Visible", false);
+            }
+        }
+
+        if (debuffsVisible) {
+            updateDebuffsDisplay(builder, debuffs);
+        } else {
+            for (int i = 1; i <= MAX_DEBUFFS; i++) {
+                builder.set("#Debuff" + i + ".Text", "");
+                builder.set("#Debuff" + i + "Container.Visible", false);
+            }
+        }
 
         // Build and display active ability buffs (timed effects from passive abilities)
         var abilityBuffs = getActiveAbilityBuffs(playerId);
@@ -239,7 +414,7 @@ public class MetabolismHudElement implements HudElement, AbilitySystem.AbilityUn
 
         // Build and display passive abilities (if enabled for player)
         var passives = getUnlockedPassiveAbilities(playerId);
-        if (passivesVisibleForPlayers.contains(playerId)) {
+        if (isPassivesVisible(playerId)) {
             updatePassivesDisplay(builder, passives);
         } else {
             // Ensure passives are hidden
@@ -291,26 +466,36 @@ public class MetabolismHudElement implements HudElement, AbilitySystem.AbilityUn
         }
 
         boolean hasUpdates = false;
+        boolean statsVisible = isStatsVisible(playerId);
+        boolean buffsVisible = isBuffsVisible(playerId);
+        boolean debuffsVisible = isDebuffsVisible(playerId);
 
-        if (config.metabolism.enableHunger && (cached == null || Math.abs(hunger - cached.hunger) >= 0.1)) {
-            builder.set("#HungerBar.Text", formatBar(hunger));
-            hasUpdates = true;
+        // Only update stats if visible
+        if (statsVisible) {
+            if (config.metabolism.enableHunger && (cached == null || Math.abs(hunger - cached.hunger) >= 0.1)) {
+                builder.set("#HungerBar.Text", formatBar(hunger));
+                hasUpdates = true;
+            }
+
+            if (config.metabolism.enableThirst && (cached == null || Math.abs(thirst - cached.thirst) >= 0.1)) {
+                builder.set("#ThirstBar.Text", formatBar(thirst));
+                hasUpdates = true;
+            }
+
+            if (config.metabolism.enableEnergy && (cached == null || Math.abs(energy - cached.energy) >= 0.1)) {
+                builder.set("#EnergyBar.Text", formatBar(energy));
+                hasUpdates = true;
+            }
         }
 
-        if (config.metabolism.enableThirst && (cached == null || Math.abs(thirst - cached.thirst) >= 0.1)) {
-            builder.set("#ThirstBar.Text", formatBar(thirst));
-            hasUpdates = true;
-        }
-
-        if (config.metabolism.enableEnergy && (cached == null || Math.abs(energy - cached.energy) >= 0.1)) {
-            builder.set("#EnergyBar.Text", formatBar(energy));
-            hasUpdates = true;
-        }
-
-        // Always update buffs and debuffs together to ensure consistency
+        // Always update buffs and debuffs together to ensure consistency (if visible)
         if (buffsChanged || debuffsChanged) {
-            updateBuffsDisplay(builder, buffs);
-            updateDebuffsDisplay(builder, debuffs);
+            if (buffsVisible) {
+                updateBuffsDisplay(builder, buffs);
+            }
+            if (debuffsVisible) {
+                updateDebuffsDisplay(builder, debuffs);
+            }
             hasUpdates = true;
         }
 
@@ -321,7 +506,7 @@ public class MetabolismHudElement implements HudElement, AbilitySystem.AbilityUn
         }
 
         // Update passive abilities if changed and visible for player
-        if (passivesChanged && passivesVisibleForPlayers.contains(playerId)) {
+        if (passivesChanged && isPassivesVisible(playerId)) {
             updatePassivesDisplay(builder, passives);
             hasUpdates = true;
         }
@@ -336,8 +521,8 @@ public class MetabolismHudElement implements HudElement, AbilitySystem.AbilityUn
     @Override
     public void removePlayer(@Nonnull UUID playerId) {
         playerCache.remove(playerId);
-        passivesVisibleForPlayers.remove(playerId);
         passivesStringCache.remove(playerId);
+        // Note: Preferences are persisted via HudModule and saved on player disconnect
     }
 
     @Override

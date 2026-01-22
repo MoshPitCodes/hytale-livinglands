@@ -7,7 +7,8 @@
 - .claude/plans
 - docs/
 - .github/pull_request_template.md
-- ~/Development/DEV_Games/Hytale/hytale-server-binaries-logs-prerelease
+- /home/moshpitcodes/Development/DEV_Games/Hytale/hytale-serverlogs/
+/home/moshpitcodes/Development/DEV_Games/Hytale/
 
 
 ## Claude Code File Locations

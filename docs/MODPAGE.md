@@ -2,7 +2,7 @@
 
 **Living Lands** transforms Hytale into an immersive survival experience. Manage your character's **hunger**, **thirst**, and **energy** while exploring the world. The mod integrates seamlessly with vanilla items - no new blocks or complicated recipes, just pure survival gameplay.
 
-**Version 2.4.0** features a **completely redesigned passive abilities system** with harder-to-obtain, more impactful abilities (3 per profession at levels 15/35/60), a **death penalty** that reduces XP in random professions, **active ability buffs in the HUD** with countdown timers, plus comprehensive **thread safety improvements** across the codebase.
+**Version 2.6.0** introduces the **complete Claims Module** for protecting your builds with plot-based land claims, trust management, and automatic hostile NPC protection. This release also includes **balance adjustments** making survival 25% more challenging with faster depletion rates, stronger debuffs, and reduced buff bonuses.
 
 ---
 
@@ -25,12 +25,23 @@
 - **Exhaustion** - Rapid stamina drain when Energy = 0
 - **Player Feedback** - Colored chat messages when entering/exiting debuff states
 
+### Land Claims System
+
+Protect your builds with plot-based land claims:
+
+- **Plot Claims** - Claim 16x16 block areas to protect your builds
+- **Trust System** - Grant other players building access to your claims
+- **Claim Flags** - Toggle PvP, explosions, mob griefing, and NPC protection per-claim
+- **NPC Protection** - Hostile NPCs automatically despawn in protected claims
+- **Map Integration** - Visual markers show your claims on the world map
+- **Claim UI** - Easy-to-use interface for managing all your claims
+
 ### Modular Architecture
 
 - **Toggle Features** - Enable/disable individual modules via `modules.json`
 - **Per-Module Configuration** - Each module has its own config directory
 - **Automatic Dependencies** - Enabling a module auto-enables its requirements
-- **Future-Ready** - Placeholder modules for Claims, Economy, Groups, Leveling, and Traders
+- **Extensible Design** - Placeholder modules for Economy, Groups, and Traders
 
 ### Hunger System
 
@@ -200,6 +211,21 @@ The metabolism module has extensive configuration options:
 | `/ll` | Show all available commands |
 | `/ll main` | Toggle the Living Lands panel (metabolism, professions, effects, abilities) |
 | `/ll help` | Show help panel with mod info and configuration paths |
+| `/ll buffs` | View active metabolism buffs |
+| `/ll debuffs` | View active metabolism debuffs |
+| `/ll settings` | Customize HUD preferences |
+| `/ll stats` | View detailed metabolism statistics |
+
+### Claims Commands (All Players)
+
+| Command | Description |
+|---------|-------------|
+| `/claims create` | Create a new claim at your location |
+| `/claims delete` | Delete your current claim |
+| `/claims trust <player>` | Allow a player to build in your claim |
+| `/claims untrust <player>` | Remove a player's build access |
+| `/claims flags` | Toggle claim protection flags |
+| `/claims info` | View information about the claim you're standing in |
 
 ### Admin Commands (OP Required)
 
@@ -261,9 +287,10 @@ Living Lands is optimized for servers of all sizes:
 | Leveling System | ✅ Complete |
 | Profession XP | ✅ Complete |
 | Passive Abilities | ✅ Complete |
+| Land Claims | ✅ Complete |
+| HUD Preferences | ✅ Complete |
 | Economy System | 📋 Planned |
 | Trader NPCs | 📋 Planned |
-| Land Claims | 📋 Planned |
 | Groups/Guilds | 📋 Planned |
 | Random Encounters | 📋 Planned |
 | Admin Commands | 📋 Planned |

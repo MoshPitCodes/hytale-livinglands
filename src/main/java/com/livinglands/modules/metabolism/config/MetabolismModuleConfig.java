@@ -51,9 +51,9 @@ public class MetabolismModuleConfig {
         public boolean enableThirst = true;
         public boolean enableEnergy = true;
 
-        public double hungerDepletionRate = 60.0;
-        public double thirstDepletionRate = 45.0;
-        public double energyDepletionRate = 90.0;
+        public double hungerDepletionRate = 40.0;   // seconds per 1 unit loss (lower = faster depletion)
+        public double thirstDepletionRate = 30.0;  // seconds per 1 unit loss
+        public double energyDepletionRate = 60.0;  // seconds per 1 unit loss
 
         public double starvationThreshold = 20.0;
         public double dehydrationThreshold = 20.0;

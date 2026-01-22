@@ -52,30 +52,14 @@ public class SkillsPanelElement implements HudElement {
 
     @Override
     public void buildInitialValues(@Nonnull UICommandBuilder builder, @Nonnull UUID playerId) {
-        // Panel starts hidden (empty text)
-        builder.set("#SkillsPanelTitle.Text", "");
-        builder.set("#SkillCombat.Text", "");
-        builder.set("#SkillMining.Text", "");
-        builder.set("#SkillBuilding.Text", "");
-        builder.set("#SkillLogging.Text", "");
-        builder.set("#SkillGathering.Text", "");
-        builder.set("#SkillsTotalXp.Text", "");
+        // Disabled - functionality moved to LivingLandsPanelElement
+        // Do nothing - selectors no longer exist in UI
     }
 
     @Override
     public boolean update(@Nonnull UICommandBuilder builder, @Nonnull UUID playerId) {
-        // Check if panel needs refresh for this player
-        Boolean refresh = needsRefresh.remove(playerId);
-        if (refresh == null || !refresh) {
-            return false;
-        }
-
-        // Update panel content
-        if (visibleForPlayers.contains(playerId)) {
-            return showPanel(builder, playerId);
-        } else {
-            return hidePanel(builder);
-        }
+        // Disabled - functionality moved to LivingLandsPanelElement
+        return false;
     }
 
     @Override
@@ -86,38 +70,19 @@ public class SkillsPanelElement implements HudElement {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        // Disabled - functionality moved to LivingLandsPanelElement
+        return false;
     }
 
     /**
      * Toggle the skills panel visibility for a player.
      * Returns true if now visible, false if hidden.
+     * @deprecated Disabled - functionality moved to LivingLandsPanelElement
      */
+    @Deprecated
     public boolean togglePanel(@Nonnull UUID playerId) {
-        boolean nowVisible;
-        if (visibleForPlayers.contains(playerId)) {
-            visibleForPlayers.remove(playerId);
-            nowVisible = false;
-        } else {
-            visibleForPlayers.add(playerId);
-            nowVisible = true;
-        }
-
-        // Mark for refresh and send immediate update
-        needsRefresh.put(playerId, true);
-
-        // Send immediate update if HUD is ready
-        if (hudModule != null && hudModule.isHudReady(playerId)) {
-            var builder = new UICommandBuilder();
-            if (nowVisible) {
-                showPanel(builder, playerId);
-            } else {
-                hidePanel(builder);
-            }
-            hudModule.sendImmediateUpdate(playerId, builder);
-        }
-
-        return nowVisible;
+        // Disabled - functionality moved to LivingLandsPanelElement
+        return false;
     }
 
     /**

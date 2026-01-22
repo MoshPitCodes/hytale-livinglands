@@ -2,6 +2,88 @@
 
 All notable changes to Living Lands will be documented in this file.
 
+## [2.6.0-beta] - 2026-01-22
+
+### Added
+
+#### Complete Claims Module
+Full land claiming system for protecting player builds:
+
+- **Plot-Based Claims** - Claim 16x16 block plots to protect your builds
+- **Trust System** - `/claims trust <player>` and `/claims untrust <player>` for managing access
+- **Claim Flags** - Per-claim toggles for PvP, explosions, mob griefing, and NPC protection
+- **Map Integration** - Visual claim markers on the world map
+- **Claim UI** - Interactive claim management interface
+- **NPC Protection** - Hostile NPCs automatically despawn in protected claims (configurable)
+
+#### New Commands
+- `/claims create` - Create a new claim at your location
+- `/claims delete` - Delete your current claim
+- `/claims trust <player>` - Allow a player to build in your claim
+- `/claims untrust <player>` - Remove a player's access to your claim
+- `/claims flags` - Toggle claim protection flags
+- `/ll buffs` - View active metabolism buffs
+- `/ll debuffs` - View active metabolism debuffs
+- `/ll settings` - View/modify HUD settings
+- `/ll stats` - View detailed metabolism statistics
+
+#### Centralized Notification System
+- **NotificationModule** - Unified system for player notifications across all modules
+- **Consistent Styling** - Color-coded messages with module prefixes
+- **Cross-Module Integration** - All modules can send notifications through central system
+
+#### HUD Preferences System
+- **Per-Player Settings** - Players can customize their HUD display
+- **Persistent Preferences** - Settings saved across sessions
+- **Toggle Options** - Show/hide individual HUD elements
+
+### Changed
+
+#### Balance Adjustments
+**Metabolism Depletion Rates (+25% faster):**
+- Hunger: 50s → 40s per unit depletion
+- Thirst: 37.5s → 30s per unit depletion
+- Energy: 75s → 60s per unit depletion
+
+**Debuff Effects (+10% stronger):**
+- Hunger damage: 1.0/0.5/5.0 → 1.1/0.55/5.5 (initial/increase/max)
+- Thirst damage: 1.5 → 1.65 per tick
+- Thirst speed/stamina: 45% minimum → 40.5% minimum (more severe)
+- Energy speed: 60% minimum → 54% minimum (more severe)
+- Energy stamina consumption: 150% → 165% at zero energy
+- Energy stamina drain: 5.0 → 5.5 per tick
+
+**Buff Effects (-12% weaker):**
+- Stat buff multiplier: 1.15 (15% boost) → 1.132 (13.2% boost)
+
+#### Configuration Updates
+- `hostileNpcBurn` renamed to `hostileNpcProtection` in claim flags
+
+### Fixed
+
+#### Concurrency & Memory Fixes
+- **Race Condition in LevelingSystem** - Fixed death penalty shuffle causing potential concurrent modification
+- **Thread Leak in LevelingSystem** - Save task reference now cleared after cancellation
+- **Memory Leak in ClaimSystem** - Added player disconnect handler to clean up pending claim previews
+- **Non-Atomic Operation in SpeedManager** - Changed to use `compute()` for thread-safe check-and-update
+
+#### NPC Protection System
+- **DespawnComponent Crash** - Fixed null Instant causing server crash when despawning NPCs
+- **TimeResource Integration** - NPCs now despawn using proper world time resource
+
+### Technical Details
+- New `ClaimsModule` with full ECS integration for claim protection
+- New `ClaimSystem` for claim data management and spatial queries
+- New `ClaimNPCBurnSystem` (renamed, now handles despawning) using `DespawnComponent.despawnInSeconds()`
+- New `ClaimsPlayerListener` for player disconnect cleanup
+- New `NotificationModule` in core for centralized messaging
+- New `HudPreferences` and `HudPreferencesPersistence` for player settings
+- New subcommand classes: `LivingLandsBuffsSubcommand`, `LivingLandsDebuffsSubcommand`, `LivingLandsSettingsSubcommand`, `LivingLandsStatsSubcommand`
+- Updated `SpeedManager` to use `ConcurrentHashMap.compute()` for atomic operations
+- 45+ files changed with significant additions
+
+---
+
 ## [2.4.1-beta] - 2026-01-20
 
 ### Fixed

@@ -40,9 +40,9 @@ public record DebuffsConfig(
                 0.0,    // Start damage at 0 hunger
                 30.0,   // Stop damage when hunger reaches 30
                 3.0f,   // Damage every 3 seconds
-                1.0f,   // Start with 1 damage
-                0.5f,   // Increase by 0.5 each tick
-                5.0f    // Max 5 damage per tick
+                1.1f,   // Start with 1.1 damage (+10%)
+                0.55f,  // Increase by 0.55 each tick (+10%)
+                5.5f    // Max 5.5 damage per tick (+10%)
             );
         }
     }
@@ -70,10 +70,10 @@ public record DebuffsConfig(
                 30.0,   // Stop damage when thirst reaches 30
                 20.0,   // Start blur effect at 20 thirst
                 4.0f,   // Damage every 4 seconds at 0
-                1.5f,   // 1.5 damage per tick at 0
+                1.65f,  // 1.65 damage per tick at 0 (+10%)
                 30.0,   // Start speed/stamina reduction at 30 thirst
-                0.45f,  // Minimum 45% speed at 0 thirst (55% reduction)
-                0.45f   // Minimum 45% stamina regen at 0 thirst (55% reduction)
+                0.405f, // Minimum 40.5% speed at 0 thirst (+10% debuff)
+                0.405f  // Minimum 40.5% stamina regen at 0 thirst (+10% debuff)
             );
         }
     }
@@ -97,11 +97,11 @@ public record DebuffsConfig(
             return new EnergyDebuffs(
                 true,
                 30.0,   // Start speed reduction at 30 energy
-                0.6f,   // Minimum 60% speed at 0 energy
-                1.5f,   // 150% stamina consumption at 0 energy
+                0.54f,  // Minimum 54% speed at 0 energy (+10% debuff)
+                1.65f,  // 165% stamina consumption at 0 energy (+10%)
                 0.0,    // Start stamina drain at 0 energy
                 50.0,   // Stop stamina drain when energy reaches 50
-                5.0f,   // Drain 5 stamina per tick
+                5.5f,   // Drain 5.5 stamina per tick (+10%)
                 1.0f    // Drain every 1 second
             );
         }

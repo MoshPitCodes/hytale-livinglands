@@ -4,6 +4,59 @@ All notable changes to Living Lands for players and server administrators.
 
 ---
 
+## Version 2.6.0-beta - January 2026
+
+### New Features
+
+#### Land Claims System
+Protect your builds with the new claiming system:
+
+- **Create Claims** - Use `/claims create` to claim a 16x16 block plot
+- **Trust Friends** - Use `/claims trust <player>` to let friends build in your claim
+- **Automatic Protection** - Hostile NPCs are automatically removed from your claimed land
+- **Claim Flags** - Toggle PvP, explosions, mob griefing, and NPC protection per-claim
+- **Map Markers** - See your claims on the world map
+- **Claim Management UI** - Easy-to-use interface for managing your claims
+
+#### New Commands
+| Command | Description |
+|---------|-------------|
+| `/claims create` | Create a new claim |
+| `/claims delete` | Delete your current claim |
+| `/claims trust <player>` | Allow a player to build |
+| `/claims untrust <player>` | Remove building access |
+| `/claims flags` | Toggle protection settings |
+| `/ll buffs` | View your active buffs |
+| `/ll debuffs` | View your active debuffs |
+| `/ll settings` | Customize your HUD |
+| `/ll stats` | View detailed statistics |
+
+#### HUD Customization
+- Customize which HUD elements are visible
+- Settings persist across sessions
+
+### Balance Changes
+
+#### Survival is Harder
+- **Faster Depletion** - Hunger, thirst, and energy now deplete 25% faster
+- **Stronger Debuffs** - Low-stat penalties are 10% more severe
+- **Weaker Buffs** - High-stat bonuses reduced by 12%
+
+**New Depletion Rates:**
+| Stat | Old Rate | New Rate |
+|------|----------|----------|
+| Hunger | 50 seconds/point | 40 seconds/point |
+| Thirst | 37.5 seconds/point | 30 seconds/point |
+| Energy | 75 seconds/point | 60 seconds/point |
+
+### Fixed
+
+- **Server Stability** - Fixed several crashes related to claim protection
+- **Memory Optimization** - Fixed memory leaks when players disconnect
+- **Thread Safety** - Fixed rare crashes from concurrent operations
+
+---
+
 ## Version 2.4.1-beta - January 2026
 
 ### Bug Fixes

@@ -1,12 +1,10 @@
 package com.livinglands.modules.leveling.ability;
 
 import com.hypixel.hytale.logger.HytaleLogger;
-import com.hypixel.hytale.server.core.entity.entities.Player;
-import com.hypixel.hytale.server.core.Message;
 import com.livinglands.core.PlayerRegistry;
+import com.livinglands.core.notifications.NotificationModule;
 import com.livinglands.modules.metabolism.MetabolismSystem;
 import com.livinglands.core.util.SpeedManager;
-import com.livinglands.util.ColorUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -42,6 +40,8 @@ public class TimedBuffManager {
     private SpeedManager speedManager;
     @Nullable
     private MetabolismSystem metabolismSystem;
+    @Nullable
+    private NotificationModule notificationModule;
 
     // Active buffs per player: playerId -> (buffType -> expiration time)
     private final Map<UUID, Map<TimedBuffType, Long>> activeBuffs = new ConcurrentHashMap<>();
@@ -66,6 +66,10 @@ public class TimedBuffManager {
 
     public void setMetabolismSystem(@Nullable MetabolismSystem metabolismSystem) {
         this.metabolismSystem = metabolismSystem;
+    }
+
+    public void setNotificationModule(@Nullable NotificationModule notificationModule) {
+        this.notificationModule = notificationModule;
     }
 
     /**
@@ -318,12 +322,7 @@ public class TimedBuffManager {
     }
 
     private void sendBuffMessage(UUID playerId, TimedBuffType buffType, float strength, float duration, boolean isRefresh) {
-        var sessionOpt = playerRegistry.getSession(playerId);
-        if (sessionOpt.isEmpty()) return;
-
-        var session = sessionOpt.get();
-        var player = session.getPlayer();
-        if (player == null) return;
+        if (notificationModule == null) return;
 
         String action = isRefresh ? "refreshed" : "activated";
         String message = switch (buffType) {
@@ -336,19 +335,14 @@ public class TimedBuffManager {
             default -> String.format("[Ability] %s %s!", buffType.getDisplayName(), action);
         };
 
-        player.sendMessage(Message.raw(message).color(ColorUtil.getHexColor("purple")));
+        notificationModule.sendChatAbility(playerId, message);
     }
 
     private void sendBuffExpiredMessage(UUID playerId, TimedBuffType buffType) {
-        var sessionOpt = playerRegistry.getSession(playerId);
-        if (sessionOpt.isEmpty()) return;
-
-        var session = sessionOpt.get();
-        var player = session.getPlayer();
-        if (player == null) return;
+        if (notificationModule == null) return;
 
         String message = String.format("[Ability] %s has worn off", buffType.getDisplayName());
-        player.sendMessage(Message.raw(message).color(ColorUtil.getHexColor("gray")));
+        notificationModule.sendChatInfo(playerId, message);
     }
 
     /**
