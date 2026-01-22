@@ -84,7 +84,7 @@ public class LivingLandsPlugin extends JavaPlugin {
             getLogger().at(Level.FINE).log("Initializing module manager...");
             moduleManager = new ModuleManager(getLogger(), pluginDirectory);
             moduleManager.loadConfig();
-            moduleManager.setRegistries(getEventRegistry(), getCommandRegistry(), getEntityStoreRegistry(), playerRegistry);
+            moduleManager.setRegistries(getEventRegistry(), getCommandRegistry(), getEntityStoreRegistry(), getChunkStoreRegistry(), playerRegistry);
 
             // Register all available modules
             registerModules();

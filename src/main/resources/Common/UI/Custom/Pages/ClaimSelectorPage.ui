@@ -1,0 +1,375 @@
+// Claim Manager Page - Multi-tab interface for claim management
+// Tab 1: Claim Chunks - 6x6 grid for selecting nearby chunks
+// Tab 2: My Plots - List of owned plots with rename functionality
+// Tab 3: Trusted Plots - List of plots where player has trusted access
+
+// Cell button style - no text, grey default background (will be updated by server)
+@CellStyle = TextButtonStyle(
+  Default: (Background: #3a3a3a),
+  Hovered: (Background: #4a4a4a),
+  Pressed: (Background: #2a2a2a)
+);
+
+// Tab button style
+@TabStyle = TextButtonStyle(
+  Default: (Background: #1a2a3a, LabelStyle: (FontSize: 11, TextColor: #8899aa, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Hovered: (Background: #2a3a4a, LabelStyle: (FontSize: 11, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Pressed: (Background: #0a1a2a, LabelStyle: (FontSize: 11, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center))
+);
+
+@TabStyleActive = TextButtonStyle(
+  Default: (Background: #2a4a6a, LabelStyle: (FontSize: 11, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Hovered: (Background: #3a5a7a, LabelStyle: (FontSize: 11, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Pressed: (Background: #1a3a5a, LabelStyle: (FontSize: 11, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center))
+);
+
+// List item style
+@ListItemStyle = TextButtonStyle(
+  Default: (Background: #1a2a3a, LabelStyle: (FontSize: 12, TextColor: #cccccc, HorizontalAlignment: Start, VerticalAlignment: Center)),
+  Hovered: (Background: #2a3a4a, LabelStyle: (FontSize: 12, TextColor: #ffffff, HorizontalAlignment: Start, VerticalAlignment: Center)),
+  Pressed: (Background: #0a1a2a, LabelStyle: (FontSize: 12, TextColor: #ffffff, HorizontalAlignment: Start, VerticalAlignment: Center))
+);
+
+// Main container - centered modal dialog
+Group #ClaimSelectorPage {
+  Anchor: (Width: 420, Height: 480);
+  Background: #0a1628(0.95);
+  Visible: true;
+
+  // Title bar with decorative frame
+  Group #TitleBar {
+    Anchor: (Top: 0, Width: 420, Height: 45);
+    Background: #152238;
+
+    Label #Title {
+      Text: "CLAIM MANAGER";
+      Anchor: (Left: 0, Top: 0, Width: 420, Height: 45);
+      Style: (FontSize: 16, RenderBold: true, RenderUppercase: true, TextColor: #ccd8e8, HorizontalAlignment: Center, VerticalAlignment: Center, LetterSpacing: 2);
+    }
+  }
+
+  // Tab bar
+  Group #TabBar {
+    Anchor: (Top: 45, Left: 0, Width: 420, Height: 32);
+    Background: #0d1117;
+    LayoutMode: Left;
+
+    TextButton #TabClaim {
+      Text: "Claim";
+      Anchor: (Width: 140, Height: 32);
+      Style: @TabStyleActive;
+    }
+
+    TextButton #TabMyPlots {
+      Text: "My Plots";
+      Anchor: (Width: 140, Height: 32);
+      Style: @TabStyle;
+    }
+
+    TextButton #TabTrusted {
+      Text: "Trusted";
+      Anchor: (Width: 140, Height: 32);
+      Style: @TabStyle;
+    }
+  }
+
+  // ==================== TAB 1: CLAIM CHUNKS ====================
+  Group #ClaimTab {
+    Anchor: (Top: 77, Left: 0, Width: 420, Height: 403);
+    Visible: true;
+
+    // Counter row
+    Group #CounterRow {
+      Anchor: (Top: 5, Left: 30, Width: 360, Height: 24);
+      LayoutMode: Left;
+
+      Label #CounterLabel {
+        Text: "Claimed Chunks:";
+        Anchor: (Width: 120, Height: 24);
+        Style: (FontSize: 14, TextColor: #f0c674, HorizontalAlignment: Start, VerticalAlignment: Center);
+      }
+
+      Label #CounterValue {
+        Text: "0/25";
+        Anchor: (Width: 80, Height: 24);
+        Style: (FontSize: 14, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Start, VerticalAlignment: Center);
+      }
+    }
+
+    // Grid container - 6x6 grid centered
+    Group #GridContainer {
+      Anchor: (Top: 35, Left: 119, Width: 182, Height: 182);
+      Background: #0d1117;
+
+      // 6x6 grid of chunk cells - each cell is 28x28 with 2px padding
+      Group #ChunkGrid {
+        Anchor: (Left: 1, Top: 1, Width: 180, Height: 180);
+
+        // Row 0
+        TextButton #Cell0x0 { Anchor: (Left: 0, Top: 0, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell1x0 { Anchor: (Left: 30, Top: 0, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell2x0 { Anchor: (Left: 60, Top: 0, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell3x0 { Anchor: (Left: 90, Top: 0, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell4x0 { Anchor: (Left: 120, Top: 0, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell5x0 { Anchor: (Left: 150, Top: 0, Width: 28, Height: 28); Style: @CellStyle; }
+
+        // Row 1
+        TextButton #Cell0x1 { Anchor: (Left: 0, Top: 30, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell1x1 { Anchor: (Left: 30, Top: 30, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell2x1 { Anchor: (Left: 60, Top: 30, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell3x1 { Anchor: (Left: 90, Top: 30, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell4x1 { Anchor: (Left: 120, Top: 30, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell5x1 { Anchor: (Left: 150, Top: 30, Width: 28, Height: 28); Style: @CellStyle; }
+
+        // Row 2
+        TextButton #Cell0x2 { Anchor: (Left: 0, Top: 60, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell1x2 { Anchor: (Left: 30, Top: 60, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell2x2 { Anchor: (Left: 60, Top: 60, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell3x2 { Anchor: (Left: 90, Top: 60, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell4x2 { Anchor: (Left: 120, Top: 60, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell5x2 { Anchor: (Left: 150, Top: 60, Width: 28, Height: 28); Style: @CellStyle; }
+
+        // Row 3
+        TextButton #Cell0x3 { Anchor: (Left: 0, Top: 90, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell1x3 { Anchor: (Left: 30, Top: 90, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell2x3 { Anchor: (Left: 60, Top: 90, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell3x3 { Anchor: (Left: 90, Top: 90, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell4x3 { Anchor: (Left: 120, Top: 90, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell5x3 { Anchor: (Left: 150, Top: 90, Width: 28, Height: 28); Style: @CellStyle; }
+
+        // Row 4
+        TextButton #Cell0x4 { Anchor: (Left: 0, Top: 120, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell1x4 { Anchor: (Left: 30, Top: 120, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell2x4 { Anchor: (Left: 60, Top: 120, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell3x4 { Anchor: (Left: 90, Top: 120, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell4x4 { Anchor: (Left: 120, Top: 120, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell5x4 { Anchor: (Left: 150, Top: 120, Width: 28, Height: 28); Style: @CellStyle; }
+
+        // Row 5
+        TextButton #Cell0x5 { Anchor: (Left: 0, Top: 150, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell1x5 { Anchor: (Left: 30, Top: 150, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell2x5 { Anchor: (Left: 60, Top: 150, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell3x5 { Anchor: (Left: 90, Top: 150, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell4x5 { Anchor: (Left: 120, Top: 150, Width: 28, Height: 28); Style: @CellStyle; }
+        TextButton #Cell5x5 { Anchor: (Left: 150, Top: 150, Width: 28, Height: 28); Style: @CellStyle; }
+      }
+
+      // Player position marker (center area - between cells 2,3 x 2,3)
+      Label #PlayerMarker {
+        Anchor: (Left: 75, Top: 75, Width: 30, Height: 30);
+        Text: "+";
+        Style: (FontSize: 16, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center);
+      }
+    }
+
+    // Button row
+    Group #ClaimButtonRow {
+      Anchor: (Top: 230, Left: 30, Width: 360, Height: 40);
+      LayoutMode: Left;
+
+      // Claim button
+      Group #ClaimButtonContainer {
+        Anchor: (Width: 110, Height: 36);
+        Background: #2d5a27;
+        Padding: (Full: 4);
+
+        TextButton #ClaimBtn {
+          Text: "CLAIM";
+          Anchor: (Left: 0, Top: 0, Width: 102, Height: 28);
+          Style: (
+            Default: (LabelStyle: (FontSize: 13, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+            Hovered: (Background: #3d7a37, LabelStyle: (FontSize: 13, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+            Pressed: (Background: #1d4a17, LabelStyle: (FontSize: 13, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center))
+          );
+        }
+      }
+
+      Group #Spacer1 { Anchor: (Width: 15); }
+
+      // Clear button
+      Group #ClearButtonContainer {
+        Anchor: (Width: 110, Height: 36);
+        Background: #5a5a27;
+        Padding: (Full: 4);
+
+        TextButton #ClearBtn {
+          Text: "CLEAR";
+          Anchor: (Left: 0, Top: 0, Width: 102, Height: 28);
+          Style: (
+            Default: (LabelStyle: (FontSize: 13, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+            Hovered: (Background: #7a7a37, LabelStyle: (FontSize: 13, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+            Pressed: (Background: #4a4a17, LabelStyle: (FontSize: 13, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center))
+          );
+        }
+      }
+
+      Group #Spacer2 { Anchor: (Width: 15); }
+
+      // Cancel button
+      Group #CancelButtonContainer {
+        Anchor: (Width: 110, Height: 36);
+        Background: #5a2727;
+        Padding: (Full: 4);
+
+        TextButton #CancelBtn {
+          Text: "CANCEL";
+          Anchor: (Left: 0, Top: 0, Width: 102, Height: 28);
+          Style: (
+            Default: (LabelStyle: (FontSize: 13, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+            Hovered: (Background: #7a3737, LabelStyle: (FontSize: 13, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+            Pressed: (Background: #4a1717, LabelStyle: (FontSize: 13, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center))
+          );
+        }
+      }
+    }
+
+    // Instructions
+    Label #Instructions {
+      Text: "Left click: Select | Right click: Deselect/Unclaim";
+      Anchor: (Top: 275, Left: 0, Width: 420, Height: 16);
+      Style: (FontSize: 9, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
+    }
+  }
+
+  // ==================== TAB 2: MY PLOTS ====================
+  Group #MyPlotsTab {
+    Anchor: (Top: 77, Left: 0, Width: 420, Height: 403);
+    Visible: false;
+
+    Label #MyPlotsHeader {
+      Text: "Your Claimed Plots";
+      Anchor: (Top: 5, Left: 30, Width: 360, Height: 24);
+      Style: (FontSize: 14, TextColor: #f0c674, HorizontalAlignment: Start, VerticalAlignment: Center);
+    }
+
+    // Scrollable list container
+    Group #MyPlotsList {
+      Anchor: (Top: 35, Left: 30, Width: 360, Height: 160);
+      Background: #0d1117;
+      LayoutMode: Top;
+      Padding: (Full: 4);
+
+      // Plot items will be added dynamically (PlotItem0 - PlotItem9)
+      TextButton #PlotItem0 { Anchor: (Width: 352, Height: 28); Style: @ListItemStyle; Visible: false; }
+      TextButton #PlotItem1 { Anchor: (Width: 352, Height: 28); Style: @ListItemStyle; Visible: false; }
+      TextButton #PlotItem2 { Anchor: (Width: 352, Height: 28); Style: @ListItemStyle; Visible: false; }
+      TextButton #PlotItem3 { Anchor: (Width: 352, Height: 28); Style: @ListItemStyle; Visible: false; }
+      TextButton #PlotItem4 { Anchor: (Width: 352, Height: 28); Style: @ListItemStyle; Visible: false; }
+    }
+
+    Label #NoOwnedPlots {
+      Text: "You don't own any plots yet.";
+      Anchor: (Top: 100, Left: 30, Width: 360, Height: 24);
+      Style: (FontSize: 12, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
+      Visible: false;
+    }
+
+    // Rename section (shown when a plot is selected)
+    Group #RenameSection {
+      Anchor: (Top: 205, Left: 30, Width: 360, Height: 70);
+      Visible: false;
+
+      Label #RenameLabel {
+        Text: "Rename Selected Plot:";
+        Anchor: (Top: 0, Left: 0, Width: 360, Height: 20);
+        Style: (FontSize: 12, TextColor: #aaaaaa, HorizontalAlignment: Start, VerticalAlignment: Center);
+      }
+
+      // Text input field for plot name
+      TextField #RenameInput {
+        Anchor: (Top: 24, Left: 0, Width: 250, Height: 32);
+        Background: #1a2a3a;
+        Style: (FontSize: 12, TextColor: #ffffff);
+        PlaceholderText: "Enter plot name...";
+        PlaceholderStyle: (FontSize: 12, TextColor: #666666, RenderItalics: true);
+        Padding: (Full: 8);
+      }
+
+      Group #RenameButtonContainer {
+        Anchor: (Top: 24, Left: 260, Width: 100, Height: 32);
+        Background: #2a5a4a;
+        Padding: (Full: 4);
+
+        TextButton #RenameBtn {
+          Text: "RENAME";
+          Anchor: (Left: 0, Top: 0, Width: 92, Height: 24);
+          Style: (
+            Default: (LabelStyle: (FontSize: 11, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+            Hovered: (Background: #3a7a6a, LabelStyle: (FontSize: 11, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+            Pressed: (Background: #1a4a3a, LabelStyle: (FontSize: 11, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center))
+          );
+        }
+      }
+    }
+
+    // Delete button
+    Group #DeleteButtonContainer {
+      Anchor: (Top: 285, Left: 30, Width: 150, Height: 36);
+      Background: #5a2727;
+      Padding: (Full: 4);
+      Visible: false;
+
+      TextButton #DeletePlotBtn {
+        Text: "DELETE PLOT";
+        Anchor: (Left: 0, Top: 0, Width: 142, Height: 28);
+        Style: (
+          Default: (LabelStyle: (FontSize: 12, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+          Hovered: (Background: #7a3737, LabelStyle: (FontSize: 12, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+          Pressed: (Background: #4a1717, LabelStyle: (FontSize: 12, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center))
+        );
+      }
+    }
+  }
+
+  // ==================== TAB 3: TRUSTED PLOTS ====================
+  Group #TrustedTab {
+    Anchor: (Top: 77, Left: 0, Width: 420, Height: 403);
+    Visible: false;
+
+    Label #TrustedHeader {
+      Text: "Plots You Have Access To";
+      Anchor: (Top: 5, Left: 30, Width: 360, Height: 24);
+      Style: (FontSize: 14, TextColor: #f0c674, HorizontalAlignment: Start, VerticalAlignment: Center);
+    }
+
+    // Scrollable list container
+    Group #TrustedList {
+      Anchor: (Top: 35, Left: 30, Width: 360, Height: 200);
+      Background: #0d1117;
+      LayoutMode: Top;
+      Padding: (Full: 4);
+
+      // Trusted plot items will be added dynamically
+      TextButton #TrustedItem0 { Anchor: (Width: 352, Height: 28); Style: @ListItemStyle; Visible: false; }
+      TextButton #TrustedItem1 { Anchor: (Width: 352, Height: 28); Style: @ListItemStyle; Visible: false; }
+      TextButton #TrustedItem2 { Anchor: (Width: 352, Height: 28); Style: @ListItemStyle; Visible: false; }
+      TextButton #TrustedItem3 { Anchor: (Width: 352, Height: 28); Style: @ListItemStyle; Visible: false; }
+      TextButton #TrustedItem4 { Anchor: (Width: 352, Height: 28); Style: @ListItemStyle; Visible: false; }
+    }
+
+    Label #NoTrustedPlots {
+      Text: "You don't have access to any other plots.";
+      Anchor: (Top: 120, Left: 30, Width: 360, Height: 24);
+      Style: (FontSize: 12, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
+      Visible: false;
+    }
+
+    // Selected plot info
+    Group #TrustedPlotInfo {
+      Anchor: (Top: 245, Left: 30, Width: 360, Height: 60);
+      Visible: false;
+
+      Label #TrustedPlotOwner {
+        Text: "Owner: ";
+        Anchor: (Top: 0, Left: 0, Width: 360, Height: 20);
+        Style: (FontSize: 12, TextColor: #aaaaaa, HorizontalAlignment: Start, VerticalAlignment: Center);
+      }
+
+      Label #TrustedPlotPermission {
+        Text: "Permission: Trusted";
+        Anchor: (Top: 24, Left: 0, Width: 360, Height: 20);
+        Style: (FontSize: 12, TextColor: #66aa66, HorizontalAlignment: Start, VerticalAlignment: Center);
+      }
+    }
+  }
+}

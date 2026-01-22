@@ -65,6 +65,9 @@ public final class HudModule extends AbstractModule {
     private LivingLandsPanelElement panelElement;
     private LivingLandsCommand llCommand;
 
+    // HUD preferences persistence
+    private HudPreferencesPersistence preferencesPersistence;
+
     // References to other module systems (set when modules integrate)
     @Nullable
     private MetabolismSystem metabolismSystem;
@@ -91,6 +94,9 @@ public final class HudModule extends AbstractModule {
             return t;
         });
 
+        // Initialize HUD preferences persistence
+        preferencesPersistence = new HudPreferencesPersistence(context.pluginDirectory(), logger);
+
         // Create unified panel element
         panelElement = new LivingLandsPanelElement();
         panelElement.setHudModule(this);
@@ -100,6 +106,7 @@ public final class HudModule extends AbstractModule {
         llCommand = new LivingLandsCommand();
         llCommand.setPanelElement(panelElement);
         llCommand.setHudModule(this);
+        llCommand.setModuleManager(context.moduleManager(), logger, playerRegistry);
         context.commandRegistry().registerCommand(llCommand);
 
         logger.at(Level.FINE).log("[%s] HUD module setup complete, /ll command registered", name);
@@ -136,6 +143,11 @@ public final class HudModule extends AbstractModule {
                 executor.shutdownNow();
                 Thread.currentThread().interrupt();
             }
+        }
+
+        // Save all player HUD preferences before shutdown
+        if (preferencesPersistence != null) {
+            preferencesPersistence.saveAll();
         }
 
         playerHuds.clear();
@@ -274,6 +286,11 @@ public final class HudModule extends AbstractModule {
         hudInitTime.remove(playerId);
         initializingPlayers.remove(playerId);
 
+        // Unload and save player preferences
+        if (preferencesPersistence != null) {
+            preferencesPersistence.unload(playerId);
+        }
+
         // Notify all elements
         for (var element : elements) {
             element.removePlayer(playerId);
@@ -364,15 +381,13 @@ public final class HudModule extends AbstractModule {
     }
 
     /**
-     * Set the metabolism system for the unified panel.
+     * Set the metabolism system for the HUD corner display.
      * Called by MetabolismModule during integration.
+     * Note: Panel no longer shows metabolism - it's only in the corner HUD.
      */
     public void setMetabolismSystem(@Nullable MetabolismSystem system) {
         this.metabolismSystem = system;
-        if (panelElement != null) {
-            panelElement.setMetabolismSystem(system);
-        }
-        logger.at(Level.FINE).log("[%s] Metabolism system integrated with panel", name);
+        logger.at(Level.FINE).log("[%s] Metabolism system integrated with HUD", name);
     }
 
     /**
@@ -478,5 +493,47 @@ public final class HudModule extends AbstractModule {
      */
     public LivingLandsPanelElement getPanelElement() {
         return panelElement;
+    }
+
+    /**
+     * Get the main /ll command for other modules to add features.
+     */
+    public LivingLandsCommand getLivingLandsCommand() {
+        return llCommand;
+    }
+
+    /**
+     * Get the HUD preferences persistence manager.
+     */
+    @Nullable
+    public HudPreferencesPersistence getPreferencesPersistence() {
+        return preferencesPersistence;
+    }
+
+    /**
+     * Get HUD preferences for a player.
+     * Loads from disk if not cached.
+     *
+     * @param playerId The player's UUID
+     * @return The player's HUD preferences (never null)
+     */
+    @Nonnull
+    public HudPreferences getPreferences(@Nonnull UUID playerId) {
+        if (preferencesPersistence == null) {
+            return HudPreferences.defaults();
+        }
+        return preferencesPersistence.getPreferences(playerId);
+    }
+
+    /**
+     * Save HUD preferences for a player.
+     *
+     * @param playerId The player's UUID
+     * @param preferences The preferences to save
+     */
+    public void savePreferences(@Nonnull UUID playerId, @Nonnull HudPreferences preferences) {
+        if (preferencesPersistence != null) {
+            preferencesPersistence.save(playerId, preferences);
+        }
     }
 }

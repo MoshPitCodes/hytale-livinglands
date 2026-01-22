@@ -53,16 +53,20 @@ public class PlayerDeathBroadcaster extends EntityEventSystem<EntityStore, KillF
                        Store<EntityStore> store,
                        CommandBuffer<EntityStore> commandBuffer,
                        KillFeedEvent.DecedentMessage event) {
+        // Log that we received ANY death event (before player check)
+        logger.at(Level.FINE).log("[DeathBroadcaster] Received DecedentMessage event for entity index %d", entityIndex);
+
         try {
             // Get player reference from the entity (the one who died)
             PlayerRef playerRef = chunk.getComponent(entityIndex, playerRefType);
             if (playerRef == null) {
+                logger.at(Level.FINE).log("[DeathBroadcaster] Entity %d is not a player, skipping", entityIndex);
                 return; // Not a player entity
             }
 
             UUID playerId = playerRef.getUuid();
 
-            logger.at(Level.FINE).log("PlayerDeathBroadcaster: Player %s died, notifying %d listeners",
+            logger.at(Level.FINE).log("[DeathBroadcaster] Player %s died, notifying %d listeners",
                 playerId, listeners.size());
 
             // Notify all listeners

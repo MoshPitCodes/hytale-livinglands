@@ -290,13 +290,13 @@ public final class NotificationModule extends AbstractModule {
 
     // ========== Convenience Methods for Common Notifications ==========
 
-    // Color constants for notification types (hex format for Hytale Message API)
-    private static final String COLOR_SUCCESS = "#3FB950";   // Green
-    private static final String COLOR_WARNING = "#D29922";   // Yellow/Gold
-    private static final String COLOR_ERROR = "#F85149";     // Red
-    private static final String COLOR_INFO = "#58A6FF";      // Blue
-    private static final String COLOR_UNLOCK = "#A371F7";    // Purple
-    private static final String COLOR_SUBTITLE = "#8B949E";  // Gray (for subtitles)
+    // Color constants for notification types (from ColorUtil)
+    private static final String COLOR_SUCCESS = com.livinglands.util.ColorUtil.getHexColor("notif_success");
+    private static final String COLOR_WARNING = com.livinglands.util.ColorUtil.getHexColor("notif_warning");
+    private static final String COLOR_ERROR = com.livinglands.util.ColorUtil.getHexColor("notif_error");
+    private static final String COLOR_INFO = com.livinglands.util.ColorUtil.getHexColor("notif_info");
+    private static final String COLOR_UNLOCK = com.livinglands.util.ColorUtil.getHexColor("notif_unlock");
+    private static final String COLOR_SUBTITLE = com.livinglands.util.ColorUtil.getHexColor("notif_subtitle");
 
     // Sound event names for notifications (resolved to IDs at runtime)
     private static final String SOUND_UNLOCK = "SFX_Discovery_Z1_Short";  // Light discovery chime
@@ -368,5 +368,127 @@ public final class NotificationModule extends AbstractModule {
         if (withSound) {
             playSound(playerId, SOUND_UNLOCK);
         }
+    }
+
+    // ========== Chat Message Notifications ==========
+
+    /**
+     * Send a chat message to a player with a specific color.
+     *
+     * @param playerId Player's UUID
+     * @param message The message text
+     * @param colorName Color name from ColorUtil (e.g., "red", "green", "purple")
+     */
+    public void sendChat(@Nonnull UUID playerId, @Nonnull String message, @Nonnull String colorName) {
+        var sessionOpt = playerRegistry.getSession(playerId);
+        if (sessionOpt.isEmpty()) {
+            return;
+        }
+
+        var player = sessionOpt.get().getPlayer();
+        if (player == null) {
+            return;
+        }
+
+        try {
+            player.sendMessage(Message.raw(message).color(com.livinglands.util.ColorUtil.getHexColor(colorName)));
+        } catch (Exception e) {
+            logger.at(Level.FINE).withCause(e).log("[%s] Failed to send chat message", name);
+        }
+    }
+
+    /**
+     * Send a chat message to a player with a hex color.
+     *
+     * @param playerId Player's UUID
+     * @param message The message text
+     * @param hexColor Hex color code (e.g., "#FF0000")
+     */
+    public void sendChatHex(@Nonnull UUID playerId, @Nonnull String message, @Nonnull String hexColor) {
+        var sessionOpt = playerRegistry.getSession(playerId);
+        if (sessionOpt.isEmpty()) {
+            return;
+        }
+
+        var player = sessionOpt.get().getPlayer();
+        if (player == null) {
+            return;
+        }
+
+        try {
+            player.sendMessage(Message.raw(message).color(hexColor));
+        } catch (Exception e) {
+            logger.at(Level.FINE).withCause(e).log("[%s] Failed to send chat message", name);
+        }
+    }
+
+    /**
+     * Send an error chat message (red).
+     *
+     * @param playerId Player's UUID
+     * @param message The error message
+     */
+    public void sendChatError(@Nonnull UUID playerId, @Nonnull String message) {
+        sendChat(playerId, message, "red");
+    }
+
+    /**
+     * Send a success chat message (green).
+     *
+     * @param playerId Player's UUID
+     * @param message The success message
+     */
+    public void sendChatSuccess(@Nonnull UUID playerId, @Nonnull String message) {
+        sendChat(playerId, message, "green");
+    }
+
+    /**
+     * Send a warning chat message (yellow/gold).
+     *
+     * @param playerId Player's UUID
+     * @param message The warning message
+     */
+    public void sendChatWarning(@Nonnull UUID playerId, @Nonnull String message) {
+        sendChat(playerId, message, "gold");
+    }
+
+    /**
+     * Send an info chat message (gray).
+     *
+     * @param playerId Player's UUID
+     * @param message The info message
+     */
+    public void sendChatInfo(@Nonnull UUID playerId, @Nonnull String message) {
+        sendChat(playerId, message, "gray");
+    }
+
+    /**
+     * Send an ability-related chat message (purple).
+     *
+     * @param playerId Player's UUID
+     * @param message The ability message
+     */
+    public void sendChatAbility(@Nonnull UUID playerId, @Nonnull String message) {
+        sendChat(playerId, message, "purple");
+    }
+
+    /**
+     * Send a buff/positive effect chat message (green).
+     *
+     * @param playerId Player's UUID
+     * @param message The buff message
+     */
+    public void sendChatBuff(@Nonnull UUID playerId, @Nonnull String message) {
+        sendChat(playerId, message, "green");
+    }
+
+    /**
+     * Send a debuff/negative effect chat message (red).
+     *
+     * @param playerId Player's UUID
+     * @param message The debuff message
+     */
+    public void sendChatDebuff(@Nonnull UUID playerId, @Nonnull String message) {
+        sendChat(playerId, message, "red");
     }
 }

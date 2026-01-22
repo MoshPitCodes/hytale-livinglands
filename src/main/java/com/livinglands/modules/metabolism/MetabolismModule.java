@@ -207,4 +207,12 @@ public final class MetabolismModule extends AbstractModule {
     public MetabolismModuleConfig getConfig() {
         return config;
     }
+
+    @Override
+    public com.livinglands.api.ModuleUIProvider getUIProvider() {
+        if (system != null && config != null) {
+            return new com.livinglands.modules.metabolism.ui.MetabolismUIProvider(system, config, logger);
+        }
+        return null;
+    }
 }

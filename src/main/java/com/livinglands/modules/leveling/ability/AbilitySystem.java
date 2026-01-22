@@ -1,8 +1,6 @@
 package com.livinglands.modules.leveling.ability;
 
 import com.hypixel.hytale.logger.HytaleLogger;
-import com.hypixel.hytale.server.core.entity.entities.Player;
-import com.hypixel.hytale.server.core.Message;
 import com.livinglands.core.PlayerRegistry;
 import com.livinglands.core.notifications.NotificationModule;
 import com.livinglands.modules.leveling.LevelingSystem;
@@ -10,7 +8,6 @@ import com.livinglands.modules.leveling.config.AbilityConfig;
 import com.livinglands.modules.leveling.config.LevelingModuleConfig;
 import com.livinglands.modules.leveling.profession.ProfessionType;
 import com.livinglands.modules.metabolism.MetabolismSystem;
-import com.livinglands.util.ColorUtil;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -512,14 +509,12 @@ public class AbilitySystem {
             return;
         }
 
-        var sessionOpt = playerRegistry.getSession(playerId);
-        if (sessionOpt.isEmpty()) return;
-
-        Player player = sessionOpt.get().getPlayer();
-        if (player == null) return;
+        if (notificationModule == null) {
+            return;
+        }
 
         String message = formatTriggerMessage(ability, abilityConfig);
-        player.sendMessage(Message.raw(message).color(ColorUtil.getHexColor("purple")));
+        notificationModule.sendChatAbility(playerId, message);
     }
 
     private String formatTriggerMessage(AbilityType ability, AbilityConfig config) {

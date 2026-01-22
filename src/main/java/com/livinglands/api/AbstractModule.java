@@ -3,6 +3,7 @@ package com.livinglands.api;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.hypixel.hytale.logger.HytaleLogger;
+import com.livinglands.core.config.ConfigMigrationManager;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -228,13 +229,20 @@ public abstract non-sealed class AbstractModule implements Module {
 
     /**
      * Loads a configuration file from the module's config directory.
+     * If the file exists, migrates it to preserve user settings while adding new fields.
      * Creates the file with defaults if it doesn't exist.
+     *
+     * Migration behavior:
+     * - Existing user values are preserved
+     * - New fields added in this version get default values
+     * - Obsolete fields removed in this version are dropped
+     * - The config file is re-saved with the migrated structure
      *
      * @param filename        Config filename (e.g., "config.json")
      * @param type            Class to deserialize to
      * @param defaultSupplier Supplier for default config if file doesn't exist
      * @param <T>             Config type
-     * @return Loaded or default configuration
+     * @return Loaded (and migrated) or default configuration
      */
     protected <T> T loadConfig(@Nonnull String filename, @Nonnull Class<T> type,
                                @Nonnull Supplier<T> defaultSupplier) {
@@ -242,10 +250,23 @@ public abstract non-sealed class AbstractModule implements Module {
 
         try {
             if (Files.exists(configPath)) {
-                var json = Files.readString(configPath);
-                var config = GSON.fromJson(json, type);
-                logger.at(Level.FINE).log("[%s] Loaded config from %s", name, configPath);
-                return config;
+                var existingJson = Files.readString(configPath);
+                var defaultConfig = defaultSupplier.get();
+
+                // Migrate existing config to current structure
+                var migratedConfig = ConfigMigrationManager.migrateConfig(
+                        existingJson,
+                        defaultConfig,
+                        type,
+                        logger,
+                        name + "/" + filename
+                );
+
+                // Re-save the migrated config (updates structure, preserves values)
+                saveConfig(filename, migratedConfig);
+
+                logger.at(Level.FINE).log("[%s] Loaded and migrated config from %s", name, configPath);
+                return migratedConfig;
             } else {
                 var defaultConfig = defaultSupplier.get();
                 saveConfig(filename, defaultConfig);
@@ -296,5 +317,19 @@ public abstract non-sealed class AbstractModule implements Module {
                 .orElseThrow(() -> new IllegalStateException(
                         "Required dependency '%s' not found for module '%s'"
                                 .formatted(moduleId, id)));
+    }
+
+    /**
+     * Gets the UI provider for this module, if it provides one.
+     * Modules that want to contribute content to the core settings panel should
+     * implement ModuleUIProvider and return it here.
+     *
+     * Default implementation returns null (no UI).
+     *
+     * @return ModuleUIProvider instance, or null if this module has no UI
+     */
+    @javax.annotation.Nullable
+    public ModuleUIProvider getUIProvider() {
+        return null;
     }
 }

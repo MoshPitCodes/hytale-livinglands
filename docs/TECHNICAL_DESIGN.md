@@ -34,7 +34,7 @@ Living Lands is built on a modular plugin architecture with three layers:
 │  PlayerRegistry, EventRegistry, CommandRegistry, Persistence         │
 ├─────────────────────────────────────────────────────────────────────┤
 │                           Modules                                    │
-│  MetabolismModule, ClaimsModule (planned), EconomyModule (planned)   │
+│  MetabolismModule, ClaimsModule, LevelingModule, EconomyModule (planned)│
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -733,3 +733,6 @@ public record DebuffsConfig(
 | 2.3.2-beta | Speed flickering fix via centralized SpeedManager |
 | 2.3.3-beta | Comprehensive consumable detection, reflection-based effect ID retrieval |
 | 2.3.4-beta | Console spam reduction (INFO→FINE), command restructuring (native subcommands), UI backdrops |
+| 2.4.0-beta | Passive abilities redesign (3 tiers), death penalty, centralized death detection |
+| 2.4.1-beta | Stale stat modifier cleanup, Tier 2 ability implementations, XP handler wiring |
+| 2.6.0-beta | Claims module (plot claims, trust, NPC protection), balance adjustments (+25% depletion, +10% debuffs, -12% buffs), concurrency fixes |

@@ -613,7 +613,7 @@ The metabolism module is optimized for **O(n) linear scaling** with player count
 # Credits
 
 - **Author**: [MoshPitCodes](https://github.com/MoshPitCodes)
-- **Version**: 2.3.4-beta
+- **Version**: 2.6.0-beta
 - **License**: Apache-2.0
 
 ### Resources

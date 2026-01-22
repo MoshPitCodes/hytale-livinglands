@@ -66,6 +66,36 @@ public final class ColorUtil {
         COLOR_MAP.put("violet", "#EE82EE");
         COLOR_MAP.put("crimson", "#DC143C");
         COLOR_MAP.put("scarlet", "#FF2400");
+
+        // UI-specific colors (for panels, grids, buttons)
+        COLOR_MAP.put("ui_background", "#0a1628");
+        COLOR_MAP.put("ui_header", "#152238");
+        COLOR_MAP.put("ui_cell", "#3a3a3a");
+        COLOR_MAP.put("ui_cell_hover", "#4a4a4a");
+        COLOR_MAP.put("ui_cell_pressed", "#2a2a2a");
+        COLOR_MAP.put("ui_tab_active", "#2a4a6a");
+        COLOR_MAP.put("ui_tab_inactive", "#1a2a3a");
+        COLOR_MAP.put("ui_text_primary", "#ccd8e8");
+        COLOR_MAP.put("ui_text_secondary", "#8899aa");
+        COLOR_MAP.put("ui_text_muted", "#6e7681");
+
+        // Claims module colors
+        COLOR_MAP.put("claim_unclaimed", "#3a3a3a");
+        COLOR_MAP.put("claim_selected", "#4a4a1a");
+        COLOR_MAP.put("claim_own", "#4a1a4a");
+        COLOR_MAP.put("claim_other", "#4a1a1a");
+
+        // Ability/status colors
+        COLOR_MAP.put("ability_unlocked", "#3fb950");
+        COLOR_MAP.put("ability_locked", "#484f58");
+
+        // Notification colors
+        COLOR_MAP.put("notif_success", "#3FB950");
+        COLOR_MAP.put("notif_warning", "#D29922");
+        COLOR_MAP.put("notif_error", "#F85149");
+        COLOR_MAP.put("notif_info", "#58A6FF");
+        COLOR_MAP.put("notif_unlock", "#A371F7");
+        COLOR_MAP.put("notif_subtitle", "#8B949E");
     }
 
     private ColorUtil() {

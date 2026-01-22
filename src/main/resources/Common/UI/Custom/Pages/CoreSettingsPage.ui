@@ -1,0 +1,431 @@
+// Core Settings Page - Dynamic multi-tab interface for Living Lands modules
+// Each enabled module can contribute a tab with custom content
+
+// Tab button style
+@TabStyle = TextButtonStyle(
+  Default: (Background: #1a2a3a, LabelStyle: (FontSize: 11, TextColor: #8899aa, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Hovered: (Background: #2a3a4a, LabelStyle: (FontSize: 11, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Pressed: (Background: #0a1a2a, LabelStyle: (FontSize: 11, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center))
+);
+
+@TabStyleActive = TextButtonStyle(
+  Default: (Background: #2a4a6a, LabelStyle: (FontSize: 11, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Hovered: (Background: #3a5a7a, LabelStyle: (FontSize: 11, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Pressed: (Background: #1a3a5a, LabelStyle: (FontSize: 11, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center))
+);
+
+// List item style
+@ListItemStyle = TextButtonStyle(
+  Default: (Background: #1a2a3a, LabelStyle: (FontSize: 11, TextColor: #cccccc, HorizontalAlignment: Start, VerticalAlignment: Center)),
+  Hovered: (Background: #2a3a4a, LabelStyle: (FontSize: 11, TextColor: #ffffff, HorizontalAlignment: Start, VerticalAlignment: Center)),
+  Pressed: (Background: #0a1a2a, LabelStyle: (FontSize: 11, TextColor: #ffffff, HorizontalAlignment: Start, VerticalAlignment: Center))
+);
+
+// Section button style
+@SectionStyle = TextButtonStyle(
+  Default: (Background: #1a2a3a, LabelStyle: (FontSize: 10, TextColor: #8899aa, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Hovered: (Background: #2a3a4a, LabelStyle: (FontSize: 10, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Pressed: (Background: #0a1a2a, LabelStyle: (FontSize: 10, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center))
+);
+
+@SectionStyleActive = TextButtonStyle(
+  Default: (Background: #2a4a6a, LabelStyle: (FontSize: 10, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Hovered: (Background: #3a5a7a, LabelStyle: (FontSize: 10, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+  Pressed: (Background: #1a3a5a, LabelStyle: (FontSize: 10, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center))
+);
+
+// Cell button style for claim grid
+@CellStyle = TextButtonStyle(
+  Default: (Background: #3a3a3a),
+  Hovered: (Background: #4a4a4a),
+  Pressed: (Background: #2a2a2a)
+);
+
+// Main container - centered modal dialog
+Group #CoreSettingsPage {
+  Anchor: (Width: 500, Height: 550);
+  Background: #0a1628(0.95);
+  Visible: true;
+
+  // Title bar
+  Group #TitleBar {
+    Anchor: (Top: 0, Width: 500, Height: 50);
+    Background: #152238;
+
+    Label #Title {
+      Text: "LIVING LANDS";
+      Anchor: (Left: 0, Top: 0, Width: 500, Height: 50);
+      Style: (FontSize: 18, RenderBold: true, RenderUppercase: true, TextColor: #ccd8e8, HorizontalAlignment: Center, VerticalAlignment: Center, LetterSpacing: 3);
+    }
+
+    Label #Subtitle {
+      Text: "Module Settings";
+      Anchor: (Left: 0, Top: 30, Width: 500, Height: 20);
+      Style: (FontSize: 9, TextColor: #8899aa, HorizontalAlignment: Center, VerticalAlignment: Center, LetterSpacing: 1);
+    }
+  }
+
+  // Tab bar - supports up to 6 tabs
+  Group #TabBar {
+    Anchor: (Top: 50, Left: 0, Width: 500, Height: 36);
+    Background: #0d1117;
+    LayoutMode: Left;
+
+    TextButton #Tab0 { Text: "Tab 1"; Anchor: (Width: 83, Height: 36); Style: @TabStyleActive; Visible: false; }
+    TextButton #Tab1 { Text: "Tab 2"; Anchor: (Width: 83, Height: 36); Style: @TabStyle; Visible: false; }
+    TextButton #Tab2 { Text: "Tab 3"; Anchor: (Width: 83, Height: 36); Style: @TabStyle; Visible: false; }
+    TextButton #Tab3 { Text: "Tab 4"; Anchor: (Width: 83, Height: 36); Style: @TabStyle; Visible: false; }
+    TextButton #Tab4 { Text: "Tab 5"; Anchor: (Width: 83, Height: 36); Style: @TabStyle; Visible: false; }
+    TextButton #Tab5 { Text: "Tab 6"; Anchor: (Width: 83, Height: 36); Style: @TabStyle; Visible: false; }
+  }
+
+  // Content area
+  Group #ContentArea {
+    Anchor: (Top: 86, Left: 0, Width: 500, Height: 414);
+    Background: #0a1628;
+
+    // Default message when no tabs
+    Label #NoModules {
+      Text: "No modules available";
+      Anchor: (Top: 150, Left: 0, Width: 500, Height: 30);
+      Style: (FontSize: 14, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
+      Visible: true;
+    }
+
+    // ==================== MODULE CONTENT 0 (CLAIMS) ====================
+    Group #ModuleContent0 {
+      Anchor: (Top: 0, Left: 0, Width: 500, Height: 414);
+      Visible: false;
+
+      // Stats header
+      Label #ClaimsStatsLabel {
+        Text: "Your Claims: 0 plots, 0/25 chunks";
+        Anchor: (Top: 8, Left: 20, Width: 460, Height: 20);
+        Style: (FontSize: 12, TextColor: #f0c674, HorizontalAlignment: Start, VerticalAlignment: Center);
+      }
+
+      // Section switcher (Claim / My Plots / Trusted)
+      Group #ClaimsSectionBar {
+        Anchor: (Top: 32, Left: 20, Width: 360, Height: 26);
+        LayoutMode: Left;
+
+        TextButton #ClaimsSectionClaim {
+          Text: "Claim";
+          Anchor: (Width: 80, Height: 26);
+          Style: @SectionStyleActive;
+        }
+
+        TextButton #ClaimsSectionMyPlots {
+          Text: "My Plots";
+          Anchor: (Width: 80, Height: 26);
+          Style: @SectionStyle;
+        }
+
+        TextButton #ClaimsSectionTrusted {
+          Text: "Trusted";
+          Anchor: (Width: 80, Height: 26);
+          Style: @SectionStyle;
+        }
+      }
+
+      // ========== CLAIM SECTION (Grid) ==========
+      Group #ClaimsClaimSection {
+        Anchor: (Top: 65, Left: 0, Width: 500, Height: 340);
+        Visible: true;
+
+        // Grid container - 7x7 grid centered (player at center cell 3,3)
+        Group #ClaimsGridContainer {
+          Anchor: (Top: 5, Left: 145, Width: 212, Height: 212);
+          Background: #2a2a2a;
+
+          Group #ClaimsChunkGrid {
+            Anchor: (Left: 1, Top: 1, Width: 210, Height: 210);
+
+            // Row 0
+            TextButton #ClaimsCell0x0 { Anchor: (Left: 0, Top: 0, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell1x0 { Anchor: (Left: 30, Top: 0, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell2x0 { Anchor: (Left: 60, Top: 0, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell3x0 { Anchor: (Left: 90, Top: 0, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell4x0 { Anchor: (Left: 120, Top: 0, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell5x0 { Anchor: (Left: 150, Top: 0, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell6x0 { Anchor: (Left: 180, Top: 0, Width: 28, Height: 28); Style: @CellStyle; }
+
+            // Row 1
+            TextButton #ClaimsCell0x1 { Anchor: (Left: 0, Top: 30, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell1x1 { Anchor: (Left: 30, Top: 30, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell2x1 { Anchor: (Left: 60, Top: 30, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell3x1 { Anchor: (Left: 90, Top: 30, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell4x1 { Anchor: (Left: 120, Top: 30, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell5x1 { Anchor: (Left: 150, Top: 30, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell6x1 { Anchor: (Left: 180, Top: 30, Width: 28, Height: 28); Style: @CellStyle; }
+
+            // Row 2
+            TextButton #ClaimsCell0x2 { Anchor: (Left: 0, Top: 60, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell1x2 { Anchor: (Left: 30, Top: 60, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell2x2 { Anchor: (Left: 60, Top: 60, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell3x2 { Anchor: (Left: 90, Top: 60, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell4x2 { Anchor: (Left: 120, Top: 60, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell5x2 { Anchor: (Left: 150, Top: 60, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell6x2 { Anchor: (Left: 180, Top: 60, Width: 28, Height: 28); Style: @CellStyle; }
+
+            // Row 3 (center row - player position)
+            TextButton #ClaimsCell0x3 { Anchor: (Left: 0, Top: 90, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell1x3 { Anchor: (Left: 30, Top: 90, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell2x3 { Anchor: (Left: 60, Top: 90, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell3x3 { Anchor: (Left: 90, Top: 90, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell4x3 { Anchor: (Left: 120, Top: 90, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell5x3 { Anchor: (Left: 150, Top: 90, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell6x3 { Anchor: (Left: 180, Top: 90, Width: 28, Height: 28); Style: @CellStyle; }
+
+            // Row 4
+            TextButton #ClaimsCell0x4 { Anchor: (Left: 0, Top: 120, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell1x4 { Anchor: (Left: 30, Top: 120, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell2x4 { Anchor: (Left: 60, Top: 120, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell3x4 { Anchor: (Left: 90, Top: 120, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell4x4 { Anchor: (Left: 120, Top: 120, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell5x4 { Anchor: (Left: 150, Top: 120, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell6x4 { Anchor: (Left: 180, Top: 120, Width: 28, Height: 28); Style: @CellStyle; }
+
+            // Row 5
+            TextButton #ClaimsCell0x5 { Anchor: (Left: 0, Top: 150, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell1x5 { Anchor: (Left: 30, Top: 150, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell2x5 { Anchor: (Left: 60, Top: 150, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell3x5 { Anchor: (Left: 90, Top: 150, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell4x5 { Anchor: (Left: 120, Top: 150, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell5x5 { Anchor: (Left: 150, Top: 150, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell6x5 { Anchor: (Left: 180, Top: 150, Width: 28, Height: 28); Style: @CellStyle; }
+
+            // Row 6
+            TextButton #ClaimsCell0x6 { Anchor: (Left: 0, Top: 180, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell1x6 { Anchor: (Left: 30, Top: 180, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell2x6 { Anchor: (Left: 60, Top: 180, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell3x6 { Anchor: (Left: 90, Top: 180, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell4x6 { Anchor: (Left: 120, Top: 180, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell5x6 { Anchor: (Left: 150, Top: 180, Width: 28, Height: 28); Style: @CellStyle; }
+            TextButton #ClaimsCell6x6 { Anchor: (Left: 180, Top: 180, Width: 28, Height: 28); Style: @CellStyle; }
+          }
+
+          // Player position marker (center of 7x7 grid at cell 3,3)
+          Label #ClaimsPlayerMarker {
+            Anchor: (Left: 90, Top: 90, Width: 30, Height: 30);
+            Text: "+";
+            Style: (FontSize: 16, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center);
+          }
+        }
+
+        // Selection counter
+        Label #ClaimsSelectionLabel {
+          Text: "Selected: 0 chunks";
+          Anchor: (Top: 225, Left: 0, Width: 500, Height: 20);
+          Style: (FontSize: 11, TextColor: #aaaaaa, HorizontalAlignment: Center, VerticalAlignment: Center);
+        }
+
+        // Button column (stacked vertically)
+        Group #ClaimsButtonRow {
+          Anchor: (Top: 225, Left: 370, Width: 95, Height: 80);
+          LayoutMode: Top;
+
+          Group #ClaimsClaimBtnContainer {
+            Anchor: (Width: 95, Height: 36);
+            Background: #2d5a27;
+            Padding: (Full: 4);
+
+            TextButton #ClaimsClaimBtn {
+              Text: "CLAIM";
+              Anchor: (Left: 0, Top: 0, Width: 87, Height: 28);
+              Style: (
+                Default: (LabelStyle: (FontSize: 11, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+                Hovered: (Background: #3d7a37, LabelStyle: (FontSize: 11, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+                Pressed: (Background: #1d4a17, LabelStyle: (FontSize: 11, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center))
+              );
+            }
+          }
+
+          Group #ClaimsSpacer1 { Anchor: (Height: 6); }
+
+          Group #ClaimsClearBtnContainer {
+            Anchor: (Width: 95, Height: 36);
+            Background: #5a5a27;
+            Padding: (Full: 4);
+
+            TextButton #ClaimsClearBtn {
+              Text: "CLEAR";
+              Anchor: (Left: 0, Top: 0, Width: 87, Height: 28);
+              Style: (
+                Default: (LabelStyle: (FontSize: 11, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+                Hovered: (Background: #7a7a37, LabelStyle: (FontSize: 11, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+                Pressed: (Background: #4a4a17, LabelStyle: (FontSize: 11, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center))
+              );
+            }
+          }
+        }
+
+        // Instructions
+        Label #ClaimsGridInstructions {
+          Text: "Left click: Select | Right click: Deselect/Unclaim";
+          Anchor: (Top: 295, Left: 0, Width: 500, Height: 16);
+          Style: (FontSize: 9, TextColor: #555555, HorizontalAlignment: Center, VerticalAlignment: Center);
+        }
+      }
+
+      // ========== MY PLOTS SECTION ==========
+      Group #ClaimsMyPlotsSection {
+        Anchor: (Top: 65, Left: 0, Width: 500, Height: 340);
+        Visible: false;
+
+        // Plot list container
+        Group #ClaimsListContainer {
+          Anchor: (Top: 5, Left: 20, Width: 460, Height: 250);
+          Background: #0d1117;
+          LayoutMode: Top;
+          Padding: (Full: 4);
+
+          TextButton #ClaimsPlotItem0 { Text: "  Plot 1"; Anchor: (Width: 452, Height: 26); Style: @ListItemStyle; Visible: false; }
+          TextButton #ClaimsPlotItem1 { Text: "  Plot 2"; Anchor: (Width: 452, Height: 26); Style: @ListItemStyle; Visible: false; }
+          TextButton #ClaimsPlotItem2 { Text: "  Plot 3"; Anchor: (Width: 452, Height: 26); Style: @ListItemStyle; Visible: false; }
+          TextButton #ClaimsPlotItem3 { Text: "  Plot 4"; Anchor: (Width: 452, Height: 26); Style: @ListItemStyle; Visible: false; }
+          TextButton #ClaimsPlotItem4 { Text: "  Plot 5"; Anchor: (Width: 452, Height: 26); Style: @ListItemStyle; Visible: false; }
+          TextButton #ClaimsPlotItem5 { Text: "  Plot 6"; Anchor: (Width: 452, Height: 26); Style: @ListItemStyle; Visible: false; }
+          TextButton #ClaimsPlotItem6 { Text: "  Plot 7"; Anchor: (Width: 452, Height: 26); Style: @ListItemStyle; Visible: false; }
+          TextButton #ClaimsPlotItem7 { Text: "  Plot 8"; Anchor: (Width: 452, Height: 26); Style: @ListItemStyle; Visible: false; }
+          TextButton #ClaimsPlotItem8 { Text: "  Plot 9"; Anchor: (Width: 452, Height: 26); Style: @ListItemStyle; Visible: false; }
+        }
+
+        // Empty state message
+        Label #ClaimsEmptyMessage {
+          Text: "You don't own any plots yet.";
+          Anchor: (Top: 70, Left: 20, Width: 460, Height: 24);
+          Style: (FontSize: 12, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
+          Visible: false;
+        }
+
+        // Rename section
+        Group #ClaimsRenameSection {
+          Anchor: (Top: 265, Left: 20, Width: 460, Height: 60);
+          Visible: false;
+
+          Label #ClaimsRenameLabel {
+            Text: "Rename Selected Plot:";
+            Anchor: (Top: 0, Left: 0, Width: 460, Height: 18);
+            Style: (FontSize: 10, TextColor: #aaaaaa, HorizontalAlignment: Start, VerticalAlignment: Center);
+          }
+
+          TextField #ClaimsRenameInput {
+            Anchor: (Top: 20, Left: 0, Width: 300, Height: 28);
+            Background: #1a2a3a;
+            Style: (FontSize: 10, TextColor: #ffffff);
+            PlaceholderText: "Enter plot name...";
+            PlaceholderStyle: (FontSize: 10, TextColor: #666666, RenderItalics: true);
+            Padding: (Full: 6);
+          }
+
+          Group #ClaimsRenameBtnContainer {
+            Anchor: (Top: 20, Left: 310, Width: 70, Height: 28);
+            Background: #2a5a4a;
+            Padding: (Full: 3);
+
+            TextButton #ClaimsRenameBtn {
+              Text: "RENAME";
+              Anchor: (Left: 0, Top: 0, Width: 64, Height: 22);
+              Style: (
+                Default: (LabelStyle: (FontSize: 9, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+                Hovered: (Background: #3a7a6a, LabelStyle: (FontSize: 9, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+                Pressed: (Background: #1a4a3a, LabelStyle: (FontSize: 9, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center))
+              );
+            }
+          }
+
+          Group #ClaimsDeleteBtnContainer {
+            Anchor: (Top: 20, Left: 390, Width: 70, Height: 28);
+            Background: #5a2727;
+            Padding: (Full: 3);
+
+            TextButton #ClaimsDeleteBtn {
+              Text: "DELETE";
+              Anchor: (Left: 0, Top: 0, Width: 64, Height: 22);
+              Style: (
+                Default: (LabelStyle: (FontSize: 9, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+                Hovered: (Background: #7a3737, LabelStyle: (FontSize: 9, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+                Pressed: (Background: #4a1717, LabelStyle: (FontSize: 9, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center))
+              );
+            }
+          }
+        }
+      }
+
+      // ========== TRUSTED SECTION ==========
+      Group #ClaimsTrustedSection {
+        Anchor: (Top: 65, Left: 0, Width: 500, Height: 340);
+        Visible: false;
+
+        // Trusted list container (reuses same element IDs as My Plots for simplicity)
+        Group #ClaimsTrustedListContainer {
+          Anchor: (Top: 5, Left: 20, Width: 460, Height: 250);
+          Background: #0d1117;
+          LayoutMode: Top;
+          Padding: (Full: 4);
+
+          TextButton #ClaimsTrustedItem0 { Text: "  Plot 1"; Anchor: (Width: 452, Height: 26); Style: @ListItemStyle; Visible: false; }
+          TextButton #ClaimsTrustedItem1 { Text: "  Plot 2"; Anchor: (Width: 452, Height: 26); Style: @ListItemStyle; Visible: false; }
+          TextButton #ClaimsTrustedItem2 { Text: "  Plot 3"; Anchor: (Width: 452, Height: 26); Style: @ListItemStyle; Visible: false; }
+          TextButton #ClaimsTrustedItem3 { Text: "  Plot 4"; Anchor: (Width: 452, Height: 26); Style: @ListItemStyle; Visible: false; }
+          TextButton #ClaimsTrustedItem4 { Text: "  Plot 5"; Anchor: (Width: 452, Height: 26); Style: @ListItemStyle; Visible: false; }
+          TextButton #ClaimsTrustedItem5 { Text: "  Plot 6"; Anchor: (Width: 452, Height: 26); Style: @ListItemStyle; Visible: false; }
+          TextButton #ClaimsTrustedItem6 { Text: "  Plot 7"; Anchor: (Width: 452, Height: 26); Style: @ListItemStyle; Visible: false; }
+          TextButton #ClaimsTrustedItem7 { Text: "  Plot 8"; Anchor: (Width: 452, Height: 26); Style: @ListItemStyle; Visible: false; }
+          TextButton #ClaimsTrustedItem8 { Text: "  Plot 9"; Anchor: (Width: 452, Height: 26); Style: @ListItemStyle; Visible: false; }
+        }
+
+        // Empty state message for trusted
+        Label #ClaimsTrustedEmptyMessage {
+          Text: "You don't have access to any other plots.";
+          Anchor: (Top: 70, Left: 20, Width: 460, Height: 24);
+          Style: (FontSize: 12, TextColor: #666666, HorizontalAlignment: Center, VerticalAlignment: Center);
+          Visible: false;
+        }
+
+        // Trusted plot info
+        Group #ClaimsTrustedInfo {
+          Anchor: (Top: 265, Left: 20, Width: 460, Height: 50);
+          Visible: false;
+
+          Label #ClaimsTrustedOwner {
+            Text: "Owner: ";
+            Anchor: (Top: 0, Left: 0, Width: 460, Height: 20);
+            Style: (FontSize: 11, TextColor: #aaaaaa, HorizontalAlignment: Start, VerticalAlignment: Center);
+          }
+
+          Label #ClaimsTrustedPermission {
+            Text: "Permission: Trusted";
+            Anchor: (Top: 22, Left: 0, Width: 460, Height: 20);
+            Style: (FontSize: 11, TextColor: #66aa66, HorizontalAlignment: Start, VerticalAlignment: Center);
+          }
+        }
+      }
+    }
+
+    // ==================== MODULE CONTENT 1-5 (OTHER MODULES) ====================
+    Group #ModuleContent1 { Anchor: (Top: 10, Left: 20, Width: 460, Height: 394); Visible: false; }
+    Group #ModuleContent2 { Anchor: (Top: 10, Left: 20, Width: 460, Height: 394); Visible: false; }
+    Group #ModuleContent3 { Anchor: (Top: 10, Left: 20, Width: 460, Height: 394); Visible: false; }
+    Group #ModuleContent4 { Anchor: (Top: 10, Left: 20, Width: 460, Height: 394); Visible: false; }
+    Group #ModuleContent5 { Anchor: (Top: 10, Left: 20, Width: 460, Height: 394); Visible: false; }
+  }
+
+  // Close button
+  Group #CloseButtonContainer {
+    Anchor: (Bottom: 15, Left: 200, Width: 100, Height: 36);
+    Background: #5a2727;
+    Padding: (Full: 4);
+
+    TextButton #CloseBtn {
+      Text: "CLOSE";
+      Anchor: (Left: 0, Top: 0, Width: 92, Height: 28);
+      Style: (
+        Default: (LabelStyle: (FontSize: 13, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+        Hovered: (Background: #7a3737, LabelStyle: (FontSize: 13, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center)),
+        Pressed: (Background: #4a1717, LabelStyle: (FontSize: 13, RenderBold: true, TextColor: #ffffff, HorizontalAlignment: Center, VerticalAlignment: Center))
+      );
+    }
+  }
+}

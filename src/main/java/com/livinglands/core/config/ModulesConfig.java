@@ -83,8 +83,8 @@ public class ModulesConfig {
         // Feature modules
         config.enabled.put("metabolism", true);
         config.enabled.put("leveling", true);
-        // Future modules (disabled by default)
-        config.enabled.put("claims", false);
+        // Land claims module
+        config.enabled.put("claims", true);
         config.enabled.put("economy", false);
         config.enabled.put("groups", false);
         config.enabled.put("traders", false);

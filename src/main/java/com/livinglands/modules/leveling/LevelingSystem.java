@@ -110,6 +110,7 @@ public class LevelingSystem {
 
         if (saveTask != null) {
             saveTask.cancel(false);
+            saveTask = null; // Clear reference to allow GC
         }
 
         // Save all player data
@@ -356,6 +357,29 @@ public class LevelingSystem {
     }
 
     /**
+     * Get a player's average level across all professions.
+     * Used for leveling integration features like bonus claim slots.
+     *
+     * @param playerId The player's UUID
+     * @return The average level (minimum 1)
+     */
+    public int getAverageLevel(@Nonnull UUID playerId) {
+        var data = playerData.get(playerId);
+        if (data == null) return 1;
+
+        int total = 0;
+        int count = 0;
+        for (ProfessionType profession : ProfessionType.values()) {
+            if (config.isProfessionEnabled(profession)) {
+                total += data.getLevel(profession);
+                count++;
+            }
+        }
+
+        return count > 0 ? total / count : 1;
+    }
+
+    /**
      * Set a player's level in a profession (admin command).
      */
     public void setLevel(@Nonnull UUID playerId, @Nonnull ProfessionType profession, int level) {
@@ -463,36 +487,42 @@ public class LevelingSystem {
     public void applyDeathPenalty(@Nonnull UUID playerId) {
         var data = playerData.get(playerId);
         if (data == null) {
-            logger.at(Level.FINE).log("Cannot apply death penalty - player %s not initialized", playerId);
+            logger.at(Level.FINE).log("[DeathPenalty] Cannot apply - player %s not initialized", playerId);
             return;
         }
 
         List<DeathPenaltyEvent.ProfessionPenalty> penalties;
 
+        // Collect eligible professions first (read-only, no sync needed)
+        List<ProfessionType> eligibleProfessions = new ArrayList<>();
+        for (ProfessionType profession : ProfessionType.values()) {
+            if (!config.isProfessionEnabled(profession)) {
+                continue;
+            }
+            var profData = data.getProfession(profession);
+            if (profData != null && profData.getCurrentXp() > 0) {
+                eligibleProfessions.add(profession);
+                logger.at(Level.FINE).log("[DeathPenalty] %s eligible: level %d, currentXp %d",
+                    profession.getDisplayName(), profData.getLevel(), profData.getCurrentXp());
+            }
+        }
+
+        // If no professions have XP to lose, no penalty
+        if (eligibleProfessions.isEmpty()) {
+            logger.at(Level.FINE).log("[DeathPenalty] Player %s has no XP to lose (all professions at 0 currentXp)", playerId);
+            return;
+        }
+
+        logger.at(Level.FINE).log("[DeathPenalty] Player %s has %d eligible professions",
+            playerId, eligibleProfessions.size());
+
+        // Shuffle OUTSIDE synchronized block - ThreadLocalRandom is thread-safe for its own thread
+        Collections.shuffle(eligibleProfessions, ThreadLocalRandom.current());
+        int count = Math.min(2, eligibleProfessions.size());
+
         // Synchronize the read-modify-write sequence to prevent race conditions
         // when death penalty is applied concurrently with XP awards
         synchronized (data) {
-            // Get all professions with XP to lose (level > 1 or has current XP)
-            List<ProfessionType> eligibleProfessions = new ArrayList<>();
-            for (ProfessionType profession : ProfessionType.values()) {
-                if (!config.isProfessionEnabled(profession)) {
-                    continue;
-                }
-                var profData = data.getProfession(profession);
-                if (profData != null && profData.getCurrentXp() > 0) {
-                    eligibleProfessions.add(profession);
-                }
-            }
-
-            // If no professions have XP to lose, no penalty
-            if (eligibleProfessions.isEmpty()) {
-                logger.at(Level.FINE).log("Player %s has no XP to lose from death penalty", playerId);
-                return;
-            }
-
-            // Shuffle and pick up to 2 random professions using ThreadLocalRandom
-            Collections.shuffle(eligibleProfessions, ThreadLocalRandom.current());
-            int count = Math.min(2, eligibleProfessions.size());
 
             penalties = new ArrayList<>();
 
@@ -524,7 +554,7 @@ public class LevelingSystem {
                     xpAfter
                 ));
 
-                logger.at(Level.FINE).log("Death penalty: Player %s lost %d XP in %s (level %d: %d -> %d)",
+                logger.at(Level.FINE).log("[DeathPenalty] Player %s lost %d XP in %s (level %d: %d -> %d)",
                     playerId, xpToLose, profession.getDisplayName(), profData.getLevel(), xpBefore, xpAfter);
             }
 

@@ -4,6 +4,7 @@ import com.hypixel.hytale.component.ComponentRegistryProxy;
 import com.hypixel.hytale.logger.HytaleLogger;
 import com.hypixel.hytale.event.EventRegistry;
 import com.hypixel.hytale.server.core.command.system.CommandRegistry;
+import com.hypixel.hytale.server.core.universe.world.storage.ChunkStore;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 import com.livinglands.core.ModuleManager;
 import com.livinglands.core.PlayerRegistry;
@@ -25,7 +26,8 @@ import java.util.Optional;
  * @param pluginDirectory     Root plugin data directory (LivingLands/)
  * @param eventRegistry       Hytale event registry for listener registration
  * @param commandRegistry     Hytale command registry for command registration
- * @param entityStoreRegistry Hytale ECS registry for system registration
+ * @param entityStoreRegistry Hytale ECS registry for entity system registration
+ * @param chunkStoreRegistry  Hytale ECS registry for chunk system registration
  * @param playerRegistry      Shared player session registry
  * @param moduleManager       Module manager for inter-module access
  */
@@ -35,6 +37,7 @@ public record ModuleContext(
         @Nonnull EventRegistry eventRegistry,
         @Nonnull CommandRegistry commandRegistry,
         @Nonnull ComponentRegistryProxy<EntityStore> entityStoreRegistry,
+        @Nonnull ComponentRegistryProxy<ChunkStore> chunkStoreRegistry,
         @Nonnull PlayerRegistry playerRegistry,
         @Nonnull ModuleManager moduleManager
 ) {

@@ -1,7 +1,6 @@
-# Claude Code - DO NOT COMMIT
+# Claude Code
 .claude/
 .claude-plugin/
-CLAUDE.md
 
 # Gradle
 .gradle/
