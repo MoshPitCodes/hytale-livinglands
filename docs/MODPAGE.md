@@ -220,12 +220,10 @@ The metabolism module has extensive configuration options:
 
 | Command | Description |
 |---------|-------------|
-| `/claims create` | Create a new claim at your location |
-| `/claims delete` | Delete your current claim |
-| `/claims trust <player>` | Allow a player to build in your claim |
-| `/claims untrust <player>` | Remove a player's build access |
-| `/claims flags` | Toggle claim protection flags |
-| `/claims info` | View information about the claim you're standing in |
+| `/ll settings` | Open the settings panel with Claims tab to create/manage claims |
+| `/ll unclaim` | Remove your claim at current location |
+| `/ll trust <player>` | Allow a player to build in your claim |
+| `/ll untrust <player>` | Remove a player's build access |
 
 ### Admin Commands (OP Required)
 

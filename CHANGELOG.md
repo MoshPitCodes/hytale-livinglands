@@ -17,14 +17,12 @@ Full land claiming system for protecting player builds:
 - **NPC Protection** - Hostile NPCs automatically despawn in protected claims (configurable)
 
 #### New Commands
-- `/claims create` - Create a new claim at your location
-- `/claims delete` - Delete your current claim
-- `/claims trust <player>` - Allow a player to build in your claim
-- `/claims untrust <player>` - Remove a player's access to your claim
-- `/claims flags` - Toggle claim protection flags
+- `/ll settings` - Open settings panel with Claims tab for claim management
+- `/ll unclaim` - Remove your claim at current location
+- `/ll trust <player>` - Allow a player to build in your claim
+- `/ll untrust <player>` - Remove a player's access to your claim
 - `/ll buffs` - View active metabolism buffs
 - `/ll debuffs` - View active metabolism debuffs
-- `/ll settings` - View/modify HUD settings
 - `/ll stats` - View detailed metabolism statistics
 
 #### Centralized Notification System

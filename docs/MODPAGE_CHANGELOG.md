@@ -21,14 +21,12 @@ Protect your builds with the new claiming system:
 #### New Commands
 | Command | Description |
 |---------|-------------|
-| `/claims create` | Create a new claim |
-| `/claims delete` | Delete your current claim |
-| `/claims trust <player>` | Allow a player to build |
-| `/claims untrust <player>` | Remove building access |
-| `/claims flags` | Toggle protection settings |
+| `/ll settings` | Open settings panel with Claims tab |
+| `/ll unclaim` | Remove your claim at current location |
+| `/ll trust <player>` | Allow a player to build |
+| `/ll untrust <player>` | Remove building access |
 | `/ll buffs` | View your active buffs |
 | `/ll debuffs` | View your active debuffs |
-| `/ll settings` | Customize your HUD |
 | `/ll stats` | View detailed statistics |
 
 #### HUD Customization
